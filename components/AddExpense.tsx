@@ -20,8 +20,8 @@ interface AddExpenseProps {
 }
 
 const AddExpense: React.FC<AddExpenseProps> = ({ onSave, onCancel }) => {
-  const [amount, setAmount] = useState("24.50");
-  const [description, setDescription] = useState("Lunch with colleagues");
+  const [amount, setAmount] = useState("");
+  const [description, setDescription] = useState("");
   const [budgetCategory, setBudgetCategory] = useState<BudgetCategory>("Needs");
   const [category, setCategory] = useState<string>("");
   const [date, setDate] = useState(new Date());

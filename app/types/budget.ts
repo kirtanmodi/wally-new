@@ -8,7 +8,7 @@ export interface Expense {
   amount: number;
   category: BudgetCategory;
   subcategory: ExpenseCategory | string;
-  date: Date;
+  date: Date | string;
   icon: string;
 }
 

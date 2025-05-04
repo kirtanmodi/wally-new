@@ -6,11 +6,10 @@ import BudgetOverview from "../components/BudgetOverview";
 import BudgetSettings from "../components/BudgetSettings";
 import ExpensesList from "../components/ExpensesList";
 import WelcomeScreen from "../components/WelcomeScreen";
-import { resetBudget, selectMonthlyIncome } from "../redux/slices/budgetSlice";
+import { selectMonthlyIncome } from "../redux/slices/budgetSlice";
 import {
   addExpense,
   clearSampleExpenses,
-  resetExpenses,
   selectExpenses,
   selectIsFirstTimeUser,
   selectOnboarded,
@@ -26,7 +25,7 @@ interface SaveExpenseData {
   description: string;
   budgetCategory: BudgetCategory;
   category: ExpenseCategory | string;
-  date: Date;
+  date: Date | string;
 }
 
 const BudgetScreen: React.FC = () => {
@@ -49,10 +48,10 @@ const BudgetScreen: React.FC = () => {
 
   const [currentView, setCurrentView] = useState<ScreenView>(getInitialView());
 
-  useEffect(() => {
-    dispatch(resetExpenses());
-    dispatch(resetBudget());
-  }, []);
+  // useEffect(() => {
+  //   dispatch(resetExpenses());
+  //   dispatch(resetBudget());
+  // }, []);
 
   useEffect(() => {
     if (!isFirstTimeUser && monthlyIncome === 0 && onboarded && currentView === "expenses") {
@@ -80,7 +79,8 @@ const BudgetScreen: React.FC = () => {
       amount: expenseData.amount,
       category: expenseData.budgetCategory,
       subcategory: expenseData.category,
-      date: expenseData.date,
+      // Convert Date to string before dispatching the action
+      date: typeof expenseData.date === "string" ? expenseData.date : expenseData.date.toISOString(),
       // Add an appropriate icon based on category
       icon: getIconForCategory(expenseData.category),
     };

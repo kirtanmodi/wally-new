@@ -84,7 +84,9 @@ const AnimatedExpenseItem: React.FC<{
   index: number;
   getCategoryColor: (category: BudgetCategory) => string;
 }> = ({ item, index, getCategoryColor }) => {
-  const formattedDate = item.date instanceof Date ? item.date.toLocaleDateString() : new Date(item.date).toLocaleDateString();
+  // Handle date formatting whether it's a Date object or string
+  const formattedDate = typeof item.date === "string" ? new Date(item.date).toLocaleDateString() : item.date.toLocaleDateString();
+
   const itemFade = useRef(new Animated.Value(0)).current;
   const itemSlide = useRef(new Animated.Value(20)).current;
   const currency = useSelector(selectCurrency);
@@ -424,7 +426,7 @@ const styles = StyleSheet.create({
     paddingRight: responsivePadding(16),
   },
   categoryCard: {
-    width: wp(75),
+    width: wp(55),
     borderRadius: 20,
     padding: responsivePadding(16),
     marginRight: responsiveMargin(16),
