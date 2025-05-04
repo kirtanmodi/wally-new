@@ -45,6 +45,23 @@ export const budgetSlice = createSlice({
   name: "budget",
   initialState,
   reducers: {
+    resetBudget: (state) => {
+      state.monthlyIncome = 0;
+      state.budgetRule = {
+        needs: 50,
+        savings: 30,
+        wants: 20,
+      };
+      state.categories = [
+        { id: "housing", name: "Housing", icon: "🏠", type: "Needs" },
+        { id: "groceries", name: "Groceries", icon: "🛒", type: "Needs" },
+        { id: "transportation", name: "Transportation", icon: "🚗", type: "Needs" },
+        { id: "emergency", name: "Emergency Fund", icon: "💰", type: "Savings" },
+        { id: "investments", name: "Investments", icon: "📈", type: "Savings" },
+        { id: "entertainment", name: "Entertainment", icon: "🎬", type: "Wants" },
+        { id: "dining", name: "Dining Out", icon: "🍽️", type: "Wants" },
+      ];
+    },
     setMonthlyIncome: (state, action: PayloadAction<number>) => {
       state.monthlyIncome = action.payload;
     },
@@ -86,7 +103,7 @@ export const budgetSlice = createSlice({
 });
 
 // Export actions
-export const { setMonthlyIncome, updateBudgetRule, addCategory, updateCategory, deleteCategory } = budgetSlice.actions;
+export const { setMonthlyIncome, updateBudgetRule, addCategory, updateCategory, deleteCategory, resetBudget } = budgetSlice.actions;
 
 // Export selectors
 export const selectBudget = (state: RootState) => state.budget;

@@ -21,6 +21,7 @@ const ExpensesList: React.FC<ExpensesListProps> = ({ expenses = [], onAddExpense
 
   // Get budget data from Redux
   const monthlyIncome = useSelector(selectMonthlyIncome);
+  console.log("test", monthlyIncome);
   const budgetRule = useSelector(selectBudgetRule);
 
   // Calculate category summaries based on expenses

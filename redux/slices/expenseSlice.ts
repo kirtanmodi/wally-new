@@ -41,6 +41,9 @@ export const expenseSlice = createSlice({
   name: "expenses",
   initialState,
   reducers: {
+    resetExpenses: (state) => {
+      state.expenses = [];
+    },
     addExpense: (state, action: PayloadAction<Expense>) => {
       state.expenses.unshift(action.payload);
     },
@@ -69,7 +72,7 @@ export const expenseSlice = createSlice({
 });
 
 // Export actions
-export const { addExpense, updateExpense, deleteExpense, clearSampleExpenses, setUserOnboarded } = expenseSlice.actions;
+export const { addExpense, updateExpense, deleteExpense, clearSampleExpenses, setUserOnboarded, resetExpenses } = expenseSlice.actions;
 
 // Export selectors
 export const selectExpenses = (state: RootState) => state.expenses.expenses;

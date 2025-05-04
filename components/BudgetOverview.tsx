@@ -14,7 +14,7 @@ interface BudgetOverviewProps {
   onOpenSettings?: () => void;
 }
 
-const BudgetOverview: React.FC<BudgetOverviewProps> = ({ monthlyIncome = 4000, onBackPress, onOpenSettings }) => {
+const BudgetOverview: React.FC<BudgetOverviewProps> = ({ monthlyIncome = 0, onBackPress, onOpenSettings }) => {
   const budgetRule = useSelector(selectBudgetRule);
   const needsCategories = useSelector((state: RootState) => selectCategoriesByType(state, "Needs"));
   const savingsCategories = useSelector((state: RootState) => selectCategoriesByType(state, "Savings"));
