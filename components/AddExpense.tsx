@@ -73,7 +73,7 @@ const AddExpense: React.FC<AddExpenseProps> = ({ onSave, onCancel }) => {
         <Text style={styles.sectionLabel}>Amount</Text>
         <View style={styles.amountInputContainer}>
           <Text style={styles.currencySymbol}>{getCurrencySymbol(currency)}</Text>
-          <TextInput style={styles.amountInput} value={amount} onChangeText={setAmount} keyboardType="decimal-pad" />
+          <TextInput style={styles.amountInput} value={amount} onChangeText={setAmount} keyboardType="decimal-pad" returnKeyType="done" />
         </View>
       </View>
 
@@ -85,6 +85,8 @@ const AddExpense: React.FC<AddExpenseProps> = ({ onSave, onCancel }) => {
           onChangeText={setDescription}
           placeholder="What was this expense for?"
           placeholderTextColor="#999"
+          returnKeyType="done"
+          blurOnSubmit={true}
         />
       </View>
 

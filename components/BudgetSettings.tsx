@@ -1,3 +1,4 @@
+import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect, useState } from "react";
 import { Alert, Animated, FlatList, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
@@ -79,11 +80,14 @@ const BudgetSettings: React.FC<BudgetSettingsProps> = ({ onBackPress }) => {
   // Error state
   const [percentageError, setPercentageError] = useState(false);
 
+  // Add animation values for micro-interactions
+  const [pulseAnim] = useState(new Animated.Value(1));
+
   useEffect(() => {
     validatePercentages();
 
-    // Entrance animation
-    Animated.parallel([
+    // Enhanced entrance animation with sequence
+    Animated.sequence([
       Animated.timing(fadeAnim, {
         toValue: 1,
         duration: 400,
@@ -91,7 +95,7 @@ const BudgetSettings: React.FC<BudgetSettingsProps> = ({ onBackPress }) => {
       }),
       Animated.timing(slideAnim, {
         toValue: 0,
-        duration: 400,
+        duration: 300,
         useNativeDriver: true,
       }),
     ]).start();
@@ -229,6 +233,32 @@ const BudgetSettings: React.FC<BudgetSettingsProps> = ({ onBackPress }) => {
     );
   };
 
+  // Create a pulsing animation function for buttons
+  const animatePulse = () => {
+    Animated.sequence([
+      Animated.timing(pulseAnim, {
+        toValue: 1.05,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+      Animated.timing(pulseAnim, {
+        toValue: 1,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  };
+
+  const handleAddCategoryWithAnimation = () => {
+    animatePulse();
+    setShowAddCategory(true);
+  };
+
+  const handleShowCurrencyWithAnimation = () => {
+    animatePulse();
+    setShowCurrencyModal(true);
+  };
+
   return (
     <Animated.View
       style={[
@@ -239,12 +269,12 @@ const BudgetSettings: React.FC<BudgetSettingsProps> = ({ onBackPress }) => {
         },
       ]}
     >
-      <View style={styles.header}>
+      <LinearGradient colors={["#FFFFFF", "#F8F9FA"]} style={styles.header}>
         <TouchableOpacity style={styles.backButtonContainer} onPress={onBackPress} activeOpacity={0.7}>
           <Text style={styles.backButton}>←</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Budget Settings</Text>
-      </View>
+      </LinearGradient>
 
       <KeyboardAwareView style={styles.scrollView} keyboardVerticalOffset={20}>
         <View style={styles.welcomeContainer}>
@@ -254,9 +284,11 @@ const BudgetSettings: React.FC<BudgetSettingsProps> = ({ onBackPress }) => {
         <View style={styles.section}>
           <View style={styles.sectionTitleRow}>
             <Text style={styles.sectionTitle}>Monthly Income</Text>
-            <TouchableOpacity style={styles.currencyButton} onPress={() => setShowCurrencyModal(true)} activeOpacity={0.7}>
-              <Text style={styles.currencyButtonText}>{currency?.code || "USD"}</Text>
-            </TouchableOpacity>
+            <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
+              <TouchableOpacity style={styles.currencyButton} onPress={handleShowCurrencyWithAnimation} activeOpacity={0.7}>
+                <Text style={styles.currencyButtonText}>{currency?.code || "USD"}</Text>
+              </TouchableOpacity>
+            </Animated.View>
           </View>
           <View style={styles.inputContainer}>
             <Text style={styles.dollarSign}>{currency ? getCurrencySymbol(currency) : "$"}</Text>
@@ -265,6 +297,7 @@ const BudgetSettings: React.FC<BudgetSettingsProps> = ({ onBackPress }) => {
               value={incomeInput}
               onChangeText={setIncomeInput}
               keyboardType="numeric"
+              returnKeyType="done"
               placeholder="Enter your monthly income"
               onBlur={handleSaveIncome}
             />
@@ -277,39 +310,42 @@ const BudgetSettings: React.FC<BudgetSettingsProps> = ({ onBackPress }) => {
 
           <View style={styles.budgetRuleContainer}>
             <View style={styles.budgetItemContainer}>
-              <View style={[styles.budgetColorIndicator, { backgroundColor: BudgetColors.needs }]} />
+              <LinearGradient colors={["#5BD990", "#3DB26E"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.budgetColorIndicator} />
               <Text style={styles.budgetItemLabel}>Needs</Text>
               <TextInput
                 style={[styles.percentageInput, percentageError && styles.errorInput]}
                 value={needsInput}
                 onChangeText={setNeedsInput}
                 keyboardType="numeric"
+                returnKeyType="done"
                 onBlur={handleSaveBudgetRule}
               />
               <Text style={styles.percentSign}>%</Text>
             </View>
 
             <View style={styles.budgetItemContainer}>
-              <View style={[styles.budgetColorIndicator, { backgroundColor: BudgetColors.savings }]} />
+              <LinearGradient colors={["#FFBA6E", "#FF9C36"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.budgetColorIndicator} />
               <Text style={styles.budgetItemLabel}>Savings</Text>
               <TextInput
                 style={[styles.percentageInput, percentageError && styles.errorInput]}
                 value={savingsInput}
                 onChangeText={setSavingsInput}
                 keyboardType="numeric"
+                returnKeyType="done"
                 onBlur={handleSaveBudgetRule}
               />
               <Text style={styles.percentSign}>%</Text>
             </View>
 
             <View style={styles.budgetItemContainer}>
-              <View style={[styles.budgetColorIndicator, { backgroundColor: BudgetColors.wants }]} />
+              <LinearGradient colors={["#837BFF", "#605BFF"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.budgetColorIndicator} />
               <Text style={styles.budgetItemLabel}>Wants</Text>
               <TextInput
                 style={[styles.percentageInput, percentageError && styles.errorInput]}
                 value={wantsInput}
                 onChangeText={setWantsInput}
                 keyboardType="numeric"
+                returnKeyType="done"
                 onBlur={handleSaveBudgetRule}
               />
               <Text style={styles.percentSign}>%</Text>
@@ -322,9 +358,13 @@ const BudgetSettings: React.FC<BudgetSettingsProps> = ({ onBackPress }) => {
         <View style={styles.section}>
           <View style={styles.sectionTitleRow}>
             <Text style={styles.sectionTitle}>Expense Categories</Text>
-            <TouchableOpacity style={styles.addButton} onPress={() => setShowAddCategory(true)} activeOpacity={0.7}>
-              <Text style={styles.addButtonText}>+ Add New</Text>
-            </TouchableOpacity>
+            <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
+              <TouchableOpacity style={styles.addButton} onPress={handleAddCategoryWithAnimation} activeOpacity={0.7}>
+                <LinearGradient colors={["#5BD990", "#3DB26E"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.addButtonGradient}>
+                  <Text style={styles.addButtonText}>+ Add New</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            </Animated.View>
           </View>
 
           <FlatList
@@ -339,28 +379,32 @@ const BudgetSettings: React.FC<BudgetSettingsProps> = ({ onBackPress }) => {
       </KeyboardAwareView>
 
       {/* Add Category Modal */}
-      <Modal visible={showAddCategory} animationType="slide" transparent={true} onRequestClose={() => setShowAddCategory(false)}>
+      <Modal visible={showAddCategory} animationType="fade" transparent={true} onRequestClose={() => setShowAddCategory(false)}>
         <View style={styles.modalOverlay}>
-          <KeyboardAwareView style={{ flex: 1 }} scrollEnabled={false} keyboardVerticalOffset={10} behavior="padding" isModal={true}>
-            <View style={styles.modalContent}>
-              <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Add New Category</Text>
-                <TouchableOpacity onPress={() => setShowAddCategory(false)}>
-                  <Text style={styles.closeButton}>✕</Text>
-                </TouchableOpacity>
-              </View>
+          <View style={styles.modalContainerView}>
+            <View style={styles.modalHeaderView}>
+              <Text style={styles.modalTitleText}>Add New Category</Text>
+              <TouchableOpacity onPress={() => setShowAddCategory(false)} hitSlop={{ top: 20, right: 20, bottom: 20, left: 20 }}>
+                <Text style={styles.modalCloseText}>✕</Text>
+              </TouchableOpacity>
+            </View>
 
-              <View style={styles.modalForm}>
-                <Text style={styles.modalLabel}>Category Name</Text>
+            <ScrollView style={styles.modalScrollView} contentContainerStyle={styles.modalScrollContent}>
+              <View style={styles.formGroup}>
+                <Text style={styles.formLabel}>Category Name</Text>
                 <TextInput
-                  style={styles.modalInput}
+                  style={styles.formInput}
                   value={newCategoryName}
                   onChangeText={setNewCategoryName}
                   placeholder="e.g., Utilities, Education, etc."
+                  returnKeyType="done"
+                  blurOnSubmit={true}
                 />
+              </View>
 
-                <Text style={styles.modalLabel}>Select Icon</Text>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.iconSelector}>
+              <View style={styles.formGroup}>
+                <Text style={styles.formLabel}>Select Icon</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.iconList}>
                   {COMMON_ICONS.map((icon, index) => (
                     <TouchableOpacity
                       key={index}
@@ -371,8 +415,10 @@ const BudgetSettings: React.FC<BudgetSettingsProps> = ({ onBackPress }) => {
                     </TouchableOpacity>
                   ))}
                 </ScrollView>
+              </View>
 
-                <Text style={styles.modalLabel}>Category Type</Text>
+              <View style={styles.formGroup}>
+                <Text style={styles.formLabel}>Category Type</Text>
                 <View style={styles.typeSelector}>
                   {["Needs", "Savings", "Wants"].map((type) => (
                     <TouchableOpacity
@@ -401,47 +447,48 @@ const BudgetSettings: React.FC<BudgetSettingsProps> = ({ onBackPress }) => {
                     </TouchableOpacity>
                   ))}
                 </View>
-
-                <TouchableOpacity style={styles.saveButton} onPress={handleAddCategory}>
-                  <Text style={styles.saveButtonText}>Save Category</Text>
-                </TouchableOpacity>
               </View>
-            </View>
-          </KeyboardAwareView>
+
+              <TouchableOpacity style={styles.saveButtonContainer} onPress={handleAddCategory} activeOpacity={0.8}>
+                <LinearGradient colors={["#5BD990", "#3DB26E"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.saveButton}>
+                  <Text style={styles.saveButtonText}>Save Category</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            </ScrollView>
+          </View>
         </View>
       </Modal>
 
       {/* Currency Selection Modal */}
-      <Modal visible={showCurrencyModal} animationType="slide" transparent={true} onRequestClose={() => setShowCurrencyModal(false)}>
+      <Modal visible={showCurrencyModal} animationType="fade" transparent={true} onRequestClose={() => setShowCurrencyModal(false)}>
         <View style={styles.modalOverlay}>
-          <KeyboardAwareView style={{ flex: 1 }} scrollEnabled={false} keyboardVerticalOffset={10} behavior="padding" isModal={true}>
-            <View style={styles.modalContent}>
-              <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Select Currency</Text>
-                <TouchableOpacity onPress={() => setShowCurrencyModal(false)}>
-                  <Text style={styles.closeButton}>✕</Text>
-                </TouchableOpacity>
-              </View>
-
-              <FlatList
-                data={AVAILABLE_CURRENCIES}
-                keyExtractor={(item) => item.code}
-                renderItem={({ item }) => (
-                  <TouchableOpacity
-                    style={[styles.currencyItem, currency?.code === item.code ? styles.selectedCurrencyItem : null]}
-                    onPress={() => handleSelectCurrency(item)}
-                  >
-                    <View style={styles.currencyItemLeft}>
-                      <Text style={styles.currencySymbol}>{item.symbol}</Text>
-                      <Text style={styles.currencyName}>{item.name}</Text>
-                    </View>
-                    <Text style={styles.currencyCode}>{item.code}</Text>
-                  </TouchableOpacity>
-                )}
-                ItemSeparatorComponent={() => <View style={styles.separator} />}
-              />
+          <View style={styles.modalContainerView}>
+            <View style={styles.modalHeaderView}>
+              <Text style={styles.modalTitleText}>Select Currency</Text>
+              <TouchableOpacity onPress={() => setShowCurrencyModal(false)} hitSlop={{ top: 20, right: 20, bottom: 20, left: 20 }}>
+                <Text style={styles.modalCloseText}>✕</Text>
+              </TouchableOpacity>
             </View>
-          </KeyboardAwareView>
+
+            <FlatList
+              data={AVAILABLE_CURRENCIES}
+              keyExtractor={(item) => item.code}
+              style={styles.currencyList}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={[styles.currencyItem, currency?.code === item.code ? styles.selectedCurrencyItem : null]}
+                  onPress={() => handleSelectCurrency(item)}
+                >
+                  <View style={styles.currencyItemLeft}>
+                    <Text style={styles.currencySymbol}>{item.symbol}</Text>
+                    <Text style={styles.currencyName}>{item.name}</Text>
+                  </View>
+                  <Text style={styles.currencyCode}>{item.code}</Text>
+                </TouchableOpacity>
+              )}
+              ItemSeparatorComponent={() => <View style={styles.separator} />}
+            />
+          </View>
         </View>
       </Modal>
     </Animated.View>
@@ -458,85 +505,86 @@ const styles = StyleSheet.create({
     alignItems: "center",
     padding: responsivePadding(16),
     borderBottomWidth: 1,
-    borderBottomColor: "#EAEAEA",
-    backgroundColor: "#FFFFFF",
-    elevation: 2,
+    borderBottomColor: "#F2F2F2",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.08,
     shadowRadius: 2,
+    elevation: 2,
   },
   backButtonContainer: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#F0F0F0",
-    marginRight: responsiveMargin(10),
+    backgroundColor: "#F6F6F6",
+    marginRight: responsiveMargin(12),
   },
   backButton: {
     fontSize: scaleFontSize(20),
     color: "#333",
   },
   headerTitle: {
-    fontSize: scaleFontSize(20),
+    fontSize: scaleFontSize(22),
     fontWeight: "600",
     color: "#333",
     letterSpacing: 0.5,
   },
   welcomeContainer: {
     paddingHorizontal: responsivePadding(16),
-    paddingTop: responsivePadding(16),
+    paddingTop: responsivePadding(20),
   },
   welcomeText: {
     fontSize: scaleFontSize(16),
     color: "#666",
     lineHeight: 24,
     marginBottom: responsiveMargin(8),
+    letterSpacing: 0.2,
   },
   scrollView: {
     flex: 1,
   },
   section: {
-    padding: responsivePadding(20),
+    padding: responsivePadding(24),
     backgroundColor: "#FFF",
-    marginBottom: responsiveMargin(16),
-    borderRadius: 16,
+    marginBottom: responsiveMargin(20),
+    borderRadius: 20,
     marginHorizontal: responsiveMargin(16),
-    elevation: 1,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
-    shadowRadius: 2,
+    shadowRadius: 8,
+    elevation: 2,
   },
   sectionTitle: {
-    fontSize: scaleFontSize(18),
+    fontSize: scaleFontSize(20),
     fontWeight: "600",
-    marginBottom: responsiveMargin(12),
+    marginBottom: responsiveMargin(14),
     color: "#333",
     letterSpacing: 0.3,
   },
   sectionDescription: {
-    fontSize: scaleFontSize(14),
+    fontSize: scaleFontSize(15),
     color: "#666",
-    marginBottom: responsiveMargin(16),
+    marginBottom: responsiveMargin(18),
     lineHeight: 20,
+    letterSpacing: 0.2,
   },
   inputContainer: {
     flexDirection: "row",
     alignItems: "center",
     borderWidth: 1,
     borderColor: "#E6E6E6",
-    borderRadius: 12,
-    paddingHorizontal: responsivePadding(12),
-    height: 50,
+    borderRadius: 16,
+    paddingHorizontal: responsivePadding(14),
+    height: 56,
     backgroundColor: "#FCFCFC",
   },
   dollarSign: {
     fontSize: scaleFontSize(20),
     color: "#333",
-    marginRight: responsiveMargin(4),
+    marginRight: responsiveMargin(6),
   },
   incomeInput: {
     flex: 1,
@@ -545,38 +593,39 @@ const styles = StyleSheet.create({
     height: "100%",
   },
   budgetRuleContainer: {
-    marginTop: responsiveMargin(8),
+    marginTop: responsiveMargin(10),
   },
   budgetItemContainer: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: responsiveMargin(16),
+    marginBottom: responsiveMargin(20),
   },
   budgetColorIndicator: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    marginRight: responsiveMargin(12),
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    marginRight: responsiveMargin(14),
   },
   budgetItemLabel: {
     flex: 1,
-    fontSize: scaleFontSize(16),
+    fontSize: scaleFontSize(17),
     color: "#333",
+    letterSpacing: 0.2,
   },
   percentageInput: {
-    width: 60,
-    height: 40,
+    width: 70,
+    height: 48,
     borderWidth: 1,
     borderColor: "#E6E6E6",
-    borderRadius: 10,
-    paddingHorizontal: responsivePadding(8),
+    borderRadius: 14,
+    paddingHorizontal: responsivePadding(10),
     textAlign: "center",
-    fontSize: scaleFontSize(16),
+    fontSize: scaleFontSize(18),
     marginRight: responsiveMargin(4),
     backgroundColor: "#FCFCFC",
   },
   percentSign: {
-    fontSize: scaleFontSize(16),
+    fontSize: scaleFontSize(18),
     color: "#333",
   },
   errorInput: {
@@ -586,6 +635,7 @@ const styles = StyleSheet.create({
     color: AdditionalColors.error,
     fontSize: scaleFontSize(14),
     marginTop: responsiveMargin(4),
+    fontWeight: "500",
   },
   sectionTitleRow: {
     flexDirection: "row",
@@ -594,133 +644,156 @@ const styles = StyleSheet.create({
     marginBottom: responsiveMargin(16),
   },
   addButton: {
-    paddingHorizontal: responsivePadding(12),
+    borderRadius: 20,
+    overflow: "hidden",
+  },
+  addButtonGradient: {
+    paddingHorizontal: responsivePadding(16),
     paddingVertical: responsivePadding(8),
-    backgroundColor: `${BudgetColors.needs}30`,
     borderRadius: 20,
   },
   addButtonText: {
-    color: BudgetColors.needs,
+    color: "#FFF",
     fontSize: scaleFontSize(14),
     fontWeight: "600",
+    letterSpacing: 0.2,
   },
   categoryItem: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingVertical: responsivePadding(12),
+    paddingVertical: responsivePadding(16),
   },
   iconContainer: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: "#F5F5F5",
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "#F8F8F8",
     justifyContent: "center",
     alignItems: "center",
-    marginRight: responsiveMargin(12),
+    marginRight: responsiveMargin(14),
   },
   categoryLeft: {
     flexDirection: "row",
     alignItems: "center",
   },
   categoryIcon: {
-    fontSize: scaleFontSize(18),
+    fontSize: scaleFontSize(20),
   },
   categoryName: {
     fontSize: scaleFontSize(16),
     color: "#333",
+    letterSpacing: 0.2,
   },
   categoryRight: {
     flexDirection: "row",
     alignItems: "center",
   },
   categoryTypeBadge: {
-    paddingHorizontal: responsivePadding(10),
+    paddingHorizontal: responsivePadding(12),
     paddingVertical: responsivePadding(6),
-    borderRadius: 12,
-    marginRight: responsiveMargin(8),
+    borderRadius: 14,
+    marginRight: responsiveMargin(10),
   },
   categoryType: {
-    fontSize: scaleFontSize(12),
+    fontSize: scaleFontSize(13),
     fontWeight: "500",
+    letterSpacing: 0.2,
   },
   deleteButton: {
     padding: responsivePadding(8),
-    borderRadius: 16,
+    borderRadius: 18,
   },
   deleteIcon: {
     fontSize: scaleFontSize(16),
   },
   separator: {
     height: 1,
-    backgroundColor: "#F0F0F0",
-    marginVertical: responsiveMargin(4),
+    backgroundColor: "#F5F5F5",
+    marginVertical: responsiveMargin(6),
   },
   emptyText: {
     color: "#999",
     textAlign: "center",
-    padding: responsivePadding(20),
+    padding: responsivePadding(24),
     fontStyle: "italic",
+    fontSize: scaleFontSize(15),
   },
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.5)",
-    justifyContent: "flex-end",
+    justifyContent: "center",
+    alignItems: "center",
   },
-  modalContent: {
+  modalContainerView: {
     backgroundColor: "#FFF",
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    padding: responsivePadding(20),
+    borderRadius: 16,
+    width: "90%",
     maxHeight: "80%",
-    marginTop: "auto",
+    overflow: "hidden",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 8,
   },
-  modalHeader: {
+  modalHeaderView: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: responsiveMargin(16),
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F0F0F0",
   },
-  modalTitle: {
+  modalTitleText: {
     fontSize: scaleFontSize(18),
     fontWeight: "600",
     color: "#333",
   },
-  closeButton: {
-    fontSize: scaleFontSize(20),
+  modalCloseText: {
+    fontSize: scaleFontSize(24),
     color: "#666",
+    padding: 4,
   },
-  modalForm: {
-    marginBottom: responsiveMargin(20),
+  modalScrollView: {
+    maxHeight: "100%",
   },
-  modalLabel: {
-    fontSize: scaleFontSize(14),
+  modalScrollContent: {
+    padding: 20,
+  },
+  formGroup: {
+    marginBottom: 20,
+  },
+  formLabel: {
+    fontSize: scaleFontSize(16),
     fontWeight: "500",
     color: "#333",
-    marginBottom: responsiveMargin(6),
+    marginBottom: 8,
   },
-  modalInput: {
+  formInput: {
     borderWidth: 1,
-    borderColor: "#DDD",
-    borderRadius: 8,
-    paddingHorizontal: responsivePadding(12),
-    paddingVertical: responsivePadding(10),
+    borderColor: "#E0E0E0",
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     fontSize: scaleFontSize(16),
-    marginBottom: responsiveMargin(16),
+    backgroundColor: "#FCFCFC",
   },
-  iconSelector: {
+  iconList: {
     flexDirection: "row",
-    marginBottom: responsiveMargin(16),
+    marginVertical: 10,
   },
   iconOption: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 46,
+    height: 46,
+    borderRadius: 23,
     justifyContent: "center",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#DDD",
-    marginRight: responsiveMargin(8),
+    borderColor: "#E6E6E6",
+    marginRight: 10,
+    backgroundColor: "#FCFCFC",
   },
   selectedIcon: {
     borderColor: BudgetColors.needs,
@@ -731,28 +804,34 @@ const styles = StyleSheet.create({
   },
   typeSelector: {
     flexDirection: "row",
-    marginBottom: responsiveMargin(20),
+    marginVertical: 10,
+    width: "100%",
   },
   typeOption: {
     flex: 1,
-    paddingVertical: responsivePadding(8),
-    marginHorizontal: responsiveMargin(4),
-    borderRadius: 8,
+    paddingVertical: 10,
+    marginHorizontal: 5,
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#DDD",
+    borderColor: "#E6E6E6",
     alignItems: "center",
+    backgroundColor: "#FCFCFC",
   },
   selectedType: {
     borderWidth: 1,
   },
   typeText: {
-    fontSize: scaleFontSize(14),
+    fontSize: scaleFontSize(15),
     color: "#666",
   },
+  saveButtonContainer: {
+    borderRadius: 14,
+    overflow: "hidden",
+    marginTop: 20,
+  },
   saveButton: {
-    backgroundColor: BudgetColors.needs,
-    padding: responsivePadding(12),
-    borderRadius: 8,
+    padding: 14,
+    borderRadius: 14,
     alignItems: "center",
   },
   saveButtonText: {
@@ -761,24 +840,26 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   currencyButton: {
-    paddingHorizontal: responsivePadding(12),
-    paddingVertical: responsivePadding(6),
-    backgroundColor: "#F0F0F0",
+    paddingHorizontal: responsivePadding(14),
+    paddingVertical: responsivePadding(8),
+    backgroundColor: "#F6F6F6",
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: "#E0E0E0",
+    borderColor: "#ECECEC",
   },
   currencyButtonText: {
     fontSize: scaleFontSize(14),
     fontWeight: "500",
     color: "#555",
+    letterSpacing: 0.2,
   },
   currencyItem: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingVertical: responsivePadding(12),
-    paddingHorizontal: responsivePadding(16),
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 14,
   },
   selectedCurrencyItem: {
     backgroundColor: `${BudgetColors.needs}15`,
@@ -789,18 +870,24 @@ const styles = StyleSheet.create({
   },
   currencySymbol: {
     fontSize: scaleFontSize(18),
-    marginRight: responsiveMargin(12),
+    marginRight: responsiveMargin(14),
     width: 24,
     textAlign: "center",
   },
   currencyName: {
     fontSize: scaleFontSize(16),
     color: "#333",
+    letterSpacing: 0.2,
   },
   currencyCode: {
     fontSize: scaleFontSize(14),
     color: "#666",
     fontWeight: "500",
+    letterSpacing: 0.2,
+  },
+  currencyList: {
+    width: "100%",
+    maxHeight: 350,
   },
 });
 
