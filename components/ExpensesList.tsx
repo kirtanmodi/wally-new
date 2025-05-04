@@ -350,9 +350,9 @@ const ExpensesList: React.FC<ExpensesListProps> = ({ expenses = [], onAddExpense
     >
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Expenses</Text>
-        <TouchableOpacity style={styles.menuButton} onPress={() => setShowMenu(!showMenu)} activeOpacity={0.7}>
+        {/* <TouchableOpacity style={styles.menuButton} onPress={() => setShowMenu(!showMenu)} activeOpacity={0.7}>
           <Text style={styles.menuIcon}>⋮</Text>
-        </TouchableOpacity>
+        </TouchableOpacity> */}
 
         {showMenu && (
           <View style={styles.menuDropdown}>
