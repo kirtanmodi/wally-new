@@ -5,6 +5,7 @@ import { FLUSH, PAUSE, PERSIST, persistReducer, persistStore, PURGE, REGISTER, R
 // Import reducers (will be created in next steps)
 import appReducer from "./slices/appSlice";
 import budgetReducer from "./slices/budgetSlice";
+import expenseReducer from "./slices/expenseSlice";
 import userReducer from "./slices/userSlice";
 
 // Configuration for redux-persist
@@ -13,7 +14,7 @@ const persistConfig = {
   version: 1,
   storage: AsyncStorage,
   // Whitelist (save specific reducers)
-  whitelist: ["user", "app", "budget"],
+  whitelist: ["user", "app", "budget", "expenses"],
   // Blacklist (don't save specific reducers)
   // blacklist: [],
 };
@@ -23,6 +24,7 @@ const rootReducer = combineReducers({
   user: userReducer,
   app: appReducer,
   budget: budgetReducer,
+  expenses: expenseReducer,
 });
 
 // Create persisted reducer

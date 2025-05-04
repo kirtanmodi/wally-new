@@ -5,6 +5,7 @@ import { BudgetColors } from "../app/constants/Colors";
 import { BudgetData } from "../app/types/budget";
 import { responsiveMargin, responsivePadding, scaleFontSize } from "../app/utils/responsive";
 import { selectBudgetRule, selectCategoriesByType } from "../redux/slices/budgetSlice";
+import { selectExpenses } from "../redux/slices/expenseSlice";
 import { RootState } from "../redux/types";
 
 interface BudgetOverviewProps {
@@ -18,6 +19,19 @@ const BudgetOverview: React.FC<BudgetOverviewProps> = ({ monthlyIncome = 4000, o
   const needsCategories = useSelector((state: RootState) => selectCategoriesByType(state, "Needs"));
   const savingsCategories = useSelector((state: RootState) => selectCategoriesByType(state, "Savings"));
   const wantsCategories = useSelector((state: RootState) => selectCategoriesByType(state, "Wants"));
+  const expenses = useSelector(selectExpenses);
+
+  // Calculate spending by category
+  const calculateSpentBySubcategory = (subcategory: string) => {
+    return expenses.filter((expense) => expense.subcategory === subcategory).reduce((total, expense) => total + expense.amount, 0);
+  };
+
+  // Calculate total spent by budget category
+  const needsSpent = expenses.filter((expense) => expense.category === "Needs").reduce((total, expense) => total + expense.amount, 0);
+
+  const savingsSpent = expenses.filter((expense) => expense.category === "Savings").reduce((total, expense) => total + expense.amount, 0);
+
+  const wantsSpent = expenses.filter((expense) => expense.category === "Wants").reduce((total, expense) => total + expense.amount, 0);
 
   // Calculate budget amounts based on the user's budget rule
   const budgetData: BudgetData = {
@@ -25,17 +39,17 @@ const BudgetOverview: React.FC<BudgetOverviewProps> = ({ monthlyIncome = 4000, o
     needs: {
       percentage: budgetRule.needs,
       amount: monthlyIncome * (budgetRule.needs / 100),
-      spent: 1435, // This would be calculated from actual expenses in a real app
+      spent: needsSpent,
     },
     savings: {
       percentage: budgetRule.savings,
       amount: monthlyIncome * (budgetRule.savings / 100),
-      spent: 1000, // This would be calculated from actual expenses in a real app
+      spent: savingsSpent,
     },
     wants: {
       percentage: budgetRule.wants,
       amount: monthlyIncome * (budgetRule.wants / 100),
-      spent: 520, // This would be calculated from actual expenses in a real app
+      spent: wantsSpent,
     },
   };
 
@@ -64,30 +78,75 @@ const BudgetOverview: React.FC<BudgetOverviewProps> = ({ monthlyIncome = 4000, o
             <View style={styles.budgetItemLeft}>
               <Text style={styles.budgetItemLabel}>Needs ({budgetRule.needs}%)</Text>
               <View style={[styles.progressBar, { backgroundColor: BudgetColors.needs + "30" }]}>
-                <View style={[styles.progress, { backgroundColor: BudgetColors.needs, width: "100%" }]} />
+                <View
+                  style={[
+                    styles.progress,
+                    {
+                      backgroundColor: BudgetColors.needs,
+                      width: `${Math.min(100, (budgetData.needs.spent / budgetData.needs.amount) * 100)}%`,
+                    },
+                  ]}
+                />
               </View>
             </View>
-            <Text style={styles.budgetItemAmount}>${budgetData.needs.amount.toLocaleString()}</Text>
+            <View style={styles.budgetItemRight}>
+              <Text style={styles.budgetItemAmount}>
+                ${budgetData.needs.spent.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </Text>
+              <Text style={styles.budgetItemTotal}>
+                of ${budgetData.needs.amount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+              </Text>
+            </View>
           </View>
 
           <View style={styles.budgetItem}>
             <View style={styles.budgetItemLeft}>
               <Text style={styles.budgetItemLabel}>Savings ({budgetRule.savings}%)</Text>
               <View style={[styles.progressBar, { backgroundColor: BudgetColors.savings + "30" }]}>
-                <View style={[styles.progress, { backgroundColor: BudgetColors.savings, width: "100%" }]} />
+                <View
+                  style={[
+                    styles.progress,
+                    {
+                      backgroundColor: BudgetColors.savings,
+                      width: `${Math.min(100, (budgetData.savings.spent / budgetData.savings.amount) * 100)}%`,
+                    },
+                  ]}
+                />
               </View>
             </View>
-            <Text style={styles.budgetItemAmount}>${budgetData.savings.amount.toLocaleString()}</Text>
+            <View style={styles.budgetItemRight}>
+              <Text style={styles.budgetItemAmount}>
+                ${budgetData.savings.spent.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </Text>
+              <Text style={styles.budgetItemTotal}>
+                of ${budgetData.savings.amount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+              </Text>
+            </View>
           </View>
 
           <View style={styles.budgetItem}>
             <View style={styles.budgetItemLeft}>
               <Text style={styles.budgetItemLabel}>Wants ({budgetRule.wants}%)</Text>
               <View style={[styles.progressBar, { backgroundColor: BudgetColors.wants + "30" }]}>
-                <View style={[styles.progress, { backgroundColor: BudgetColors.wants, width: "100%" }]} />
+                <View
+                  style={[
+                    styles.progress,
+                    {
+                      backgroundColor: BudgetColors.wants,
+                      width: `${Math.min(100, (budgetData.wants.spent / budgetData.wants.amount) * 100)}%`,
+                    },
+                  ]}
+                />
               </View>
             </View>
-            <Text style={styles.budgetItemAmount}>${budgetData.wants.amount.toLocaleString()}</Text>
+            <View style={styles.budgetItemRight}>
+              <Text style={styles.budgetItemAmount}>
+                ${budgetData.wants.spent.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </Text>
+              <Text style={styles.budgetItemTotal}>
+                of ${budgetData.wants.amount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+              </Text>
+            </View>
           </View>
         </View>
 
@@ -97,45 +156,60 @@ const BudgetOverview: React.FC<BudgetOverviewProps> = ({ monthlyIncome = 4000, o
           {needsCategories.length > 0 && (
             <>
               <Text style={styles.categoryGroupTitle}>Needs (Essential Expenses)</Text>
-              {needsCategories.map((category) => (
-                <View key={category.id} style={styles.categoryRow}>
-                  <View style={styles.categoryIconContainer}>
-                    <Text style={styles.categoryIcon}>{category.icon}</Text>
+              {needsCategories.map((category) => {
+                const spent = calculateSpentBySubcategory(category.name);
+                return (
+                  <View key={category.id} style={styles.categoryRow}>
+                    <View style={styles.categoryIconContainer}>
+                      <Text style={styles.categoryIcon}>{category.icon}</Text>
+                    </View>
+                    <Text style={styles.categoryName}>{category.name}</Text>
+                    <Text style={styles.categoryAmount}>
+                      ${spent.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </Text>
                   </View>
-                  <Text style={styles.categoryName}>{category.name}</Text>
-                  <Text style={styles.categoryAmount}>-</Text>
-                </View>
-              ))}
+                );
+              })}
             </>
           )}
 
           {savingsCategories.length > 0 && (
             <>
               <Text style={styles.categoryGroupTitle}>Savings</Text>
-              {savingsCategories.map((category) => (
-                <View key={category.id} style={styles.categoryRow}>
-                  <View style={styles.categoryIconContainer}>
-                    <Text style={styles.categoryIcon}>{category.icon}</Text>
+              {savingsCategories.map((category) => {
+                const spent = calculateSpentBySubcategory(category.name);
+                return (
+                  <View key={category.id} style={styles.categoryRow}>
+                    <View style={styles.categoryIconContainer}>
+                      <Text style={styles.categoryIcon}>{category.icon}</Text>
+                    </View>
+                    <Text style={styles.categoryName}>{category.name}</Text>
+                    <Text style={styles.categoryAmount}>
+                      ${spent.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </Text>
                   </View>
-                  <Text style={styles.categoryName}>{category.name}</Text>
-                  <Text style={styles.categoryAmount}>-</Text>
-                </View>
-              ))}
+                );
+              })}
             </>
           )}
 
           {wantsCategories.length > 0 && (
             <>
               <Text style={styles.categoryGroupTitle}>Wants (Non-Essential)</Text>
-              {wantsCategories.map((category) => (
-                <View key={category.id} style={styles.categoryRow}>
-                  <View style={styles.categoryIconContainer}>
-                    <Text style={styles.categoryIcon}>{category.icon}</Text>
+              {wantsCategories.map((category) => {
+                const spent = calculateSpentBySubcategory(category.name);
+                return (
+                  <View key={category.id} style={styles.categoryRow}>
+                    <View style={styles.categoryIconContainer}>
+                      <Text style={styles.categoryIcon}>{category.icon}</Text>
+                    </View>
+                    <Text style={styles.categoryName}>{category.name}</Text>
+                    <Text style={styles.categoryAmount}>
+                      ${spent.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </Text>
                   </View>
-                  <Text style={styles.categoryName}>{category.name}</Text>
-                  <Text style={styles.categoryAmount}>-</Text>
-                </View>
-              ))}
+                );
+              })}
             </>
           )}
         </View>
@@ -210,12 +284,15 @@ const styles = StyleSheet.create({
   budgetItem: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "center",
+    alignItems: "flex-start",
     marginBottom: responsiveMargin(12),
   },
   budgetItemLeft: {
     flex: 1,
     marginRight: responsiveMargin(10),
+  },
+  budgetItemRight: {
+    alignItems: "flex-end",
   },
   budgetItemLabel: {
     fontSize: scaleFontSize(14),
@@ -225,9 +302,11 @@ const styles = StyleSheet.create({
   budgetItemAmount: {
     fontSize: scaleFontSize(16),
     fontWeight: "500",
-    width: 80,
-    textAlign: "right",
     color: "#333",
+  },
+  budgetItemTotal: {
+    fontSize: scaleFontSize(12),
+    color: "#999",
   },
   progressBar: {
     height: 8,

@@ -1,8 +1,10 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { useSelector } from "react-redux";
 import { BudgetColors } from "../app/constants/Colors";
 import { BudgetCategory, ExpenseCategory } from "../app/types/budget";
 import { responsiveMargin, responsivePadding, scaleFontSize } from "../app/utils/responsive";
+import { CategoryItem, selectCategories } from "../redux/slices/budgetSlice";
 
 interface AddExpenseProps {
   onSave?: (expenseData: {
@@ -19,8 +21,21 @@ const AddExpense: React.FC<AddExpenseProps> = ({ onSave, onCancel }) => {
   const [amount, setAmount] = useState("24.50");
   const [description, setDescription] = useState("Lunch with colleagues");
   const [budgetCategory, setBudgetCategory] = useState<BudgetCategory>("Needs");
-  const [category, setCategory] = useState<ExpenseCategory>("Food");
+  const [category, setCategory] = useState<string>("");
   const [date, setDate] = useState(new Date());
+
+  // Get categories from Redux
+  const allCategories = useSelector(selectCategories);
+
+  // Filter categories by budget type
+  const filteredCategories = allCategories.filter((cat) => cat.type === budgetCategory);
+
+  // Set default category when budget category changes
+  useEffect(() => {
+    if (filteredCategories.length > 0) {
+      setCategory(filteredCategories[0].name);
+    }
+  }, [budgetCategory, filteredCategories]);
 
   const formatDate = (date: Date): string => {
     return date.toLocaleDateString("en-US", {
@@ -41,15 +56,6 @@ const AddExpense: React.FC<AddExpenseProps> = ({ onSave, onCancel }) => {
       });
     }
   };
-
-  const categoryOptions = [
-    { id: "food", label: "Food" as ExpenseCategory, icon: "🍔" },
-    { id: "clothing", label: "Clothing" as ExpenseCategory, icon: "👕" },
-    { id: "housing", label: "Housing" as ExpenseCategory, icon: "🏠" },
-    { id: "transport", label: "Transport" as ExpenseCategory, icon: "🚗" },
-    { id: "health", label: "Health" as ExpenseCategory, icon: "💊" },
-    { id: "other", label: "Other" as ExpenseCategory, icon: "⋯" },
-  ];
 
   return (
     <ScrollView style={styles.container}>
@@ -120,16 +126,20 @@ const AddExpense: React.FC<AddExpenseProps> = ({ onSave, onCancel }) => {
       <View style={styles.formSection}>
         <Text style={styles.sectionLabel}>Category</Text>
         <View style={styles.categoryGrid}>
-          {categoryOptions.map((option) => (
-            <TouchableOpacity
-              key={option.id}
-              style={[styles.categoryOption, category === option.label && styles.selectedCategory]}
-              onPress={() => setCategory(option.label)}
-            >
-              <Text style={styles.categoryIcon}>{option.icon}</Text>
-              <Text style={styles.categoryLabel}>{option.label}</Text>
-            </TouchableOpacity>
-          ))}
+          {filteredCategories.length > 0 ? (
+            filteredCategories.map((option: CategoryItem) => (
+              <TouchableOpacity
+                key={option.id}
+                style={[styles.categoryOption, category === option.name && styles.selectedCategory]}
+                onPress={() => setCategory(option.name)}
+              >
+                <Text style={styles.categoryIcon}>{option.icon}</Text>
+                <Text style={styles.categoryLabel}>{option.name}</Text>
+              </TouchableOpacity>
+            ))
+          ) : (
+            <Text style={styles.noCategoriesText}>No categories found for {budgetCategory}. Please add categories in settings.</Text>
+          )}
         </View>
       </View>
 
@@ -140,17 +150,7 @@ const AddExpense: React.FC<AddExpenseProps> = ({ onSave, onCancel }) => {
         </TouchableOpacity>
       </View>
 
-      <View style={styles.aiInsightContainer}>
-        <Text style={styles.aiInsightIcon}>💡</Text>
-        <View style={styles.aiInsightTextContainer}>
-          <Text style={styles.aiInsightTitle}>AI Insight</Text>
-          <Text style={styles.aiInsightText}>
-            This looks like dining out, which typically falls under your &quot;Wants&quot; category (20% of budget).
-          </Text>
-        </View>
-      </View>
-
-      <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
+      <TouchableOpacity style={[styles.saveButton, !category && styles.disabledButton]} onPress={handleSave} disabled={!category}>
         <Text style={styles.saveButtonText}>Save Expense</Text>
       </TouchableOpacity>
     </ScrollView>
@@ -250,48 +250,34 @@ const styles = StyleSheet.create({
   },
   categoryLabel: {
     fontSize: scaleFontSize(12),
+    textAlign: "center",
+  },
+  noCategoriesText: {
+    padding: responsivePadding(16),
+    color: "#999",
+    textAlign: "center",
+    width: "100%",
   },
   datePickerButton: {
-    backgroundColor: "white",
-    borderRadius: 8,
-    padding: responsivePadding(12),
     borderWidth: 1,
     borderColor: "#ddd",
+    borderRadius: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
   },
   dateText: {
     fontSize: scaleFontSize(16),
   },
-  aiInsightContainer: {
-    flexDirection: "row",
-    backgroundColor: "#f0f0f0",
-    borderRadius: 12,
-    padding: responsivePadding(16),
-    marginBottom: responsiveMargin(24),
-    marginTop: responsiveMargin(12),
-  },
-  aiInsightIcon: {
-    fontSize: scaleFontSize(24),
-    marginRight: responsiveMargin(12),
-  },
-  aiInsightTextContainer: {
-    flex: 1,
-  },
-  aiInsightTitle: {
-    fontSize: scaleFontSize(16),
-    fontWeight: "600",
-    marginBottom: 4,
-  },
-  aiInsightText: {
-    fontSize: scaleFontSize(14),
-    color: "#555",
-  },
   saveButton: {
     backgroundColor: BudgetColors.needs,
-    borderRadius: 12,
-    padding: responsivePadding(16),
+    paddingVertical: responsivePadding(16),
+    borderRadius: 8,
     alignItems: "center",
-    marginTop: responsiveMargin(8),
-    marginBottom: responsiveMargin(30),
+    marginTop: responsiveMargin(16),
+    marginBottom: responsiveMargin(32),
+  },
+  disabledButton: {
+    opacity: 0.6,
   },
   saveButtonText: {
     color: "white",
