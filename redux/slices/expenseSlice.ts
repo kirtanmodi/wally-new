@@ -28,12 +28,14 @@ import { RootState } from "../types";
 interface ExpenseState {
   expenses: Expense[];
   isFirstTimeUser: boolean;
+  onboarded: boolean;
 }
 
 // Define initial state
 const initialState: ExpenseState = {
   expenses: [],
   isFirstTimeUser: true,
+  onboarded: false,
 };
 
 // Create slice
@@ -43,6 +45,8 @@ export const expenseSlice = createSlice({
   reducers: {
     resetExpenses: (state) => {
       state.expenses = [];
+      state.onboarded = false;
+      state.isFirstTimeUser = true;
     },
     addExpense: (state, action: PayloadAction<Expense>) => {
       state.expenses.unshift(action.payload);
@@ -67,6 +71,7 @@ export const expenseSlice = createSlice({
     },
     setUserOnboarded: (state) => {
       state.isFirstTimeUser = false;
+      state.onboarded = true;
     },
   },
 });
@@ -78,6 +83,6 @@ export const { addExpense, updateExpense, deleteExpense, clearSampleExpenses, se
 export const selectExpenses = (state: RootState) => state.expenses.expenses;
 export const selectExpensesByCategory = (state: RootState, category: string) => state.expenses.expenses.filter((exp) => exp.category === category);
 export const selectIsFirstTimeUser = (state: RootState) => state.expenses.isFirstTimeUser;
-
+export const selectOnboarded = (state: RootState) => state.expenses.onboarded;
 // Export reducer
 export default expenseSlice.reducer;

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Alert, SafeAreaView, StyleSheet } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
 import AddExpense from "../components/AddExpense";
@@ -6,8 +6,16 @@ import BudgetOverview from "../components/BudgetOverview";
 import BudgetSettings from "../components/BudgetSettings";
 import ExpensesList from "../components/ExpensesList";
 import WelcomeScreen from "../components/WelcomeScreen";
-import { selectMonthlyIncome } from "../redux/slices/budgetSlice";
-import { addExpense, clearSampleExpenses, selectExpenses, selectIsFirstTimeUser, setUserOnboarded } from "../redux/slices/expenseSlice";
+import { resetBudget, selectMonthlyIncome } from "../redux/slices/budgetSlice";
+import {
+  addExpense,
+  clearSampleExpenses,
+  resetExpenses,
+  selectExpenses,
+  selectIsFirstTimeUser,
+  selectOnboarded,
+  setUserOnboarded,
+} from "../redux/slices/expenseSlice";
 import { BudgetCategory, Expense, ExpenseCategory } from "./types/budget";
 
 type ScreenView = "welcome" | "budget" | "expenses" | "addExpense" | "settings";
@@ -23,18 +31,44 @@ interface SaveExpenseData {
 const BudgetScreen: React.FC = () => {
   const dispatch = useDispatch();
   const isFirstTimeUser = useSelector(selectIsFirstTimeUser);
-  const [currentView, setCurrentView] = useState<ScreenView>(isFirstTimeUser ? "welcome" : "expenses");
   const monthlyIncome = useSelector(selectMonthlyIncome);
+  const onboarded = useSelector(selectOnboarded);
   const expenses = useSelector(selectExpenses);
 
-  // useEffect(() => {
-  //   dispatch(resetExpenses());
-  //   dispatch(resetBudget());
-  // }, []);
+  // Determine initial view based on user status and income
+  const getInitialView = (): ScreenView => {
+    if (isFirstTimeUser) {
+      return "welcome";
+    }
+    if (monthlyIncome === 0) {
+      return "settings";
+    }
+    return "expenses";
+  };
+
+  const [currentView, setCurrentView] = useState<ScreenView>(getInitialView());
+
+  useEffect(() => {
+    dispatch(resetExpenses());
+    dispatch(resetBudget());
+  }, []);
+
+  useEffect(() => {
+    if (!isFirstTimeUser && monthlyIncome === 0 && onboarded && currentView === "expenses") {
+      setCurrentView("settings");
+    }
+    if (!isFirstTimeUser && monthlyIncome === 0 && !onboarded && currentView === "settings") {
+      setCurrentView("expenses");
+    }
+  }, [isFirstTimeUser, monthlyIncome, currentView]);
 
   const handleGetStarted = () => {
     dispatch(setUserOnboarded());
-    setCurrentView("expenses");
+    if (monthlyIncome === 0) {
+      setCurrentView("settings");
+    } else {
+      setCurrentView("expenses");
+    }
   };
 
   const handleSaveExpense = (expenseData: SaveExpenseData) => {
@@ -131,7 +165,9 @@ const BudgetScreen: React.FC = () => {
 
       {currentView === "addExpense" && <AddExpense onSave={handleSaveExpense} onCancel={() => setCurrentView("expenses")} />}
 
-      {currentView === "settings" && <BudgetSettings onBackPress={() => setCurrentView("expenses")} />}
+      {currentView === "settings" && (
+        <BudgetSettings onBackPress={() => setCurrentView(monthlyIncome === 0 && isFirstTimeUser ? "welcome" : "expenses")} />
+      )}
     </SafeAreaView>
   );
 };

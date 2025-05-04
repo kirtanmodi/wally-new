@@ -1,6 +1,6 @@
 import { LinearGradient } from "expo-linear-gradient";
-import React, { useMemo, useState } from "react";
-import { FlatList, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { Animated, FlatList, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { useSelector } from "react-redux";
 import { BudgetColors } from "../app/constants/Colors";
 import { BudgetCategory, CategorySummary, Expense } from "../app/types/budget";
@@ -14,70 +14,41 @@ interface ExpensesListProps {
   onOpenSettings?: () => void;
 }
 
-const ExpensesList: React.FC<ExpensesListProps> = ({ expenses = [], onAddExpense, onOpenBudget, onOpenSettings }) => {
-  const [activeTab, setActiveTab] = useState<"All" | BudgetCategory>("All");
-  const [showMenu, setShowMenu] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
+// Animated Category Card Component
+const AnimatedCategoryCard: React.FC<{
+  item: CategorySummary;
+  index: number;
+  onOpenBudget?: () => void;
+}> = ({ item, index, onOpenBudget }) => {
+  const percentage = Math.min(100, (item.spent / item.total) * 100);
+  const itemFade = useRef(new Animated.Value(0)).current;
+  const itemSlide = useRef(new Animated.Value(30)).current;
 
-  // Get budget data from Redux
-  const monthlyIncome = useSelector(selectMonthlyIncome);
-  console.log("test", monthlyIncome);
-  const budgetRule = useSelector(selectBudgetRule);
+  useEffect(() => {
+    // Staggered animation
+    Animated.parallel([
+      Animated.timing(itemFade, {
+        toValue: 1,
+        duration: 400,
+        delay: index * 100,
+        useNativeDriver: true,
+      }),
+      Animated.timing(itemSlide, {
+        toValue: 0,
+        duration: 400,
+        delay: index * 100,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
 
-  // Calculate category summaries based on expenses
-  const categorySummaries: CategorySummary[] = useMemo(() => {
-    // Calculate budget amounts based on user's income and budget rule percentages
-    const needsBudget = monthlyIncome * (budgetRule.needs / 100);
-    const savingsBudget = monthlyIncome * (budgetRule.savings / 100);
-    const wantsBudget = monthlyIncome * (budgetRule.wants / 100);
-
-    // Calculate spent amounts in each category
-    const needsSpent = expenses.filter((exp) => exp.category === "Needs").reduce((sum, exp) => sum + exp.amount, 0);
-    const savingsSpent = expenses.filter((exp) => exp.category === "Savings").reduce((sum, exp) => sum + exp.amount, 0);
-    const wantsSpent = expenses.filter((exp) => exp.category === "Wants").reduce((sum, exp) => sum + exp.amount, 0);
-
-    return [
-      {
-        category: "Needs",
-        spent: needsSpent,
-        total: needsBudget,
-        color: BudgetColors.needs,
-        gradientColors: ["#5F9E5F", "#3D7A3D"],
-      },
-      {
-        category: "Savings",
-        spent: savingsSpent,
-        total: savingsBudget,
-        color: BudgetColors.savings,
-        gradientColors: ["#E9915E", "#DE7E3E"],
-      },
-      {
-        category: "Wants",
-        spent: wantsSpent,
-        total: wantsBudget,
-        color: BudgetColors.wants,
-        gradientColors: ["#7377E8", "#5357CA"],
-      },
-    ];
-  }, [expenses, monthlyIncome, budgetRule]);
-
-  // Filter expenses based on active tab and search query
-  const filteredExpenses = useMemo(() => {
-    let filtered = activeTab === "All" ? expenses : expenses.filter((expense) => expense.category === activeTab);
-
-    // Apply search filter if query exists
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
-      filtered = filtered.filter((expense) => expense.title.toLowerCase().includes(query) || expense.subcategory.toLowerCase().includes(query));
-    }
-
-    return filtered;
-  }, [expenses, activeTab, searchQuery]);
-
-  const renderCategorySummary = ({ item }: { item: CategorySummary }) => {
-    const percentage = Math.min(100, (item.spent / item.total) * 100);
-
-    return (
+  return (
+    <Animated.View
+      style={{
+        opacity: itemFade,
+        transform: [{ translateY: itemSlide }],
+      }}
+    >
       <TouchableOpacity activeOpacity={0.85} onPress={onOpenBudget}>
         <LinearGradient colors={item.gradientColors as [string, string]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.categoryCard}>
           <Text style={styles.categoryLabel}>{item.category}</Text>
@@ -101,29 +72,160 @@ const ExpensesList: React.FC<ExpensesListProps> = ({ expenses = [], onAddExpense
           </View>
         </LinearGradient>
       </TouchableOpacity>
-    );
-  };
+    </Animated.View>
+  );
+};
 
-  const renderExpenseItem = ({ item }: { item: Expense }) => {
-    // Format the date
-    const formattedDate = item.date instanceof Date ? item.date.toLocaleDateString() : new Date(item.date).toLocaleDateString();
+// Animated Expense Item Component
+const AnimatedExpenseItem: React.FC<{
+  item: Expense;
+  index: number;
+  getCategoryColor: (category: BudgetCategory) => string;
+}> = ({ item, index, getCategoryColor }) => {
+  const formattedDate = item.date instanceof Date ? item.date.toLocaleDateString() : new Date(item.date).toLocaleDateString();
+  const itemFade = useRef(new Animated.Value(0)).current;
+  const itemSlide = useRef(new Animated.Value(20)).current;
 
-    return (
-      <View style={styles.expenseItem}>
-        <View style={[styles.expenseIcon, { backgroundColor: getCategoryColor(item.category) + "20" }]}>
-          <Text style={[styles.iconText, { color: getCategoryColor(item.category) }]}>{item.icon}</Text>
-        </View>
-        <View style={styles.expenseDetails}>
-          <Text style={styles.expenseTitle}>{item.title}</Text>
-          <View style={styles.expenseSubDetail}>
-            <Text style={styles.expenseCategory}>{item.subcategory}</Text>
-            <Text style={styles.expenseDate}>{formattedDate}</Text>
-          </View>
-        </View>
-        <Text style={styles.expenseAmount}>${item.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Text>
+  useEffect(() => {
+    // Staggered animation
+    Animated.parallel([
+      Animated.timing(itemFade, {
+        toValue: 1,
+        duration: 300,
+        delay: index * 50,
+        useNativeDriver: true,
+      }),
+      Animated.timing(itemSlide, {
+        toValue: 0,
+        duration: 300,
+        delay: index * 50,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
+
+  return (
+    <Animated.View
+      style={[
+        styles.expenseItem,
+        {
+          opacity: itemFade,
+          transform: [{ translateY: itemSlide }],
+        },
+      ]}
+    >
+      <View style={[styles.expenseIcon, { backgroundColor: getCategoryColor(item.category) + "20" }]}>
+        <Text style={[styles.iconText, { color: getCategoryColor(item.category) }]}>{item.icon}</Text>
       </View>
-    );
-  };
+      <View style={styles.expenseDetails}>
+        <Text style={styles.expenseTitle}>{item.title}</Text>
+        <View style={styles.expenseSubDetail}>
+          <Text style={styles.expenseCategory}>{item.subcategory}</Text>
+          <Text style={styles.expenseDate}>{formattedDate}</Text>
+        </View>
+      </View>
+      <Text style={styles.expenseAmount}>${item.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Text>
+    </Animated.View>
+  );
+};
+
+// Scrollable tab component
+interface ScrollableTabProps {
+  tabs: string[];
+  activeTab: string;
+  onTabChange: (tab: string) => void;
+}
+
+const ScrollableTab: React.FC<ScrollableTabProps> = ({ tabs, activeTab, onTabChange }) => {
+  return (
+    <View style={styles.scrollableTabs}>
+      {tabs.map((tab) => (
+        <TouchableOpacity key={tab} style={[styles.tab, activeTab === tab && styles.activeTab]} onPress={() => onTabChange(tab)} activeOpacity={0.7}>
+          <Text style={[styles.tabText, activeTab === tab && styles.activeTabText]}>{tab}</Text>
+        </TouchableOpacity>
+      ))}
+    </View>
+  );
+};
+
+const ExpensesList: React.FC<ExpensesListProps> = ({ expenses = [], onAddExpense, onOpenBudget, onOpenSettings }) => {
+  const [activeTab, setActiveTab] = useState<"All" | BudgetCategory>("All");
+  const [showMenu, setShowMenu] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+
+  // Animation values
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const translateY = useRef(new Animated.Value(30)).current;
+
+  // Get budget data from Redux
+  const monthlyIncome = useSelector(selectMonthlyIncome);
+  const budgetRule = useSelector(selectBudgetRule);
+
+  useEffect(() => {
+    // Entrance animation
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 500,
+        useNativeDriver: true,
+      }),
+      Animated.timing(translateY, {
+        toValue: 0,
+        duration: 500,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
+
+  // Calculate category summaries based on expenses
+  const categorySummaries: CategorySummary[] = useMemo(() => {
+    // Calculate budget amounts based on user's income and budget rule percentages
+    const needsBudget = monthlyIncome * (budgetRule.needs / 100);
+    const savingsBudget = monthlyIncome * (budgetRule.savings / 100);
+    const wantsBudget = monthlyIncome * (budgetRule.wants / 100);
+
+    // Calculate spent amounts in each category
+    const needsSpent = expenses.filter((exp) => exp.category === "Needs").reduce((sum, exp) => sum + exp.amount, 0);
+    const savingsSpent = expenses.filter((exp) => exp.category === "Savings").reduce((sum, exp) => sum + exp.amount, 0);
+    const wantsSpent = expenses.filter((exp) => exp.category === "Wants").reduce((sum, exp) => sum + exp.amount, 0);
+
+    return [
+      {
+        category: "Needs",
+        spent: needsSpent,
+        total: needsBudget,
+        color: BudgetColors.needs,
+        gradientColors: ["#5BD990", "#3DB26E"],
+      },
+      {
+        category: "Savings",
+        spent: savingsSpent,
+        total: savingsBudget,
+        color: BudgetColors.savings,
+        gradientColors: ["#FFBA6E", "#FF9C36"],
+      },
+      {
+        category: "Wants",
+        spent: wantsSpent,
+        total: wantsBudget,
+        color: BudgetColors.wants,
+        gradientColors: ["#837BFF", "#605BFF"],
+      },
+    ];
+  }, [expenses, monthlyIncome, budgetRule]);
+
+  // Filter expenses based on active tab and search query
+  const filteredExpenses = useMemo(() => {
+    let filtered = activeTab === "All" ? expenses : expenses.filter((expense) => expense.category === activeTab);
+
+    // Apply search filter if query exists
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter((expense) => expense.title.toLowerCase().includes(query) || expense.subcategory.toLowerCase().includes(query));
+    }
+
+    return filtered;
+  }, [expenses, activeTab, searchQuery]);
 
   const getCategoryColor = (category: BudgetCategory) => {
     switch (category) {
@@ -139,10 +241,18 @@ const ExpensesList: React.FC<ExpensesListProps> = ({ expenses = [], onAddExpense
   };
 
   return (
-    <View style={styles.container}>
+    <Animated.View
+      style={[
+        styles.container,
+        {
+          opacity: fadeAnim,
+          transform: [{ translateY }],
+        },
+      ]}
+    >
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Expenses</Text>
-        <TouchableOpacity style={styles.menuButton} onPress={() => setShowMenu(!showMenu)}>
+        <TouchableOpacity style={styles.menuButton} onPress={() => setShowMenu(!showMenu)} activeOpacity={0.7}>
           <Text style={styles.menuIcon}>⋮</Text>
         </TouchableOpacity>
 
@@ -154,6 +264,7 @@ const ExpensesList: React.FC<ExpensesListProps> = ({ expenses = [], onAddExpense
                 setShowMenu(false);
                 onOpenBudget && onOpenBudget();
               }}
+              activeOpacity={0.7}
             >
               <View style={styles.menuItemContent}>
                 <Text style={styles.menuItemIcon}>📊</Text>
@@ -167,6 +278,7 @@ const ExpensesList: React.FC<ExpensesListProps> = ({ expenses = [], onAddExpense
                 setShowMenu(false);
                 onOpenSettings && onOpenSettings();
               }}
+              activeOpacity={0.7}
             >
               <View style={styles.menuItemContent}>
                 <Text style={styles.menuItemIcon}>⚙️</Text>
@@ -180,7 +292,7 @@ const ExpensesList: React.FC<ExpensesListProps> = ({ expenses = [], onAddExpense
       <View style={styles.categoriesContainer}>
         <FlatList
           data={categorySummaries}
-          renderItem={renderCategorySummary}
+          renderItem={({ item, index }) => <AnimatedCategoryCard item={item} index={index} onOpenBudget={onOpenBudget} />}
           keyExtractor={(item) => item.category}
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -189,18 +301,11 @@ const ExpensesList: React.FC<ExpensesListProps> = ({ expenses = [], onAddExpense
       </View>
 
       <View style={styles.tabsContainer}>
-        <TouchableOpacity style={[styles.tab, activeTab === "All" && styles.activeTab]} onPress={() => setActiveTab("All")}>
-          <Text style={[styles.tabText, activeTab === "All" && styles.activeTabText]}>All</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={[styles.tab, activeTab === "Needs" && styles.activeTab]} onPress={() => setActiveTab("Needs")}>
-          <Text style={[styles.tabText, activeTab === "Needs" && styles.activeTabText]}>Needs</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={[styles.tab, activeTab === "Savings" && styles.activeTab]} onPress={() => setActiveTab("Savings")}>
-          <Text style={[styles.tabText, activeTab === "Savings" && styles.activeTabText]}>Savings</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={[styles.tab, activeTab === "Wants" && styles.activeTab]} onPress={() => setActiveTab("Wants")}>
-          <Text style={[styles.tabText, activeTab === "Wants" && styles.activeTabText]}>Wants</Text>
-        </TouchableOpacity>
+        <ScrollableTab
+          tabs={["All", "Needs", "Savings", "Wants"]}
+          activeTab={activeTab}
+          onTabChange={(tab) => setActiveTab(tab as "All" | BudgetCategory)}
+        />
       </View>
 
       <View style={styles.searchContainer}>
@@ -221,7 +326,7 @@ const ExpensesList: React.FC<ExpensesListProps> = ({ expenses = [], onAddExpense
       ) : (
         <FlatList
           data={filteredExpenses}
-          renderItem={renderExpenseItem}
+          renderItem={({ item, index }) => <AnimatedExpenseItem item={item} index={index} getCategoryColor={getCategoryColor} />}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.expensesList}
           showsVerticalScrollIndicator={false}
@@ -229,9 +334,11 @@ const ExpensesList: React.FC<ExpensesListProps> = ({ expenses = [], onAddExpense
       )}
 
       <TouchableOpacity activeOpacity={0.8} style={styles.addButton} onPress={onAddExpense}>
-        <Text style={styles.addButtonIcon}>+</Text>
+        <LinearGradient colors={["#4CD080", "#3DB26E"]} style={styles.addButtonGradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+          <Text style={styles.addButtonIcon}>+</Text>
+        </LinearGradient>
       </TouchableOpacity>
-    </View>
+    </Animated.View>
   );
 };
 
@@ -245,49 +352,48 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: responsiveMargin(20),
+    marginBottom: responsiveMargin(24),
     zIndex: 1000,
   },
   headerTitle: {
-    fontSize: scaleFontSize(26),
-    fontWeight: "bold",
-    color: "#222",
+    fontSize: scaleFontSize(24),
+    fontWeight: "600",
+    color: "#333",
     letterSpacing: 0.5,
   },
   menuButton: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#FFFFFF",
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "rgba(255, 255, 255, 0.9)",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 3,
     elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
   },
   menuIcon: {
-    fontSize: scaleFontSize(22),
-    color: "#444",
+    fontSize: scaleFontSize(18),
+    color: "#555",
   },
   menuDropdown: {
     position: "absolute",
     top: 50,
-    right: 5,
-    backgroundColor: "#FFF",
+    right: 0,
+    backgroundColor: "#FFFFFF",
     borderRadius: 16,
+    padding: responsivePadding(8),
+    elevation: 4,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.16,
-    shadowRadius: 10,
-    elevation: 6,
-    zIndex: 1000,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
     width: 200,
-    overflow: "hidden",
   },
   menuItem: {
-    paddingVertical: responsivePadding(14),
+    paddingVertical: responsivePadding(10),
     paddingHorizontal: responsivePadding(16),
   },
   menuItemContent: {
@@ -299,143 +405,136 @@ const styles = StyleSheet.create({
     marginRight: responsiveMargin(10),
   },
   menuItemText: {
-    fontSize: scaleFontSize(15),
-    color: "#444",
-    fontWeight: "500",
+    fontSize: scaleFontSize(16),
+    color: "#333",
   },
   menuDivider: {
     height: 1,
     backgroundColor: "#F0F0F0",
-    marginHorizontal: responsiveMargin(8),
+    marginVertical: responsiveMargin(6),
   },
   categoriesContainer: {
-    marginBottom: responsiveMargin(24),
+    marginBottom: responsiveMargin(20),
   },
   categoriesList: {
     paddingRight: responsivePadding(16),
   },
   categoryCard: {
-    borderRadius: 18,
-    padding: responsivePadding(20),
+    width: wp(75),
+    borderRadius: 20,
+    padding: responsivePadding(16),
     marginRight: responsiveMargin(16),
-    width: wp("72%"),
+    elevation: 2,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 5,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
   categoryLabel: {
     fontSize: scaleFontSize(16),
-    color: "#FFFFFF",
-    marginBottom: responsiveMargin(6),
     fontWeight: "600",
-    opacity: 0.9,
-    letterSpacing: 0.5,
+    color: "#FFFFFF",
+    marginBottom: responsiveMargin(4),
   },
   categoryAmountRow: {
     flexDirection: "row",
     alignItems: "baseline",
-    marginBottom: responsiveMargin(14),
+    marginBottom: responsiveMargin(12),
   },
   categoryAmount: {
-    fontSize: scaleFontSize(26),
-    fontWeight: "bold",
+    fontSize: scaleFontSize(24),
+    fontWeight: "700",
     color: "#FFFFFF",
-    marginRight: responsiveMargin(6),
+    marginRight: responsiveMargin(4),
   },
   categoryTotal: {
-    fontSize: scaleFontSize(15),
+    fontSize: scaleFontSize(14),
     color: "#FFFFFF",
-    opacity: 0.85,
-    fontWeight: "500",
+    opacity: 0.8,
   },
   progressBarContainer: {
     marginTop: responsiveMargin(6),
   },
   progressBar: {
-    height: 8,
-    borderRadius: 4,
+    height: 6,
+    backgroundColor: "rgba(255, 255, 255, 0.3)",
+    borderRadius: 3,
     overflow: "hidden",
-    backgroundColor: "rgba(255,255,255,0.3)",
   },
   progressFill: {
     height: "100%",
-    borderRadius: 4,
-    backgroundColor: "rgba(255,255,255,0.9)",
+    backgroundColor: "#FFFFFF",
+    borderRadius: 3,
   },
   tabsContainer: {
+    marginBottom: responsiveMargin(16),
+  },
+  scrollableTabs: {
     flexDirection: "row",
-    marginBottom: responsiveMargin(18),
-    borderRadius: 12,
-    backgroundColor: "#FFF",
-    padding: 5,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 4,
-    elevation: 2,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    padding: responsivePadding(4),
   },
   tab: {
     flex: 1,
-    paddingVertical: responsivePadding(12),
+    paddingVertical: responsivePadding(10),
     alignItems: "center",
-    borderRadius: 10,
-    marginHorizontal: 2,
+    borderRadius: 16,
   },
   activeTab: {
-    backgroundColor: "#F2F6FF",
+    backgroundColor: "#F0F5FF",
   },
   tabText: {
     fontSize: scaleFontSize(14),
-    fontWeight: "600",
     color: "#888",
+    fontWeight: "500",
   },
   activeTabText: {
-    color: "#4A66E8",
+    color: BudgetColors.wants,
+    fontWeight: "600",
   },
   searchContainer: {
-    backgroundColor: "#FFF",
-    borderRadius: 14,
-    marginBottom: responsiveMargin(18),
-    paddingHorizontal: responsivePadding(16),
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 4,
-    elevation: 2,
+    marginBottom: responsiveMargin(16),
   },
   searchInput: {
-    height: 52,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 12,
+    paddingHorizontal: responsivePadding(16),
+    paddingVertical: responsivePadding(12),
     fontSize: scaleFontSize(16),
     color: "#333",
+    elevation: 1,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
   },
   expensesList: {
-    paddingBottom: 100, // Extra padding for the add button
+    paddingBottom: responsiveMargin(80),
   },
   expenseItem: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#FFF",
-    padding: responsivePadding(16),
+    backgroundColor: "#FFFFFF",
     borderRadius: 16,
+    padding: responsivePadding(16),
     marginBottom: responsiveMargin(12),
+    elevation: 1,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.08,
-    shadowRadius: 5,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
   },
   expenseIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 44,
+    height: 44,
+    borderRadius: 12,
     justifyContent: "center",
     alignItems: "center",
-    marginRight: responsiveMargin(14),
+    marginRight: responsiveMargin(12),
   },
   iconText: {
-    fontSize: scaleFontSize(20),
+    fontSize: scaleFontSize(18),
   },
   expenseDetails: {
     flex: 1,
@@ -444,65 +543,67 @@ const styles = StyleSheet.create({
     fontSize: scaleFontSize(16),
     fontWeight: "600",
     color: "#333",
-    marginBottom: 6,
+    marginBottom: responsiveMargin(4),
   },
   expenseSubDetail: {
     flexDirection: "row",
-    justifyContent: "space-between",
+    alignItems: "center",
   },
   expenseCategory: {
     fontSize: scaleFontSize(14),
     color: "#666",
-    fontWeight: "500",
+    marginRight: responsiveMargin(8),
   },
   expenseDate: {
-    fontSize: scaleFontSize(12),
-    color: "#999",
+    fontSize: scaleFontSize(14),
+    color: "#888",
   },
   expenseAmount: {
-    fontSize: scaleFontSize(17),
-    fontWeight: "700",
+    fontSize: scaleFontSize(16),
+    fontWeight: "600",
     color: "#333",
-  },
-  addButton: {
-    position: "absolute",
-    bottom: 24,
-    right: 24,
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: "#4A66E8",
-    justifyContent: "center",
-    alignItems: "center",
-    shadowColor: "#4A66E8",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
-  },
-  addButtonIcon: {
-    fontSize: scaleFontSize(28),
-    color: "white",
-    marginTop: -2, // Visual alignment
   },
   emptyContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    paddingBottom: 60, // Account for the floating action button
+    paddingBottom: responsiveMargin(50),
   },
   emptyText: {
     fontSize: scaleFontSize(18),
     fontWeight: "600",
-    color: "#555",
-    marginBottom: 10,
+    color: "#888",
+    marginBottom: responsiveMargin(8),
   },
   emptySubText: {
-    fontSize: scaleFontSize(15),
-    color: "#888",
+    fontSize: scaleFontSize(14),
+    color: "#AAA",
     textAlign: "center",
-    paddingHorizontal: 30,
-    lineHeight: 22,
+    paddingHorizontal: responsivePadding(32),
+  },
+  addButton: {
+    position: "absolute",
+    bottom: responsiveMargin(24),
+    right: responsiveMargin(24),
+    elevation: 5,
+    shadowColor: BudgetColors.needs,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    borderRadius: 28,
+    overflow: "hidden",
+  },
+  addButtonGradient: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  addButtonIcon: {
+    fontSize: scaleFontSize(32),
+    color: "#FFFFFF",
+    lineHeight: 50,
   },
 });
 

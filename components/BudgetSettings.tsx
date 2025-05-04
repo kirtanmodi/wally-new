@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
-import { Alert, FlatList, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { Alert, Animated, FlatList, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
-import { BudgetColors } from "../app/constants/Colors";
+import { AdditionalColors, BudgetColors } from "../app/constants/Colors";
 import { BudgetCategory } from "../app/types/budget";
 import { responsiveMargin, responsivePadding, scaleFontSize } from "../app/utils/responsive";
 import {
@@ -59,6 +59,10 @@ const BudgetSettings: React.FC<BudgetSettingsProps> = ({ onBackPress }) => {
   const [wantsInput, setWantsInput] = useState(budgetRule.wants.toString());
   const [showAddCategory, setShowAddCategory] = useState(false);
 
+  // Animation values
+  const [fadeAnim] = useState(new Animated.Value(0));
+  const [slideAnim] = useState(new Animated.Value(50));
+
   // Category modal state
   const [newCategoryName, setNewCategoryName] = useState("");
   const [selectedIcon, setSelectedIcon] = useState(COMMON_ICONS[0]);
@@ -66,6 +70,24 @@ const BudgetSettings: React.FC<BudgetSettingsProps> = ({ onBackPress }) => {
 
   // Error state
   const [percentageError, setPercentageError] = useState(false);
+
+  useEffect(() => {
+    validatePercentages();
+
+    // Entrance animation
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 400,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 400,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
 
   useEffect(() => {
     validatePercentages();
@@ -146,33 +168,76 @@ const BudgetSettings: React.FC<BudgetSettingsProps> = ({ onBackPress }) => {
     }
   };
 
-  const renderCategoryItem = ({ item }: { item: CategoryItem }) => (
-    <View style={styles.categoryItem}>
-      <View style={styles.categoryLeft}>
-        <Text style={styles.categoryIcon}>{item.icon}</Text>
-        <Text style={styles.categoryName}>{item.name}</Text>
-      </View>
-      <View style={styles.categoryRight}>
-        <View style={[styles.categoryTypeBadge, { backgroundColor: getCategoryColor(item.type) + "20" }]}>
-          <Text style={[styles.categoryType, { color: getCategoryColor(item.type) }]}>{item.type}</Text>
+  const renderCategoryItem = ({ item, index }: { item: CategoryItem; index: number }) => {
+    const itemFade = new Animated.Value(0);
+    const itemSlide = new Animated.Value(20);
+
+    // Staggered animation for list items
+    Animated.parallel([
+      Animated.timing(itemFade, {
+        toValue: 1,
+        duration: 300,
+        delay: index * 50,
+        useNativeDriver: true,
+      }),
+      Animated.timing(itemSlide, {
+        toValue: 0,
+        duration: 300,
+        delay: index * 50,
+        useNativeDriver: true,
+      }),
+    ]).start();
+
+    return (
+      <Animated.View
+        style={[
+          styles.categoryItem,
+          {
+            opacity: itemFade,
+            transform: [{ translateY: itemSlide }],
+          },
+        ]}
+      >
+        <View style={styles.categoryLeft}>
+          <View style={styles.iconContainer}>
+            <Text style={styles.categoryIcon}>{item.icon}</Text>
+          </View>
+          <Text style={styles.categoryName}>{item.name}</Text>
         </View>
-        <TouchableOpacity style={styles.deleteButton} onPress={() => handleDeleteCategory(item.id)}>
-          <Text style={styles.deleteIcon}>🗑️</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
+        <View style={styles.categoryRight}>
+          <View style={[styles.categoryTypeBadge, { backgroundColor: getCategoryColor(item.type) + "20" }]}>
+            <Text style={[styles.categoryType, { color: getCategoryColor(item.type) }]}>{item.type}</Text>
+          </View>
+          <TouchableOpacity style={styles.deleteButton} onPress={() => handleDeleteCategory(item.id)}>
+            <Text style={styles.deleteIcon}>🗑️</Text>
+          </TouchableOpacity>
+        </View>
+      </Animated.View>
+    );
+  };
 
   return (
-    <View style={styles.container}>
+    <Animated.View
+      style={[
+        styles.container,
+        {
+          opacity: fadeAnim,
+          transform: [{ translateY: slideAnim }],
+        },
+      ]}
+    >
       <View style={styles.header}>
-        <TouchableOpacity onPress={onBackPress}>
+        <TouchableOpacity style={styles.backButtonContainer} onPress={onBackPress} activeOpacity={0.7}>
           <Text style={styles.backButton}>←</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>50-30-20 Settings</Text>
+        <Text style={styles.headerTitle}>Budget Settings</Text>
       </View>
 
-      <ScrollView style={styles.scrollView}>
+      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+        <View style={styles.welcomeContainer}>
+          {monthlyIncome === 0 && <Text style={styles.welcomeText}>Welcome! Let&apos;s set up your budget to start tracking your finances.</Text>}
+        </View>
+
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Monthly Income</Text>
           <View style={styles.inputContainer}>
@@ -239,7 +304,7 @@ const BudgetSettings: React.FC<BudgetSettingsProps> = ({ onBackPress }) => {
         <View style={styles.section}>
           <View style={styles.sectionTitleRow}>
             <Text style={styles.sectionTitle}>Expense Categories</Text>
-            <TouchableOpacity style={styles.addButton} onPress={() => setShowAddCategory(true)}>
+            <TouchableOpacity style={styles.addButton} onPress={() => setShowAddCategory(true)} activeOpacity={0.7}>
               <Text style={styles.addButtonText}>+ Add New</Text>
             </TouchableOpacity>
           </View>
@@ -248,9 +313,9 @@ const BudgetSettings: React.FC<BudgetSettingsProps> = ({ onBackPress }) => {
             data={categories}
             renderItem={renderCategoryItem}
             keyExtractor={(item) => item.id}
-            scrollEnabled={false}
             ItemSeparatorComponent={() => <View style={styles.separator} />}
-            ListEmptyComponent={<Text style={styles.emptyText}>No categories added yet.</Text>}
+            ListEmptyComponent={() => <Text style={styles.emptyText}>No categories yet. Add your first one!</Text>}
+            scrollEnabled={false}
           />
         </View>
       </ScrollView>
@@ -325,7 +390,7 @@ const BudgetSettings: React.FC<BudgetSettingsProps> = ({ onBackPress }) => {
           </View>
         </View>
       </Modal>
-    </View>
+    </Animated.View>
   );
 };
 
@@ -340,46 +405,79 @@ const styles = StyleSheet.create({
     padding: responsivePadding(16),
     borderBottomWidth: 1,
     borderBottomColor: "#EAEAEA",
+    backgroundColor: "#FFFFFF",
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+  },
+  backButtonContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#F0F0F0",
+    marginRight: responsiveMargin(10),
   },
   backButton: {
-    fontSize: scaleFontSize(24),
-    marginRight: responsiveMargin(10),
+    fontSize: scaleFontSize(20),
     color: "#333",
   },
   headerTitle: {
     fontSize: scaleFontSize(20),
     fontWeight: "600",
     color: "#333",
+    letterSpacing: 0.5,
+  },
+  welcomeContainer: {
+    paddingHorizontal: responsivePadding(16),
+    paddingTop: responsivePadding(16),
+  },
+  welcomeText: {
+    fontSize: scaleFontSize(16),
+    color: "#666",
+    lineHeight: 24,
+    marginBottom: responsiveMargin(8),
   },
   scrollView: {
     flex: 1,
   },
   section: {
-    padding: responsivePadding(16),
+    padding: responsivePadding(20),
     backgroundColor: "#FFF",
     marginBottom: responsiveMargin(16),
-    borderRadius: 12,
+    borderRadius: 16,
     marginHorizontal: responsiveMargin(16),
+    elevation: 1,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
   },
   sectionTitle: {
     fontSize: scaleFontSize(18),
     fontWeight: "600",
     marginBottom: responsiveMargin(12),
     color: "#333",
+    letterSpacing: 0.3,
   },
   sectionDescription: {
     fontSize: scaleFontSize(14),
     color: "#666",
     marginBottom: responsiveMargin(16),
+    lineHeight: 20,
   },
   inputContainer: {
     flexDirection: "row",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#DDD",
-    borderRadius: 8,
+    borderColor: "#E6E6E6",
+    borderRadius: 12,
     paddingHorizontal: responsivePadding(12),
     height: 50,
+    backgroundColor: "#FCFCFC",
   },
   dollarSign: {
     fontSize: scaleFontSize(20),
@@ -398,7 +496,7 @@ const styles = StyleSheet.create({
   budgetItemContainer: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: responsiveMargin(12),
+    marginBottom: responsiveMargin(16),
   },
   budgetColorIndicator: {
     width: 16,
@@ -415,22 +513,23 @@ const styles = StyleSheet.create({
     width: 60,
     height: 40,
     borderWidth: 1,
-    borderColor: "#DDD",
-    borderRadius: 4,
+    borderColor: "#E6E6E6",
+    borderRadius: 10,
     paddingHorizontal: responsivePadding(8),
     textAlign: "center",
     fontSize: scaleFontSize(16),
     marginRight: responsiveMargin(4),
+    backgroundColor: "#FCFCFC",
   },
   percentSign: {
     fontSize: scaleFontSize(16),
     color: "#333",
   },
   errorInput: {
-    borderColor: "#FF6B6B",
+    borderColor: AdditionalColors.error,
   },
   errorText: {
-    color: "#FF6B6B",
+    color: AdditionalColors.error,
     fontSize: scaleFontSize(14),
     marginTop: responsiveMargin(4),
   },
@@ -442,8 +541,8 @@ const styles = StyleSheet.create({
   },
   addButton: {
     paddingHorizontal: responsivePadding(12),
-    paddingVertical: responsivePadding(6),
-    backgroundColor: BudgetColors.needs + "20",
+    paddingVertical: responsivePadding(8),
+    backgroundColor: `${BudgetColors.needs}30`,
     borderRadius: 20,
   },
   addButtonText: {
@@ -457,13 +556,21 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingVertical: responsivePadding(12),
   },
+  iconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "#F5F5F5",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: responsiveMargin(12),
+  },
   categoryLeft: {
     flexDirection: "row",
     alignItems: "center",
   },
   categoryIcon: {
-    fontSize: scaleFontSize(20),
-    marginRight: responsiveMargin(12),
+    fontSize: scaleFontSize(18),
   },
   categoryName: {
     fontSize: scaleFontSize(16),
@@ -474,8 +581,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   categoryTypeBadge: {
-    paddingHorizontal: responsivePadding(8),
-    paddingVertical: responsivePadding(4),
+    paddingHorizontal: responsivePadding(10),
+    paddingVertical: responsivePadding(6),
     borderRadius: 12,
     marginRight: responsiveMargin(8),
   },
@@ -485,6 +592,7 @@ const styles = StyleSheet.create({
   },
   deleteButton: {
     padding: responsivePadding(8),
+    borderRadius: 16,
   },
   deleteIcon: {
     fontSize: scaleFontSize(16),
@@ -492,11 +600,13 @@ const styles = StyleSheet.create({
   separator: {
     height: 1,
     backgroundColor: "#F0F0F0",
+    marginVertical: responsiveMargin(4),
   },
   emptyText: {
     color: "#999",
     textAlign: "center",
     padding: responsivePadding(20),
+    fontStyle: "italic",
   },
   modalOverlay: {
     flex: 1,
