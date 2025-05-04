@@ -7,10 +7,13 @@ import { responsiveMargin, responsivePadding, scaleFontSize, wp } from "../app/u
 interface ExpensesListProps {
   expenses?: Expense[];
   onAddExpense?: () => void;
+  onOpenBudget?: () => void;
+  onOpenSettings?: () => void;
 }
 
-const ExpensesList: React.FC<ExpensesListProps> = ({ expenses = [], onAddExpense }) => {
+const ExpensesList: React.FC<ExpensesListProps> = ({ expenses = [], onAddExpense, onOpenBudget, onOpenSettings }) => {
   const [activeTab, setActiveTab] = useState<"All" | BudgetCategory>("All");
+  const [showMenu, setShowMenu] = useState(false);
 
   // Calculate category summaries based on expenses
   const categorySummaries: CategorySummary[] = useMemo(() => {
@@ -105,7 +108,7 @@ const ExpensesList: React.FC<ExpensesListProps> = ({ expenses = [], onAddExpense
     const percentage = Math.min(100, (item.spent / item.total) * 100);
 
     return (
-      <View style={styles.categoryCard}>
+      <TouchableOpacity style={styles.categoryCard} onPress={onOpenBudget}>
         <Text style={styles.categoryLabel}>{item.category}</Text>
         <View style={styles.categoryAmountRow}>
           <Text style={styles.categoryAmount}>${item.spent.toLocaleString()}</Text>
@@ -122,7 +125,7 @@ const ExpensesList: React.FC<ExpensesListProps> = ({ expenses = [], onAddExpense
             ]}
           />
         </View>
-      </View>
+      </TouchableOpacity>
     );
   };
 
@@ -145,9 +148,32 @@ const ExpensesList: React.FC<ExpensesListProps> = ({ expenses = [], onAddExpense
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Expenses</Text>
-        <TouchableOpacity style={styles.menuButton}>
+        <TouchableOpacity style={styles.menuButton} onPress={() => setShowMenu(!showMenu)}>
           <Text style={styles.menuIcon}>⋮</Text>
         </TouchableOpacity>
+
+        {showMenu && (
+          <View style={styles.menuDropdown}>
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => {
+                setShowMenu(false);
+                onOpenBudget && onOpenBudget();
+              }}
+            >
+              <Text style={styles.menuItemText}>Budget Overview</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => {
+                setShowMenu(false);
+                onOpenSettings && onOpenSettings();
+              }}
+            >
+              <Text style={styles.menuItemText}>Budget Settings</Text>
+            </TouchableOpacity>
+          </View>
+        )}
       </View>
 
       <View style={styles.categoriesContainer}>
@@ -197,16 +223,47 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: responsiveMargin(20),
+    zIndex: 1000,
   },
   headerTitle: {
     fontSize: scaleFontSize(24),
-    fontWeight: "600",
+    fontWeight: "bold",
+    color: "#333",
   },
   menuButton: {
-    padding: 5,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: "center",
+    alignItems: "center",
   },
   menuIcon: {
     fontSize: scaleFontSize(24),
+    color: "#333",
+  },
+  menuDropdown: {
+    position: "absolute",
+    top: 40,
+    right: 0,
+    backgroundColor: "#FFF",
+    borderRadius: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+    zIndex: 1000,
+    width: 180,
+  },
+  menuItem: {
+    paddingVertical: responsivePadding(12),
+    paddingHorizontal: responsivePadding(16),
+    borderBottomWidth: 1,
+    borderBottomColor: "#F0F0F0",
+  },
+  menuItemText: {
+    fontSize: scaleFontSize(14),
+    color: "#333",
   },
   categoriesContainer: {
     marginBottom: responsiveMargin(20),
@@ -215,34 +272,36 @@ const styles = StyleSheet.create({
     paddingRight: responsivePadding(16),
   },
   categoryCard: {
-    backgroundColor: "white",
+    backgroundColor: "#FFF",
     borderRadius: 12,
-    padding: responsivePadding(12),
+    padding: responsivePadding(16),
     marginRight: responsiveMargin(12),
-    width: wp("40%"),
+    width: wp("70%"),
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
+    shadowRadius: 3,
+    elevation: 2,
   },
   categoryLabel: {
     fontSize: scaleFontSize(14),
-    marginBottom: 4,
+    color: "#666",
+    marginBottom: responsiveMargin(4),
   },
   categoryAmountRow: {
     flexDirection: "row",
     alignItems: "baseline",
-    marginBottom: 8,
+    marginBottom: responsiveMargin(12),
   },
   categoryAmount: {
-    fontSize: scaleFontSize(22),
+    fontSize: scaleFontSize(20),
     fontWeight: "bold",
-    marginRight: 4,
+    color: "#333",
+    marginRight: responsiveMargin(4),
   },
   categoryTotal: {
     fontSize: scaleFontSize(14),
-    color: "#888",
+    color: "#999",
   },
   progressBar: {
     height: 6,
@@ -255,49 +314,57 @@ const styles = StyleSheet.create({
   tabsContainer: {
     flexDirection: "row",
     marginBottom: responsiveMargin(16),
+    borderRadius: 8,
+    backgroundColor: "#FFF",
+    padding: 4,
   },
   tab: {
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    marginRight: 10,
+    flex: 1,
+    paddingVertical: responsivePadding(8),
+    alignItems: "center",
+    borderRadius: 6,
   },
   activeTab: {
-    borderBottomWidth: 2,
-    borderBottomColor: "#333",
+    backgroundColor: BudgetColors.needs + "20",
   },
   tabText: {
     fontSize: scaleFontSize(14),
+    fontWeight: "500",
+    color: "#333",
   },
   searchContainer: {
+    backgroundColor: "#FFF",
+    borderRadius: 8,
     marginBottom: responsiveMargin(16),
+    paddingHorizontal: responsivePadding(12),
   },
   searchInput: {
-    backgroundColor: "#fff",
-    borderRadius: 8,
-    padding: responsivePadding(12),
-    fontSize: scaleFontSize(14),
+    height: 44,
+    fontSize: scaleFontSize(16),
+    color: "#333",
   },
   expensesList: {
-    paddingBottom: responsiveMargin(80),
+    paddingBottom: 100, // Extra padding for the add button
   },
   expenseItem: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: responsivePadding(12),
-    borderBottomWidth: 1,
-    borderBottomColor: "#eee",
+    backgroundColor: "#FFF",
+    padding: responsivePadding(12),
+    borderRadius: 8,
+    marginBottom: responsiveMargin(8),
   },
   expenseIcon: {
-    width: wp("10%"),
-    height: wp("10%"),
-    borderRadius: wp("5%"),
-    backgroundColor: "#f0f0f0",
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#F0F0F0",
     justifyContent: "center",
     alignItems: "center",
     marginRight: responsiveMargin(12),
   },
   iconText: {
-    fontSize: scaleFontSize(18),
+    fontSize: scaleFontSize(20),
   },
   expenseDetails: {
     flex: 1,
@@ -305,14 +372,17 @@ const styles = StyleSheet.create({
   expenseTitle: {
     fontSize: scaleFontSize(16),
     fontWeight: "500",
+    color: "#333",
+    marginBottom: 4,
   },
   expenseCategory: {
     fontSize: scaleFontSize(14),
-    color: "#888",
+    color: "#666",
   },
   expenseAmount: {
     fontSize: scaleFontSize(16),
-    fontWeight: "500",
+    fontWeight: "600",
+    color: "#333",
   },
   addButton: {
     position: "absolute",
@@ -321,14 +391,14 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: "#4A67FF",
+    backgroundColor: BudgetColors.needs,
     justifyContent: "center",
     alignItems: "center",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 4,
-    elevation: 5,
+    elevation: 4,
   },
   addButtonIcon: {
     fontSize: scaleFontSize(24),

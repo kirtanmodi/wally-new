@@ -1,11 +1,14 @@
 import React, { useState } from "react";
 import { SafeAreaView, StyleSheet } from "react-native";
+import { useSelector } from "react-redux";
 import AddExpense from "../components/AddExpense";
 import BudgetOverview from "../components/BudgetOverview";
+import BudgetSettings from "../components/BudgetSettings";
 import ExpensesList from "../components/ExpensesList";
+import { selectMonthlyIncome } from "../redux/slices/budgetSlice";
 import { BudgetCategory, Expense, ExpenseCategory } from "./types/budget";
 
-type ScreenView = "budget" | "expenses" | "addExpense";
+type ScreenView = "budget" | "expenses" | "addExpense" | "settings";
 
 interface SaveExpenseData {
   amount: number;
@@ -17,7 +20,7 @@ interface SaveExpenseData {
 
 const BudgetScreen: React.FC = () => {
   const [currentView, setCurrentView] = useState<ScreenView>("expenses");
-  const [monthlyIncome, setMonthlyIncome] = useState(4000);
+  const monthlyIncome = useSelector(selectMonthlyIncome);
   const [expenses, setExpenses] = useState<Expense[]>([]);
 
   const handleSaveExpense = (expenseData: SaveExpenseData) => {
@@ -56,11 +59,26 @@ const BudgetScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      {currentView === "budget" && <BudgetOverview monthlyIncome={monthlyIncome} onBackPress={() => setCurrentView("expenses")} />}
+      {currentView === "budget" && (
+        <BudgetOverview
+          monthlyIncome={monthlyIncome}
+          onBackPress={() => setCurrentView("expenses")}
+          onOpenSettings={() => setCurrentView("settings")}
+        />
+      )}
 
-      {currentView === "expenses" && <ExpensesList expenses={expenses} onAddExpense={() => setCurrentView("addExpense")} />}
+      {currentView === "expenses" && (
+        <ExpensesList
+          expenses={expenses}
+          onAddExpense={() => setCurrentView("addExpense")}
+          onOpenBudget={() => setCurrentView("budget")}
+          onOpenSettings={() => setCurrentView("settings")}
+        />
+      )}
 
       {currentView === "addExpense" && <AddExpense onSave={handleSaveExpense} onCancel={() => setCurrentView("expenses")} />}
+
+      {currentView === "settings" && <BudgetSettings onBackPress={() => setCurrentView("expenses")} />}
     </SafeAreaView>
   );
 };
