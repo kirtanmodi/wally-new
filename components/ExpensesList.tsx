@@ -171,7 +171,7 @@ const AnimatedExpenseItem: React.FC<{
         },
       ]}
     >
-      <TouchableOpacity activeOpacity={0.9} style={styles.expenseContentContainer} onLongPress={() => setShowActions(!showActions)}>
+      <TouchableOpacity activeOpacity={0.9} style={styles.expenseContentContainer} onPress={() => setShowActions(!showActions)}>
         <View style={[styles.expenseIcon, { backgroundColor: getCategoryColor(item.category) + "20" }]}>
           <Text style={[styles.iconText, { color: getCategoryColor(item.category) }]}>{item.icon}</Text>
         </View>
