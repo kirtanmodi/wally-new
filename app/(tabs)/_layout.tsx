@@ -8,7 +8,12 @@ function TabBarIcon({ name, color }: { name: React.ComponentProps<typeof FontAwe
 
 export default function TabLayout() {
   return (
-    <Tabs screenOptions={{ tabBarActiveTintColor: "#007AFF" }}>
+    <Tabs
+      screenOptions={{
+        tabBarActiveTintColor: "#007AFF",
+        headerShown: false,
+      }}
+    >
       <Tabs.Screen
         name="index"
         options={{
