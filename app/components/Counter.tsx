@@ -32,7 +32,7 @@ const Counter = () => {
 
 const styles = StyleSheet.create({
   container: {
-    padding: responsivePadding(20),
+    padding: responsivePadding(15),
     alignItems: "center",
     backgroundColor: "#fff",
     borderRadius: wp("2.5%"),
