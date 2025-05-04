@@ -24,8 +24,11 @@ const AnimatedCategoryCircle: React.FC<{
   onOpenBudget?: () => void;
 }> = ({ item, index, onOpenBudget }) => {
   const percentage = Math.min(100, (item.spent / item.total) * 100);
+  const isOverBudget = item.spent > item.total;
   const itemFade = useRef(new Animated.Value(0)).current;
   const itemSlide = useRef(new Animated.Value(30)).current;
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+  const warningFade = useRef(new Animated.Value(0)).current;
   const currency = useSelector(selectCurrency);
 
   useEffect(() => {
@@ -44,7 +47,34 @@ const AnimatedCategoryCircle: React.FC<{
         useNativeDriver: true,
       }),
     ]).start();
-  }, []);
+
+    // Add pulsing animation if over budget
+    if (isOverBudget && item.category !== "Savings") {
+      // Pulse animation
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(pulseAnim, {
+            toValue: 1.08,
+            duration: 800,
+            useNativeDriver: true,
+          }),
+          Animated.timing(pulseAnim, {
+            toValue: 1,
+            duration: 800,
+            useNativeDriver: true,
+          }),
+        ])
+      ).start();
+
+      // Warning text fade in
+      Animated.timing(warningFade, {
+        toValue: 1,
+        duration: 600,
+        delay: 300,
+        useNativeDriver: true,
+      }).start();
+    }
+  }, [isOverBudget]);
 
   return (
     <Animated.View
@@ -56,8 +86,13 @@ const AnimatedCategoryCircle: React.FC<{
       }}
     >
       <TouchableOpacity activeOpacity={0.85} onPress={onOpenBudget}>
-        <View style={styles.categoryCircleContainer}>
-          <LinearGradient colors={item.gradientColors as [string, string]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.categoryCircle}>
+        <Animated.View style={[styles.categoryCircleContainer, isOverBudget && item.category !== "Savings" && {}]}>
+          <LinearGradient
+            colors={isOverBudget && item.category !== "Savings" ? ["#FF7171", "#FF4040"] : (item.gradientColors as [string, string])}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.categoryCircle}
+          >
             <Text style={styles.categoryPercentage}>{Math.round(percentage)}%</Text>
             <View style={styles.circleProgressContainer}>
               <View
@@ -71,14 +106,20 @@ const AnimatedCategoryCircle: React.FC<{
               />
             </View>
           </LinearGradient>
-        </View>
+          {isOverBudget && item.category !== "Savings" && (
+            <View style={styles.overBudgetBadge}>
+              <Text style={styles.overBudgetIcon}>!</Text>
+            </View>
+          )}
+        </Animated.View>
         <Text style={styles.categoryCircleLabel}>{item.category}</Text>
-        <Text style={styles.categoryCircleAmount}>
+        <Text style={[styles.categoryCircleAmount, isOverBudget && styles.overBudgetText]}>
           {formatCurrency(item.spent, currency, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
         </Text>
         <Text style={styles.categoryCircleTotal}>
           of {formatCurrency(item.total, currency, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
         </Text>
+        {isOverBudget && <Animated.Text style={[styles.overBudgetMessage, { opacity: warningFade }]}>Over budget</Animated.Text>}
       </TouchableOpacity>
     </Animated.View>
   );
@@ -761,6 +802,40 @@ const styles = StyleSheet.create({
     fontSize: scaleFontSize(32),
     color: "#FFFFFF",
     lineHeight: 50,
+  },
+  overBudgetBadge: {
+    position: "absolute",
+    top: -4,
+    right: -4,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 10,
+    width: 20,
+    height: 20,
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1.5,
+    borderColor: "#FF4040",
+    elevation: 3,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+  },
+  overBudgetIcon: {
+    fontSize: scaleFontSize(12),
+    fontWeight: "900",
+    color: "#FF4040",
+    textAlign: "center",
+  },
+  overBudgetText: {
+    color: "#FF4040",
+  },
+  overBudgetMessage: {
+    fontSize: scaleFontSize(12),
+    fontWeight: "500",
+    color: "#FF4040",
+    marginTop: responsiveMargin(2),
+    textAlign: "center",
   },
 });
 
