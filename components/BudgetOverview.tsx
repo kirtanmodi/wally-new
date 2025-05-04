@@ -3,8 +3,9 @@ import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-nati
 import { useSelector } from "react-redux";
 import { BudgetColors } from "../app/constants/Colors";
 import { BudgetData } from "../app/types/budget";
+import { formatCurrency } from "../app/utils/currency";
 import { responsiveMargin, responsivePadding, scaleFontSize } from "../app/utils/responsive";
-import { selectBudgetRule, selectCategoriesByType } from "../redux/slices/budgetSlice";
+import { selectBudgetRule, selectCategoriesByType, selectCurrency } from "../redux/slices/budgetSlice";
 import { selectExpenses } from "../redux/slices/expenseSlice";
 import { RootState } from "../redux/types";
 
@@ -20,6 +21,7 @@ const BudgetOverview: React.FC<BudgetOverviewProps> = ({ monthlyIncome = 0, onBa
   const savingsCategories = useSelector((state: RootState) => selectCategoriesByType(state, "Savings"));
   const wantsCategories = useSelector((state: RootState) => selectCategoriesByType(state, "Wants"));
   const expenses = useSelector(selectExpenses);
+  const currency = useSelector(selectCurrency);
 
   // Calculate spending by category
   const calculateSpentBySubcategory = (subcategory: string) => {
@@ -68,7 +70,7 @@ const BudgetOverview: React.FC<BudgetOverviewProps> = ({ monthlyIncome = 0, onBa
       <ScrollView style={styles.scrollView}>
         <View style={styles.incomeSection}>
           <Text style={styles.incomeLabel}>Monthly Income</Text>
-          <Text style={styles.incomeAmount}>$ {monthlyIncome.toLocaleString()}</Text>
+          <Text style={styles.incomeAmount}>{formatCurrency(monthlyIncome, currency, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</Text>
         </View>
 
         <View style={styles.ruleSection}>
@@ -91,10 +93,10 @@ const BudgetOverview: React.FC<BudgetOverviewProps> = ({ monthlyIncome = 0, onBa
             </View>
             <View style={styles.budgetItemRight}>
               <Text style={styles.budgetItemAmount}>
-                ${budgetData.needs.spent.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                {formatCurrency(budgetData.needs.spent, currency, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </Text>
               <Text style={styles.budgetItemTotal}>
-                of ${budgetData.needs.amount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                of {formatCurrency(budgetData.needs.amount, currency, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
               </Text>
             </View>
           </View>
@@ -116,10 +118,10 @@ const BudgetOverview: React.FC<BudgetOverviewProps> = ({ monthlyIncome = 0, onBa
             </View>
             <View style={styles.budgetItemRight}>
               <Text style={styles.budgetItemAmount}>
-                ${budgetData.savings.spent.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                {formatCurrency(budgetData.savings.spent, currency, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </Text>
               <Text style={styles.budgetItemTotal}>
-                of ${budgetData.savings.amount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                of {formatCurrency(budgetData.savings.amount, currency, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
               </Text>
             </View>
           </View>
@@ -141,10 +143,10 @@ const BudgetOverview: React.FC<BudgetOverviewProps> = ({ monthlyIncome = 0, onBa
             </View>
             <View style={styles.budgetItemRight}>
               <Text style={styles.budgetItemAmount}>
-                ${budgetData.wants.spent.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                {formatCurrency(budgetData.wants.spent, currency, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </Text>
               <Text style={styles.budgetItemTotal}>
-                of ${budgetData.wants.amount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                of {formatCurrency(budgetData.wants.amount, currency, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
               </Text>
             </View>
           </View>
@@ -165,7 +167,7 @@ const BudgetOverview: React.FC<BudgetOverviewProps> = ({ monthlyIncome = 0, onBa
                     </View>
                     <Text style={styles.categoryName}>{category.name}</Text>
                     <Text style={styles.categoryAmount}>
-                      ${spent.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      {formatCurrency(spent, currency, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </Text>
                   </View>
                 );
@@ -185,7 +187,7 @@ const BudgetOverview: React.FC<BudgetOverviewProps> = ({ monthlyIncome = 0, onBa
                     </View>
                     <Text style={styles.categoryName}>{category.name}</Text>
                     <Text style={styles.categoryAmount}>
-                      ${spent.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      {formatCurrency(spent, currency, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </Text>
                   </View>
                 );
@@ -205,7 +207,7 @@ const BudgetOverview: React.FC<BudgetOverviewProps> = ({ monthlyIncome = 0, onBa
                     </View>
                     <Text style={styles.categoryName}>{category.name}</Text>
                     <Text style={styles.categoryAmount}>
-                      ${spent.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      {formatCurrency(spent, currency, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </Text>
                   </View>
                 );

@@ -3,14 +3,19 @@ import { Alert, Animated, FlatList, Modal, ScrollView, StyleSheet, Text, TextInp
 import { useDispatch, useSelector } from "react-redux";
 import { AdditionalColors, BudgetColors } from "../app/constants/Colors";
 import { BudgetCategory } from "../app/types/budget";
+import { getCurrencySymbol } from "../app/utils/currency";
 import { responsiveMargin, responsivePadding, scaleFontSize } from "../app/utils/responsive";
 import {
+  AVAILABLE_CURRENCIES,
   CategoryItem,
+  CurrencyInfo,
   addCategory,
   deleteCategory,
   selectBudgetRule,
   selectCategories,
+  selectCurrency,
   selectMonthlyIncome,
+  setCurrency,
   setMonthlyIncome,
   updateBudgetRule,
 } from "../redux/slices/budgetSlice";
@@ -51,6 +56,7 @@ const BudgetSettings: React.FC<BudgetSettingsProps> = ({ onBackPress }) => {
   const monthlyIncome = useSelector(selectMonthlyIncome);
   const budgetRule = useSelector(selectBudgetRule);
   const categories = useSelector(selectCategories);
+  const currency = useSelector(selectCurrency);
 
   // Local state
   const [incomeInput, setIncomeInput] = useState(monthlyIncome.toString());
@@ -58,6 +64,7 @@ const BudgetSettings: React.FC<BudgetSettingsProps> = ({ onBackPress }) => {
   const [savingsInput, setSavingsInput] = useState(budgetRule.savings.toString());
   const [wantsInput, setWantsInput] = useState(budgetRule.wants.toString());
   const [showAddCategory, setShowAddCategory] = useState(false);
+  const [showCurrencyModal, setShowCurrencyModal] = useState(false);
 
   // Animation values
   const [fadeAnim] = useState(new Animated.Value(0));
@@ -168,6 +175,11 @@ const BudgetSettings: React.FC<BudgetSettingsProps> = ({ onBackPress }) => {
     }
   };
 
+  const handleSelectCurrency = (selectedCurrency: CurrencyInfo) => {
+    dispatch(setCurrency(selectedCurrency));
+    setShowCurrencyModal(false);
+  };
+
   const renderCategoryItem = ({ item, index }: { item: CategoryItem; index: number }) => {
     const itemFade = new Animated.Value(0);
     const itemSlide = new Animated.Value(20);
@@ -239,9 +251,14 @@ const BudgetSettings: React.FC<BudgetSettingsProps> = ({ onBackPress }) => {
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Monthly Income</Text>
+          <View style={styles.sectionTitleRow}>
+            <Text style={styles.sectionTitle}>Monthly Income</Text>
+            <TouchableOpacity style={styles.currencyButton} onPress={() => setShowCurrencyModal(true)} activeOpacity={0.7}>
+              <Text style={styles.currencyButtonText}>{currency?.code || "USD"}</Text>
+            </TouchableOpacity>
+          </View>
           <View style={styles.inputContainer}>
-            <Text style={styles.dollarSign}>$</Text>
+            <Text style={styles.dollarSign}>{currency ? getCurrencySymbol(currency) : "$"}</Text>
             <TextInput
               style={styles.incomeInput}
               value={incomeInput}
@@ -387,6 +404,38 @@ const BudgetSettings: React.FC<BudgetSettingsProps> = ({ onBackPress }) => {
                 <Text style={styles.saveButtonText}>Save Category</Text>
               </TouchableOpacity>
             </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Currency Selection Modal */}
+      <Modal visible={showCurrencyModal} animationType="slide" transparent={true} onRequestClose={() => setShowCurrencyModal(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Select Currency</Text>
+              <TouchableOpacity onPress={() => setShowCurrencyModal(false)}>
+                <Text style={styles.closeButton}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            <FlatList
+              data={AVAILABLE_CURRENCIES}
+              keyExtractor={(item) => item.code}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={[styles.currencyItem, currency?.code === item.code ? styles.selectedCurrencyItem : null]}
+                  onPress={() => handleSelectCurrency(item)}
+                >
+                  <View style={styles.currencyItemLeft}>
+                    <Text style={styles.currencySymbol}>{item.symbol}</Text>
+                    <Text style={styles.currencyName}>{item.name}</Text>
+                  </View>
+                  <Text style={styles.currencyCode}>{item.code}</Text>
+                </TouchableOpacity>
+              )}
+              ItemSeparatorComponent={() => <View style={styles.separator} />}
+            />
           </View>
         </View>
       </Modal>
@@ -704,6 +753,48 @@ const styles = StyleSheet.create({
     color: "#FFF",
     fontSize: scaleFontSize(16),
     fontWeight: "600",
+  },
+  currencyButton: {
+    paddingHorizontal: responsivePadding(12),
+    paddingVertical: responsivePadding(6),
+    backgroundColor: "#F0F0F0",
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "#E0E0E0",
+  },
+  currencyButtonText: {
+    fontSize: scaleFontSize(14),
+    fontWeight: "500",
+    color: "#555",
+  },
+  currencyItem: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: responsivePadding(12),
+    paddingHorizontal: responsivePadding(16),
+  },
+  selectedCurrencyItem: {
+    backgroundColor: `${BudgetColors.needs}15`,
+  },
+  currencyItemLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  currencySymbol: {
+    fontSize: scaleFontSize(18),
+    marginRight: responsiveMargin(12),
+    width: 24,
+    textAlign: "center",
+  },
+  currencyName: {
+    fontSize: scaleFontSize(16),
+    color: "#333",
+  },
+  currencyCode: {
+    fontSize: scaleFontSize(14),
+    color: "#666",
+    fontWeight: "500",
   },
 });
 

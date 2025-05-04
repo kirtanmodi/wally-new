@@ -4,8 +4,9 @@ import { Animated, FlatList, StyleSheet, Text, TextInput, TouchableOpacity, View
 import { useSelector } from "react-redux";
 import { BudgetColors } from "../app/constants/Colors";
 import { BudgetCategory, CategorySummary, Expense } from "../app/types/budget";
+import { formatCurrency } from "../app/utils/currency";
 import { responsiveMargin, responsivePadding, scaleFontSize, wp } from "../app/utils/responsive";
-import { selectBudgetRule, selectMonthlyIncome } from "../redux/slices/budgetSlice";
+import { selectBudgetRule, selectCurrency, selectMonthlyIncome } from "../redux/slices/budgetSlice";
 
 interface ExpensesListProps {
   expenses?: Expense[];
@@ -23,6 +24,7 @@ const AnimatedCategoryCard: React.FC<{
   const percentage = Math.min(100, (item.spent / item.total) * 100);
   const itemFade = useRef(new Animated.Value(0)).current;
   const itemSlide = useRef(new Animated.Value(30)).current;
+  const currency = useSelector(selectCurrency);
 
   useEffect(() => {
     // Staggered animation
@@ -53,9 +55,9 @@ const AnimatedCategoryCard: React.FC<{
         <LinearGradient colors={item.gradientColors as [string, string]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.categoryCard}>
           <Text style={styles.categoryLabel}>{item.category}</Text>
           <View style={styles.categoryAmountRow}>
-            <Text style={styles.categoryAmount}>${item.spent.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</Text>
+            <Text style={styles.categoryAmount}>{formatCurrency(item.spent, currency, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</Text>
             <Text style={styles.categoryTotal}>
-              of ${item.total.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+              of {formatCurrency(item.total, currency, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
             </Text>
           </View>
           <View style={styles.progressBarContainer}>
@@ -85,6 +87,7 @@ const AnimatedExpenseItem: React.FC<{
   const formattedDate = item.date instanceof Date ? item.date.toLocaleDateString() : new Date(item.date).toLocaleDateString();
   const itemFade = useRef(new Animated.Value(0)).current;
   const itemSlide = useRef(new Animated.Value(20)).current;
+  const currency = useSelector(selectCurrency);
 
   useEffect(() => {
     // Staggered animation
@@ -124,7 +127,7 @@ const AnimatedExpenseItem: React.FC<{
           <Text style={styles.expenseDate}>{formattedDate}</Text>
         </View>
       </View>
-      <Text style={styles.expenseAmount}>${item.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Text>
+      <Text style={styles.expenseAmount}>{formatCurrency(item.amount, currency, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Text>
     </Animated.View>
   );
 };
@@ -160,6 +163,7 @@ const ExpensesList: React.FC<ExpensesListProps> = ({ expenses = [], onAddExpense
   // Get budget data from Redux
   const monthlyIncome = useSelector(selectMonthlyIncome);
   const budgetRule = useSelector(selectBudgetRule);
+  const currency = useSelector(selectCurrency);
 
   useEffect(() => {
     // Entrance animation

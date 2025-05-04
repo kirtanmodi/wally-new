@@ -2,6 +2,26 @@ import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { BudgetCategory } from "../../app/types/budget";
 import { RootState } from "../types";
 
+// Define currency type
+export type CurrencyCode = "USD" | "EUR" | "GBP" | "JPY" | "CAD" | "AUD" | "INR" | "CNY";
+
+export interface CurrencyInfo {
+  code: CurrencyCode;
+  symbol: string;
+  name: string;
+}
+
+export const AVAILABLE_CURRENCIES: CurrencyInfo[] = [
+  { code: "USD", symbol: "$", name: "US Dollar" },
+  { code: "EUR", symbol: "€", name: "Euro" },
+  { code: "GBP", symbol: "£", name: "British Pound" },
+  { code: "JPY", symbol: "¥", name: "Japanese Yen" },
+  { code: "CAD", symbol: "C$", name: "Canadian Dollar" },
+  { code: "AUD", symbol: "A$", name: "Australian Dollar" },
+  { code: "INR", symbol: "₹", name: "Indian Rupee" },
+  { code: "CNY", symbol: "¥", name: "Chinese Yuan" },
+];
+
 // Define custom category types
 export interface CategoryItem {
   id: string;
@@ -19,6 +39,7 @@ interface BudgetState {
     wants: number;
   };
   categories: CategoryItem[];
+  currency: CurrencyInfo;
 }
 
 // Define initial state
@@ -38,6 +59,7 @@ const initialState: BudgetState = {
     { id: "entertainment", name: "Entertainment", icon: "🎬", type: "Wants" },
     { id: "dining", name: "Dining Out", icon: "🍽️", type: "Wants" },
   ],
+  currency: AVAILABLE_CURRENCIES[0], // Default to USD
 };
 
 // Create slice
@@ -78,6 +100,9 @@ export const budgetSlice = createSlice({
         ...action.payload,
       };
     },
+    setCurrency: (state, action: PayloadAction<CurrencyInfo>) => {
+      state.currency = action.payload;
+    },
     addCategory: (state, action: PayloadAction<CategoryItem>) => {
       state.categories.push(action.payload);
     },
@@ -103,13 +128,14 @@ export const budgetSlice = createSlice({
 });
 
 // Export actions
-export const { setMonthlyIncome, updateBudgetRule, addCategory, updateCategory, deleteCategory, resetBudget } = budgetSlice.actions;
+export const { setMonthlyIncome, updateBudgetRule, addCategory, updateCategory, deleteCategory, resetBudget, setCurrency } = budgetSlice.actions;
 
 // Export selectors
 export const selectBudget = (state: RootState) => state.budget;
 export const selectMonthlyIncome = (state: RootState) => state.budget.monthlyIncome;
 export const selectBudgetRule = (state: RootState) => state.budget.budgetRule;
 export const selectCategories = (state: RootState) => state.budget.categories;
+export const selectCurrency = (state: RootState) => state.budget.currency;
 export const selectCategoriesByType = (state: RootState, type: BudgetCategory) => state.budget.categories.filter((cat) => cat.type === type);
 
 // Export reducer

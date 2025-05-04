@@ -3,8 +3,9 @@ import { ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 
 import { useSelector } from "react-redux";
 import { BudgetColors } from "../app/constants/Colors";
 import { BudgetCategory, ExpenseCategory } from "../app/types/budget";
+import { getCurrencySymbol } from "../app/utils/currency";
 import { responsiveMargin, responsivePadding, scaleFontSize } from "../app/utils/responsive";
-import { CategoryItem, selectCategories } from "../redux/slices/budgetSlice";
+import { CategoryItem, selectCategories, selectCurrency } from "../redux/slices/budgetSlice";
 
 interface AddExpenseProps {
   onSave?: (expenseData: {
@@ -26,6 +27,7 @@ const AddExpense: React.FC<AddExpenseProps> = ({ onSave, onCancel }) => {
 
   // Get categories from Redux
   const allCategories = useSelector(selectCategories);
+  const currency = useSelector(selectCurrency);
 
   // Filter categories by budget type
   const filteredCategories = allCategories.filter((cat) => cat.type === budgetCategory);
@@ -69,7 +71,7 @@ const AddExpense: React.FC<AddExpenseProps> = ({ onSave, onCancel }) => {
       <View style={styles.formSection}>
         <Text style={styles.sectionLabel}>Amount</Text>
         <View style={styles.amountInputContainer}>
-          <Text style={styles.currencySymbol}>$</Text>
+          <Text style={styles.currencySymbol}>{getCurrencySymbol(currency)}</Text>
           <TextInput style={styles.amountInput} value={amount} onChangeText={setAmount} keyboardType="decimal-pad" />
         </View>
       </View>
