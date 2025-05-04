@@ -37,6 +37,13 @@
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "230c0b53-dfcc-4dcf-b8ef-b98c62781292"
+      }
+    },
+    "owner": "kirtan19"
   }
 }
