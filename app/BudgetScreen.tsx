@@ -107,19 +107,19 @@ const BudgetScreen: React.FC = () => {
     <SafeAreaView style={styles.container}>
       {currentView === "welcome" && <WelcomeScreen onGetStarted={handleGetStarted} />}
 
-      {currentView === "budget" && (
-        <BudgetOverview
-          monthlyIncome={monthlyIncome}
-          onBackPress={() => setCurrentView("expenses")}
-          onOpenSettings={() => setCurrentView("settings")}
-        />
-      )}
-
       {currentView === "expenses" && (
         <ExpensesList
           expenses={expenses}
           onAddExpense={() => setCurrentView("addExpense")}
           onOpenBudget={() => setCurrentView("budget")}
+          onOpenSettings={() => setCurrentView("settings")}
+        />
+      )}
+
+      {currentView === "budget" && (
+        <BudgetOverview
+          monthlyIncome={monthlyIncome}
+          onBackPress={() => setCurrentView("expenses")}
           onOpenSettings={() => setCurrentView("settings")}
         />
       )}

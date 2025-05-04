@@ -3,44 +3,26 @@ import { Expense } from "../../app/types/budget";
 import { RootState } from "../types";
 
 // Sample expenses for new users
-const sampleExpenses: Expense[] = [
-  {
-    id: "sample-1",
-    title: "Rent",
-    amount: 1200,
-    category: "Needs",
-    subcategory: "Housing",
-    icon: "🏠",
-    date: new Date(),
-  },
-  {
-    id: "sample-2",
-    title: "Grocery Shopping",
-    amount: 185.5,
-    category: "Needs",
-    subcategory: "Food",
-    icon: "🛒",
-    date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2 days ago
-  },
-  {
-    id: "sample-3",
-    title: "Movie Night",
-    amount: 35.75,
-    category: "Wants",
-    subcategory: "Entertainment",
-    icon: "🎬",
-    date: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000), // 5 days ago
-  },
-  {
-    id: "sample-4",
-    title: "Savings Transfer",
-    amount: 500,
-    category: "Savings",
-    subcategory: "Emergency Fund",
-    icon: "💰",
-    date: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), // 7 days ago
-  },
-];
+// const sampleExpenses: Expense[] = [
+//   {
+//     id: "sample-1",
+//     title: "Rent",
+//     amount: 1200,
+//     category: "Needs",
+//     subcategory: "Housing",
+//     icon: "🏠",
+//     date: new Date(),
+//   },
+//   {
+//     id: "sample-2",
+//     title: "Grocery Shopping",
+//     amount: 185.5,
+//     category: "Needs",
+//     subcategory: "Food",
+//     icon: "🛒",
+//     date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2 days ago
+//   },
+// ];
 
 // Define expenses state
 interface ExpenseState {
@@ -50,7 +32,7 @@ interface ExpenseState {
 
 // Define initial state
 const initialState: ExpenseState = {
-  expenses: sampleExpenses,
+  expenses: [],
   isFirstTimeUser: true,
 };
 

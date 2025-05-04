@@ -23,7 +23,7 @@ interface BudgetState {
 
 // Define initial state
 const initialState: BudgetState = {
-  monthlyIncome: 4000,
+  monthlyIncome: 0,
   budgetRule: {
     needs: 50,
     savings: 30,

@@ -36,4 +36,5 @@ export interface CategorySummary {
   spent: number;
   total: number;
   color: string;
+  gradientColors?: string[];
 }
