@@ -14,6 +14,7 @@ import {
   selectIsFirstTimeUser,
   selectOnboarded,
   setUserOnboarded,
+  updateExpense,
 } from "../redux/slices/expenseSlice";
 import { BudgetCategory, Expense, ExpenseCategory } from "./types/budget";
 import { KeyboardAwareView } from "./utils/keyboard";
@@ -34,6 +35,7 @@ const BudgetScreen: React.FC = () => {
   const monthlyIncome = useSelector(selectMonthlyIncome);
   const onboarded = useSelector(selectOnboarded);
   const expenses = useSelector(selectExpenses);
+  const [expenseToEdit, setExpenseToEdit] = useState<Expense | null>(null);
 
   // Determine initial view based on user status and income
   const getInitialView = (): ScreenView => {
@@ -72,34 +74,61 @@ const BudgetScreen: React.FC = () => {
   };
 
   const handleSaveExpense = (expenseData: SaveExpenseData) => {
-    // Create a new expense with a unique ID
-    const newExpense: Expense = {
-      id: Date.now().toString(),
-      title: expenseData.description,
-      amount: expenseData.amount,
-      category: expenseData.budgetCategory,
-      subcategory: expenseData.category,
-      // Convert Date to string before dispatching the action
-      date: typeof expenseData.date === "string" ? expenseData.date : expenseData.date.toISOString(),
-      // Add an appropriate icon based on category
-      icon: getIconForCategory(expenseData.category),
-    };
+    if (expenseToEdit) {
+      // Update existing expense
+      dispatch(
+        updateExpense({
+          id: expenseToEdit.id,
+          updates: {
+            title: expenseData.description,
+            amount: expenseData.amount,
+            category: expenseData.budgetCategory,
+            subcategory: expenseData.category,
+            date: typeof expenseData.date === "string" ? expenseData.date : expenseData.date.toISOString(),
+          },
+        })
+      );
+      setExpenseToEdit(null);
+    } else {
+      // Create a new expense with a unique ID
+      const newExpense: Expense = {
+        id: Date.now().toString(),
+        title: expenseData.description,
+        amount: expenseData.amount,
+        category: expenseData.budgetCategory,
+        subcategory: expenseData.category,
+        // Convert Date to string before dispatching the action
+        date: typeof expenseData.date === "string" ? expenseData.date : expenseData.date.toISOString(),
+        // Add an appropriate icon based on category
+        icon: getIconForCategory(expenseData.category),
+      };
 
-    // If it's the first time user's first custom expense, offer to clear samples
-    if (isFirstTimeUser) {
-      Alert.alert("New Expense Added", "Would you like to keep the sample expenses or remove them?", [
-        {
-          text: "Keep Samples",
-          style: "cancel",
-        },
-        {
-          text: "Remove Samples",
-          onPress: () => dispatch(clearSampleExpenses()),
-        },
-      ]);
+      // If it's the first time user's first custom expense, offer to clear samples
+      if (isFirstTimeUser) {
+        Alert.alert("New Expense Added", "Would you like to keep the sample expenses or remove them?", [
+          {
+            text: "Keep Samples",
+            style: "cancel",
+          },
+          {
+            text: "Remove Samples",
+            onPress: () => dispatch(clearSampleExpenses()),
+          },
+        ]);
+      }
+
+      dispatch(addExpense(newExpense));
     }
+    setCurrentView("expenses");
+  };
 
-    dispatch(addExpense(newExpense));
+  const handleEditExpense = (expense: Expense) => {
+    setExpenseToEdit(expense);
+    setCurrentView("addExpense");
+  };
+
+  const handleCancelEdit = () => {
+    setExpenseToEdit(null);
     setCurrentView("expenses");
   };
 
@@ -151,9 +180,13 @@ const BudgetScreen: React.FC = () => {
         {currentView === "expenses" && (
           <ExpensesList
             expenses={expenses}
-            onAddExpense={() => setCurrentView("addExpense")}
+            onAddExpense={() => {
+              setExpenseToEdit(null);
+              setCurrentView("addExpense");
+            }}
             onOpenBudget={() => setCurrentView("budget")}
             onOpenSettings={() => setCurrentView("settings")}
+            onEditExpense={handleEditExpense}
           />
         )}
 
@@ -165,7 +198,9 @@ const BudgetScreen: React.FC = () => {
           />
         )}
 
-        {currentView === "addExpense" && <AddExpense onSave={handleSaveExpense} onCancel={() => setCurrentView("expenses")} />}
+        {currentView === "addExpense" && (
+          <AddExpense onSave={handleSaveExpense} onCancel={handleCancelEdit} initialExpense={expenseToEdit} isEditing={!!expenseToEdit} />
+        )}
 
         {currentView === "settings" && (
           <BudgetSettings onBackPress={() => setCurrentView(monthlyIncome === 0 && isFirstTimeUser ? "welcome" : "expenses")} />

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { useSelector } from "react-redux";
 import { BudgetColors } from "../app/constants/Colors";
-import { BudgetCategory, ExpenseCategory } from "../app/types/budget";
+import { BudgetCategory, Expense, ExpenseCategory } from "../app/types/budget";
 import { getCurrencySymbol } from "../app/utils/currency";
 import { KeyboardAwareView } from "../app/utils/keyboard";
 import { responsiveMargin, responsivePadding, scaleFontSize } from "../app/utils/responsive";
@@ -17,9 +17,11 @@ interface AddExpenseProps {
     date: Date;
   }) => void;
   onCancel?: () => void;
+  isEditing?: boolean;
+  initialExpense?: Expense | null;
 }
 
-const AddExpense: React.FC<AddExpenseProps> = ({ onSave, onCancel }) => {
+const AddExpense: React.FC<AddExpenseProps> = ({ onSave, onCancel, isEditing = false, initialExpense = null }) => {
   const [amount, setAmount] = useState("");
   const [description, setDescription] = useState("");
   const [budgetCategory, setBudgetCategory] = useState<BudgetCategory>("Needs");
@@ -30,15 +32,26 @@ const AddExpense: React.FC<AddExpenseProps> = ({ onSave, onCancel }) => {
   const allCategories = useSelector(selectCategories);
   const currency = useSelector(selectCurrency);
 
+  // Initialize form values when editing
+  useEffect(() => {
+    if (isEditing && initialExpense) {
+      setAmount(initialExpense.amount.toString());
+      setDescription(initialExpense.title);
+      setBudgetCategory(initialExpense.category);
+      setCategory(initialExpense.subcategory);
+      setDate(typeof initialExpense.date === "string" ? new Date(initialExpense.date) : initialExpense.date);
+    }
+  }, [isEditing, initialExpense]);
+
   // Filter categories by budget type
   const filteredCategories = allCategories.filter((cat) => cat.type === budgetCategory);
 
   // Set default category when budget category changes
   useEffect(() => {
-    if (filteredCategories.length > 0) {
+    if (filteredCategories.length > 0 && !isEditing) {
       setCategory(filteredCategories[0].name);
     }
-  }, [budgetCategory, filteredCategories]);
+  }, [budgetCategory, filteredCategories, isEditing]);
 
   const formatDate = (date: Date): string => {
     return date.toLocaleDateString("en-US", {
@@ -66,7 +79,7 @@ const AddExpense: React.FC<AddExpenseProps> = ({ onSave, onCancel }) => {
         <TouchableOpacity onPress={onCancel}>
           <Text style={styles.backButton}>←</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Add Expense</Text>
+        <Text style={styles.headerTitle}>{isEditing ? "Edit Expense" : "Add Expense"}</Text>
       </View>
 
       <View style={styles.formSection}>
@@ -156,7 +169,7 @@ const AddExpense: React.FC<AddExpenseProps> = ({ onSave, onCancel }) => {
       </View>
 
       <TouchableOpacity style={[styles.saveButton, !category && styles.disabledButton]} onPress={handleSave} disabled={!category}>
-        <Text style={styles.saveButtonText}>Save Expense</Text>
+        <Text style={styles.saveButtonText}>{isEditing ? "Update Expense" : "Save Expense"}</Text>
       </TouchableOpacity>
     </KeyboardAwareView>
   );

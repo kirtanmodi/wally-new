@@ -1,22 +1,24 @@
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Animated, FlatList, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { BudgetColors } from "../app/constants/Colors";
 import { BudgetCategory, CategorySummary, Expense } from "../app/types/budget";
 import { formatCurrency } from "../app/utils/currency";
 import { responsiveMargin, responsivePadding, scaleFontSize, wp } from "../app/utils/responsive";
 import { selectBudgetRule, selectCurrency, selectMonthlyIncome } from "../redux/slices/budgetSlice";
+import { deleteExpense } from "../redux/slices/expenseSlice";
 
 interface ExpensesListProps {
   expenses?: Expense[];
   onAddExpense?: () => void;
   onOpenBudget?: () => void;
   onOpenSettings?: () => void;
+  onEditExpense?: (expense: Expense) => void;
 }
 
-// Animated Category Card Component
-const AnimatedCategoryCard: React.FC<{
+// Animated Category Circle Component
+const AnimatedCategoryCircle: React.FC<{
   item: CategorySummary;
   index: number;
   onOpenBudget?: () => void;
@@ -49,30 +51,34 @@ const AnimatedCategoryCard: React.FC<{
       style={{
         opacity: itemFade,
         transform: [{ translateY: itemSlide }],
+        alignItems: "center",
+        marginHorizontal: responsiveMargin(8),
       }}
     >
       <TouchableOpacity activeOpacity={0.85} onPress={onOpenBudget}>
-        <LinearGradient colors={item.gradientColors as [string, string]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.categoryCard}>
-          <Text style={styles.categoryLabel}>{item.category}</Text>
-          <View style={styles.categoryAmountRow}>
-            <Text style={styles.categoryAmount}>{formatCurrency(item.spent, currency, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</Text>
-            <Text style={styles.categoryTotal}>
-              of {formatCurrency(item.total, currency, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
-            </Text>
-          </View>
-          <View style={styles.progressBarContainer}>
-            <View style={styles.progressBar}>
+        <View style={styles.categoryCircleContainer}>
+          <LinearGradient colors={item.gradientColors as [string, string]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.categoryCircle}>
+            <Text style={styles.categoryPercentage}>{Math.round(percentage)}%</Text>
+            <View style={styles.circleProgressContainer}>
               <View
                 style={[
-                  styles.progressFill,
+                  styles.circleProgress,
                   {
-                    width: `${percentage}%`,
+                    height: `${percentage}%`,
+                    backgroundColor: "#FFFFFF",
                   },
                 ]}
               />
             </View>
-          </View>
-        </LinearGradient>
+          </LinearGradient>
+        </View>
+        <Text style={styles.categoryCircleLabel}>{item.category}</Text>
+        <Text style={styles.categoryCircleAmount}>
+          {formatCurrency(item.spent, currency, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+        </Text>
+        <Text style={styles.categoryCircleTotal}>
+          of {formatCurrency(item.total, currency, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+        </Text>
       </TouchableOpacity>
     </Animated.View>
   );
@@ -83,13 +89,18 @@ const AnimatedExpenseItem: React.FC<{
   item: Expense;
   index: number;
   getCategoryColor: (category: BudgetCategory) => string;
-}> = ({ item, index, getCategoryColor }) => {
+  onEdit: (expense: Expense) => void;
+  onDelete: (id: string) => void;
+}> = ({ item, index, getCategoryColor, onEdit, onDelete }) => {
   // Handle date formatting whether it's a Date object or string
   const formattedDate = typeof item.date === "string" ? new Date(item.date).toLocaleDateString() : item.date.toLocaleDateString();
 
   const itemFade = useRef(new Animated.Value(0)).current;
   const itemSlide = useRef(new Animated.Value(20)).current;
   const currency = useSelector(selectCurrency);
+
+  // Add states for swipe actions
+  const [showActions, setShowActions] = useState(false);
 
   useEffect(() => {
     // Staggered animation
@@ -119,17 +130,45 @@ const AnimatedExpenseItem: React.FC<{
         },
       ]}
     >
-      <View style={[styles.expenseIcon, { backgroundColor: getCategoryColor(item.category) + "20" }]}>
-        <Text style={[styles.iconText, { color: getCategoryColor(item.category) }]}>{item.icon}</Text>
-      </View>
-      <View style={styles.expenseDetails}>
-        <Text style={styles.expenseTitle}>{item.title}</Text>
-        <View style={styles.expenseSubDetail}>
-          <Text style={styles.expenseCategory}>{item.subcategory}</Text>
-          <Text style={styles.expenseDate}>{formattedDate}</Text>
+      <TouchableOpacity activeOpacity={0.9} style={styles.expenseContentContainer} onLongPress={() => setShowActions(!showActions)}>
+        <View style={[styles.expenseIcon, { backgroundColor: getCategoryColor(item.category) + "20" }]}>
+          <Text style={[styles.iconText, { color: getCategoryColor(item.category) }]}>{item.icon}</Text>
         </View>
-      </View>
-      <Text style={styles.expenseAmount}>{formatCurrency(item.amount, currency, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Text>
+        <View style={styles.expenseDetails}>
+          <Text style={styles.expenseTitle}>{item.title}</Text>
+          <View style={styles.expenseSubDetail}>
+            <Text style={styles.expenseCategory}>{item.subcategory}</Text>
+            <Text style={styles.expenseDate}>{formattedDate}</Text>
+          </View>
+        </View>
+        <Text style={styles.expenseAmount}>{formatCurrency(item.amount, currency, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Text>
+      </TouchableOpacity>
+
+      {showActions && (
+        <View style={styles.expenseActions}>
+          <TouchableOpacity
+            style={[styles.actionButton, styles.editButton]}
+            onPress={() => {
+              setShowActions(false);
+              onEdit(item);
+            }}
+          >
+            <Text style={styles.actionButtonIcon}>✏️</Text>
+            <Text style={styles.actionButtonText}>Edit</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.actionButton, styles.deleteButton]}
+            onPress={() => {
+              setShowActions(false);
+              onDelete(item.id);
+            }}
+          >
+            <Text style={styles.actionButtonIcon}>🗑️</Text>
+            <Text style={styles.actionButtonText}>Delete</Text>
+          </TouchableOpacity>
+        </View>
+      )}
     </Animated.View>
   );
 };
@@ -153,10 +192,11 @@ const ScrollableTab: React.FC<ScrollableTabProps> = ({ tabs, activeTab, onTabCha
   );
 };
 
-const ExpensesList: React.FC<ExpensesListProps> = ({ expenses = [], onAddExpense, onOpenBudget, onOpenSettings }) => {
+const ExpensesList: React.FC<ExpensesListProps> = ({ expenses = [], onAddExpense, onOpenBudget, onOpenSettings, onEditExpense }) => {
   const [activeTab, setActiveTab] = useState<"All" | BudgetCategory>("All");
   const [showMenu, setShowMenu] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const dispatch = useDispatch();
 
   // Animation values
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -246,6 +286,17 @@ const ExpensesList: React.FC<ExpensesListProps> = ({ expenses = [], onAddExpense
     }
   };
 
+  // Functions to handle expense actions
+  const handleEditExpense = (expense: Expense) => {
+    if (onEditExpense) {
+      onEditExpense(expense);
+    }
+  };
+
+  const handleDeleteExpense = (id: string) => {
+    dispatch(deleteExpense(id));
+  };
+
   return (
     <Animated.View
       style={[
@@ -296,14 +347,11 @@ const ExpensesList: React.FC<ExpensesListProps> = ({ expenses = [], onAddExpense
       </View>
 
       <View style={styles.categoriesContainer}>
-        <FlatList
-          data={categorySummaries}
-          renderItem={({ item, index }) => <AnimatedCategoryCard item={item} index={index} onOpenBudget={onOpenBudget} />}
-          keyExtractor={(item) => item.category}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.categoriesList}
-        />
+        <View style={styles.categoryCirclesWrapper}>
+          {categorySummaries.map((item, index) => (
+            <AnimatedCategoryCircle key={item.category} item={item} index={index} onOpenBudget={onOpenBudget} />
+          ))}
+        </View>
       </View>
 
       <View style={styles.tabsContainer}>
@@ -321,6 +369,8 @@ const ExpensesList: React.FC<ExpensesListProps> = ({ expenses = [], onAddExpense
           placeholderTextColor="#AAAAAA"
           value={searchQuery}
           onChangeText={setSearchQuery}
+          submitBehavior="blurAndSubmit"
+          returnKeyType="search"
         />
       </View>
 
@@ -332,7 +382,15 @@ const ExpensesList: React.FC<ExpensesListProps> = ({ expenses = [], onAddExpense
       ) : (
         <FlatList
           data={filteredExpenses}
-          renderItem={({ item, index }) => <AnimatedExpenseItem item={item} index={index} getCategoryColor={getCategoryColor} />}
+          renderItem={({ item, index }) => (
+            <AnimatedExpenseItem
+              item={item}
+              index={index}
+              getCategoryColor={getCategoryColor}
+              onEdit={handleEditExpense}
+              onDelete={handleDeleteExpense}
+            />
+          )}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.expensesList}
           showsVerticalScrollIndicator={false}
@@ -421,6 +479,68 @@ const styles = StyleSheet.create({
   },
   categoriesContainer: {
     marginBottom: responsiveMargin(20),
+  },
+  categoryCirclesWrapper: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    alignItems: "flex-start",
+    paddingVertical: responsivePadding(10),
+  },
+  categoryCircleContainer: {
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  categoryCircle: {
+    width: wp(25),
+    height: wp(25),
+    borderRadius: wp(25) / 2,
+    justifyContent: "center",
+    alignItems: "center",
+    position: "relative",
+    overflow: "hidden",
+    elevation: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+  },
+  circleProgressContainer: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    width: "100%",
+    height: "100%",
+    overflow: "hidden",
+    opacity: 0.3,
+  },
+  circleProgress: {
+    width: "100%",
+    position: "absolute",
+    bottom: 0,
+  },
+  categoryPercentage: {
+    fontSize: scaleFontSize(18),
+    fontWeight: "700",
+    color: "#FFFFFF",
+  },
+  categoryCircleLabel: {
+    fontSize: scaleFontSize(14),
+    fontWeight: "600",
+    color: "#333",
+    marginTop: responsiveMargin(8),
+    textAlign: "center",
+  },
+  categoryCircleAmount: {
+    fontSize: scaleFontSize(16),
+    fontWeight: "700",
+    color: "#333",
+    marginTop: responsiveMargin(4),
+    textAlign: "center",
+  },
+  categoryCircleTotal: {
+    fontSize: scaleFontSize(12),
+    color: "#777",
+    textAlign: "center",
   },
   categoriesList: {
     paddingRight: responsivePadding(16),
@@ -519,17 +639,20 @@ const styles = StyleSheet.create({
     paddingBottom: responsiveMargin(80),
   },
   expenseItem: {
-    flexDirection: "row",
-    alignItems: "center",
     backgroundColor: "#FFFFFF",
     borderRadius: 16,
-    padding: responsivePadding(16),
     marginBottom: responsiveMargin(12),
     elevation: 1,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 2,
+    overflow: "hidden",
+  },
+  expenseContentContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: responsivePadding(16),
   },
   expenseIcon: {
     width: 44,
@@ -568,6 +691,34 @@ const styles = StyleSheet.create({
     fontSize: scaleFontSize(16),
     fontWeight: "600",
     color: "#333",
+  },
+  expenseActions: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    paddingHorizontal: responsivePadding(12),
+    paddingBottom: responsivePadding(12),
+  },
+  actionButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: responsivePadding(6),
+    paddingHorizontal: responsivePadding(10),
+    borderRadius: 8,
+    marginLeft: responsiveMargin(8),
+  },
+  editButton: {
+    backgroundColor: "#F0F5FF",
+  },
+  deleteButton: {
+    backgroundColor: "#FFF0F0",
+  },
+  actionButtonIcon: {
+    fontSize: scaleFontSize(14),
+    marginRight: responsiveMargin(4),
+  },
+  actionButtonText: {
+    fontSize: scaleFontSize(12),
+    fontWeight: "600",
   },
   emptyContainer: {
     flex: 1,
