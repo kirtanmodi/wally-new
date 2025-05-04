@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { Alert, SafeAreaView, StyleSheet } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
 import AddExpense from "../components/AddExpense";
@@ -7,14 +7,7 @@ import BudgetSettings from "../components/BudgetSettings";
 import ExpensesList from "../components/ExpensesList";
 import WelcomeScreen from "../components/WelcomeScreen";
 import { selectMonthlyIncome } from "../redux/slices/budgetSlice";
-import {
-  addExpense,
-  clearSampleExpenses,
-  resetExpenses,
-  selectExpenses,
-  selectIsFirstTimeUser,
-  setUserOnboarded,
-} from "../redux/slices/expenseSlice";
+import { addExpense, clearSampleExpenses, selectExpenses, selectIsFirstTimeUser, setUserOnboarded } from "../redux/slices/expenseSlice";
 import { BudgetCategory, Expense, ExpenseCategory } from "./types/budget";
 
 type ScreenView = "welcome" | "budget" | "expenses" | "addExpense" | "settings";
@@ -34,9 +27,10 @@ const BudgetScreen: React.FC = () => {
   const monthlyIncome = useSelector(selectMonthlyIncome);
   const expenses = useSelector(selectExpenses);
 
-  useEffect(() => {
-    dispatch(resetExpenses());
-  }, []);
+  // useEffect(() => {
+  //   dispatch(resetExpenses());
+  //   dispatch(resetBudget());
+  // }, []);
 
   const handleGetStarted = () => {
     dispatch(setUserOnboarded());
