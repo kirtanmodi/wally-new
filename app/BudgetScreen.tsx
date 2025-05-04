@@ -17,6 +17,7 @@ import {
   setUserOnboarded,
 } from "../redux/slices/expenseSlice";
 import { BudgetCategory, Expense, ExpenseCategory } from "./types/budget";
+import { KeyboardAwareView } from "./utils/keyboard";
 
 type ScreenView = "welcome" | "budget" | "expenses" | "addExpense" | "settings";
 
@@ -144,30 +145,32 @@ const BudgetScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      {currentView === "welcome" && <WelcomeScreen onGetStarted={handleGetStarted} />}
+      <KeyboardAwareView scrollEnabled={false} style={styles.container}>
+        {currentView === "welcome" && <WelcomeScreen onGetStarted={handleGetStarted} />}
 
-      {currentView === "expenses" && (
-        <ExpensesList
-          expenses={expenses}
-          onAddExpense={() => setCurrentView("addExpense")}
-          onOpenBudget={() => setCurrentView("budget")}
-          onOpenSettings={() => setCurrentView("settings")}
-        />
-      )}
+        {currentView === "expenses" && (
+          <ExpensesList
+            expenses={expenses}
+            onAddExpense={() => setCurrentView("addExpense")}
+            onOpenBudget={() => setCurrentView("budget")}
+            onOpenSettings={() => setCurrentView("settings")}
+          />
+        )}
 
-      {currentView === "budget" && (
-        <BudgetOverview
-          monthlyIncome={monthlyIncome}
-          onBackPress={() => setCurrentView("expenses")}
-          onOpenSettings={() => setCurrentView("settings")}
-        />
-      )}
+        {currentView === "budget" && (
+          <BudgetOverview
+            monthlyIncome={monthlyIncome}
+            onBackPress={() => setCurrentView("expenses")}
+            onOpenSettings={() => setCurrentView("settings")}
+          />
+        )}
 
-      {currentView === "addExpense" && <AddExpense onSave={handleSaveExpense} onCancel={() => setCurrentView("expenses")} />}
+        {currentView === "addExpense" && <AddExpense onSave={handleSaveExpense} onCancel={() => setCurrentView("expenses")} />}
 
-      {currentView === "settings" && (
-        <BudgetSettings onBackPress={() => setCurrentView(monthlyIncome === 0 && isFirstTimeUser ? "welcome" : "expenses")} />
-      )}
+        {currentView === "settings" && (
+          <BudgetSettings onBackPress={() => setCurrentView(monthlyIncome === 0 && isFirstTimeUser ? "welcome" : "expenses")} />
+        )}
+      </KeyboardAwareView>
     </SafeAreaView>
   );
 };

@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from "react";
-import { ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { useSelector } from "react-redux";
 import { BudgetColors } from "../app/constants/Colors";
 import { BudgetCategory, ExpenseCategory } from "../app/types/budget";
 import { getCurrencySymbol } from "../app/utils/currency";
+import { KeyboardAwareView } from "../app/utils/keyboard";
 import { responsiveMargin, responsivePadding, scaleFontSize } from "../app/utils/responsive";
 import { CategoryItem, selectCategories, selectCurrency } from "../redux/slices/budgetSlice";
 
@@ -60,7 +61,7 @@ const AddExpense: React.FC<AddExpenseProps> = ({ onSave, onCancel }) => {
   };
 
   return (
-    <ScrollView style={styles.container}>
+    <KeyboardAwareView style={styles.container} keyboardVerticalOffset={10}>
       <View style={styles.header}>
         <TouchableOpacity onPress={onCancel}>
           <Text style={styles.backButton}>←</Text>
@@ -155,7 +156,7 @@ const AddExpense: React.FC<AddExpenseProps> = ({ onSave, onCancel }) => {
       <TouchableOpacity style={[styles.saveButton, !category && styles.disabledButton]} onPress={handleSave} disabled={!category}>
         <Text style={styles.saveButtonText}>Save Expense</Text>
       </TouchableOpacity>
-    </ScrollView>
+    </KeyboardAwareView>
   );
 };
 

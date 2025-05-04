@@ -4,6 +4,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { AdditionalColors, BudgetColors } from "../app/constants/Colors";
 import { BudgetCategory } from "../app/types/budget";
 import { getCurrencySymbol } from "../app/utils/currency";
+import { KeyboardAwareView } from "../app/utils/keyboard";
 import { responsiveMargin, responsivePadding, scaleFontSize } from "../app/utils/responsive";
 import {
   AVAILABLE_CURRENCIES,
@@ -245,7 +246,7 @@ const BudgetSettings: React.FC<BudgetSettingsProps> = ({ onBackPress }) => {
         <Text style={styles.headerTitle}>Budget Settings</Text>
       </View>
 
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+      <KeyboardAwareView style={styles.scrollView} keyboardVerticalOffset={20}>
         <View style={styles.welcomeContainer}>
           {monthlyIncome === 0 && <Text style={styles.welcomeText}>Welcome! Let&apos;s set up your budget to start tracking your finances.</Text>}
         </View>
@@ -335,108 +336,112 @@ const BudgetSettings: React.FC<BudgetSettingsProps> = ({ onBackPress }) => {
             scrollEnabled={false}
           />
         </View>
-      </ScrollView>
+      </KeyboardAwareView>
 
       {/* Add Category Modal */}
       <Modal visible={showAddCategory} animationType="slide" transparent={true} onRequestClose={() => setShowAddCategory(false)}>
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Add New Category</Text>
-              <TouchableOpacity onPress={() => setShowAddCategory(false)}>
-                <Text style={styles.closeButton}>✕</Text>
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.modalForm}>
-              <Text style={styles.modalLabel}>Category Name</Text>
-              <TextInput
-                style={styles.modalInput}
-                value={newCategoryName}
-                onChangeText={setNewCategoryName}
-                placeholder="e.g., Utilities, Education, etc."
-              />
-
-              <Text style={styles.modalLabel}>Select Icon</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.iconSelector}>
-                {COMMON_ICONS.map((icon, index) => (
-                  <TouchableOpacity
-                    key={index}
-                    style={[styles.iconOption, selectedIcon === icon && styles.selectedIcon]}
-                    onPress={() => setSelectedIcon(icon)}
-                  >
-                    <Text style={styles.iconText}>{icon}</Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-
-              <Text style={styles.modalLabel}>Category Type</Text>
-              <View style={styles.typeSelector}>
-                {["Needs", "Savings", "Wants"].map((type) => (
-                  <TouchableOpacity
-                    key={type}
-                    style={[
-                      styles.typeOption,
-                      selectedType === type && styles.selectedType,
-                      selectedType === type && {
-                        borderColor: getCategoryColor(type as BudgetCategory),
-                        backgroundColor: getCategoryColor(type as BudgetCategory) + "10",
-                      },
-                    ]}
-                    onPress={() => setSelectedType(type as BudgetCategory)}
-                  >
-                    <Text
-                      style={[
-                        styles.typeText,
-                        selectedType === type && {
-                          color: getCategoryColor(type as BudgetCategory),
-                          fontWeight: "600",
-                        },
-                      ]}
-                    >
-                      {type}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
+          <KeyboardAwareView style={{ flex: 1 }} scrollEnabled={false} keyboardVerticalOffset={10} behavior="padding" isModal={true}>
+            <View style={styles.modalContent}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Add New Category</Text>
+                <TouchableOpacity onPress={() => setShowAddCategory(false)}>
+                  <Text style={styles.closeButton}>✕</Text>
+                </TouchableOpacity>
               </View>
 
-              <TouchableOpacity style={styles.saveButton} onPress={handleAddCategory}>
-                <Text style={styles.saveButtonText}>Save Category</Text>
-              </TouchableOpacity>
+              <View style={styles.modalForm}>
+                <Text style={styles.modalLabel}>Category Name</Text>
+                <TextInput
+                  style={styles.modalInput}
+                  value={newCategoryName}
+                  onChangeText={setNewCategoryName}
+                  placeholder="e.g., Utilities, Education, etc."
+                />
+
+                <Text style={styles.modalLabel}>Select Icon</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.iconSelector}>
+                  {COMMON_ICONS.map((icon, index) => (
+                    <TouchableOpacity
+                      key={index}
+                      style={[styles.iconOption, selectedIcon === icon && styles.selectedIcon]}
+                      onPress={() => setSelectedIcon(icon)}
+                    >
+                      <Text style={styles.iconText}>{icon}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+
+                <Text style={styles.modalLabel}>Category Type</Text>
+                <View style={styles.typeSelector}>
+                  {["Needs", "Savings", "Wants"].map((type) => (
+                    <TouchableOpacity
+                      key={type}
+                      style={[
+                        styles.typeOption,
+                        selectedType === type && styles.selectedType,
+                        selectedType === type && {
+                          borderColor: getCategoryColor(type as BudgetCategory),
+                          backgroundColor: getCategoryColor(type as BudgetCategory) + "10",
+                        },
+                      ]}
+                      onPress={() => setSelectedType(type as BudgetCategory)}
+                    >
+                      <Text
+                        style={[
+                          styles.typeText,
+                          selectedType === type && {
+                            color: getCategoryColor(type as BudgetCategory),
+                            fontWeight: "600",
+                          },
+                        ]}
+                      >
+                        {type}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+
+                <TouchableOpacity style={styles.saveButton} onPress={handleAddCategory}>
+                  <Text style={styles.saveButtonText}>Save Category</Text>
+                </TouchableOpacity>
+              </View>
             </View>
-          </View>
+          </KeyboardAwareView>
         </View>
       </Modal>
 
       {/* Currency Selection Modal */}
       <Modal visible={showCurrencyModal} animationType="slide" transparent={true} onRequestClose={() => setShowCurrencyModal(false)}>
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Select Currency</Text>
-              <TouchableOpacity onPress={() => setShowCurrencyModal(false)}>
-                <Text style={styles.closeButton}>✕</Text>
-              </TouchableOpacity>
-            </View>
-
-            <FlatList
-              data={AVAILABLE_CURRENCIES}
-              keyExtractor={(item) => item.code}
-              renderItem={({ item }) => (
-                <TouchableOpacity
-                  style={[styles.currencyItem, currency?.code === item.code ? styles.selectedCurrencyItem : null]}
-                  onPress={() => handleSelectCurrency(item)}
-                >
-                  <View style={styles.currencyItemLeft}>
-                    <Text style={styles.currencySymbol}>{item.symbol}</Text>
-                    <Text style={styles.currencyName}>{item.name}</Text>
-                  </View>
-                  <Text style={styles.currencyCode}>{item.code}</Text>
+          <KeyboardAwareView style={{ flex: 1 }} scrollEnabled={false} keyboardVerticalOffset={10} behavior="padding" isModal={true}>
+            <View style={styles.modalContent}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Select Currency</Text>
+                <TouchableOpacity onPress={() => setShowCurrencyModal(false)}>
+                  <Text style={styles.closeButton}>✕</Text>
                 </TouchableOpacity>
-              )}
-              ItemSeparatorComponent={() => <View style={styles.separator} />}
-            />
-          </View>
+              </View>
+
+              <FlatList
+                data={AVAILABLE_CURRENCIES}
+                keyExtractor={(item) => item.code}
+                renderItem={({ item }) => (
+                  <TouchableOpacity
+                    style={[styles.currencyItem, currency?.code === item.code ? styles.selectedCurrencyItem : null]}
+                    onPress={() => handleSelectCurrency(item)}
+                  >
+                    <View style={styles.currencyItemLeft}>
+                      <Text style={styles.currencySymbol}>{item.symbol}</Text>
+                      <Text style={styles.currencyName}>{item.name}</Text>
+                    </View>
+                    <Text style={styles.currencyCode}>{item.code}</Text>
+                  </TouchableOpacity>
+                )}
+                ItemSeparatorComponent={() => <View style={styles.separator} />}
+              />
+            </View>
+          </KeyboardAwareView>
         </View>
       </Modal>
     </Animated.View>
@@ -667,7 +672,8 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     padding: responsivePadding(20),
-    maxHeight: "90%",
+    maxHeight: "80%",
+    marginTop: "auto",
   },
   modalHeader: {
     flexDirection: "row",
