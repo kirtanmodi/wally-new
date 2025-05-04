@@ -276,7 +276,7 @@ const BudgetSettings: React.FC<BudgetSettingsProps> = ({ onBackPress }) => {
         <Text style={styles.headerTitle}>Budget Settings</Text>
       </LinearGradient>
 
-      <KeyboardAwareView style={styles.scrollView} keyboardVerticalOffset={20}>
+      <KeyboardAwareView style={styles.scrollView} keyboardVerticalOffset={20} scrollEnabled={true}>
         <View style={styles.welcomeContainer}>
           {monthlyIncome === 0 && <Text style={styles.welcomeText}>Welcome! Let&apos;s set up your budget to start tracking your finances.</Text>}
         </View>
@@ -367,14 +367,62 @@ const BudgetSettings: React.FC<BudgetSettingsProps> = ({ onBackPress }) => {
             </Animated.View>
           </View>
 
-          <FlatList
-            data={categories}
-            renderItem={renderCategoryItem}
-            keyExtractor={(item) => item.id}
-            ItemSeparatorComponent={() => <View style={styles.separator} />}
-            ListEmptyComponent={() => <Text style={styles.emptyText}>No categories yet. Add your first one!</Text>}
-            scrollEnabled={false}
-          />
+          {categories.length === 0 ? (
+            <Text style={styles.emptyText}>No categories yet. Add your first one!</Text>
+          ) : (
+            <View>
+              {categories.map((item, index) => {
+                const itemFade = new Animated.Value(0);
+                const itemSlide = new Animated.Value(20);
+
+                // Staggered animation for list items
+                Animated.parallel([
+                  Animated.timing(itemFade, {
+                    toValue: 1,
+                    duration: 300,
+                    delay: index * 50,
+                    useNativeDriver: true,
+                  }),
+                  Animated.timing(itemSlide, {
+                    toValue: 0,
+                    duration: 300,
+                    delay: index * 50,
+                    useNativeDriver: true,
+                  }),
+                ]).start();
+
+                return (
+                  <React.Fragment key={item.id}>
+                    {index > 0 && <View style={styles.separator} />}
+                    <Animated.View
+                      style={[
+                        styles.categoryItem,
+                        {
+                          opacity: itemFade,
+                          transform: [{ translateY: itemSlide }],
+                        },
+                      ]}
+                    >
+                      <View style={styles.categoryLeft}>
+                        <View style={styles.iconContainer}>
+                          <Text style={styles.categoryIcon}>{item.icon}</Text>
+                        </View>
+                        <Text style={styles.categoryName}>{item.name}</Text>
+                      </View>
+                      <View style={styles.categoryRight}>
+                        <View style={[styles.categoryTypeBadge, { backgroundColor: getCategoryColor(item.type) + "20" }]}>
+                          <Text style={[styles.categoryType, { color: getCategoryColor(item.type) }]}>{item.type}</Text>
+                        </View>
+                        <TouchableOpacity style={styles.deleteButton} onPress={() => handleDeleteCategory(item.id)}>
+                          <Text style={styles.deleteIcon}>🗑️</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </Animated.View>
+                  </React.Fragment>
+                );
+              })}
+            </View>
+          )}
         </View>
       </KeyboardAwareView>
 

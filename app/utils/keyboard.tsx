@@ -1,15 +1,5 @@
 import React from "react";
-import {
-  Keyboard,
-  KeyboardAvoidingView,
-  KeyboardAvoidingViewProps,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  TouchableWithoutFeedback,
-  View,
-  ViewStyle,
-} from "react-native";
+import { Keyboard, KeyboardAvoidingView, KeyboardAvoidingViewProps, Platform, ScrollView, StyleSheet, View, ViewStyle } from "react-native";
 
 interface KeyboardAwareViewProps {
   children: React.ReactNode;
@@ -37,22 +27,28 @@ export const KeyboardAwareView: React.FC<KeyboardAwareViewProps> = ({
   const offset = isModal && Platform.OS === "ios" ? 10 : keyboardVerticalOffset;
   const modalBehavior = isModal ? "position" : behavior;
 
-  const content = scrollEnabled ? (
-    <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-      {children}
-    </ScrollView>
-  ) : (
-    <View style={styles.innerContainer}>{children}</View>
-  );
+  const handleScrollViewPress = () => {
+    if (shouldDismissKeyboard) {
+      Keyboard.dismiss();
+    }
+  };
 
   return (
     <KeyboardAvoidingView style={[styles.container, style]} behavior={isModal ? modalBehavior : behavior} keyboardVerticalOffset={offset}>
-      {shouldDismissKeyboard ? (
-        <TouchableWithoutFeedback onPress={dismissKeyboard} accessible={false}>
-          {content}
-        </TouchableWithoutFeedback>
+      {scrollEnabled ? (
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={true}
+          scrollEventThrottle={16}
+          bounces={true}
+          alwaysBounceVertical={true}
+          onScrollBeginDrag={handleScrollViewPress}
+        >
+          {children}
+        </ScrollView>
       ) : (
-        content
+        <View style={styles.innerContainer}>{children}</View>
       )}
     </KeyboardAvoidingView>
   );
