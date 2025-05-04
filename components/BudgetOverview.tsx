@@ -58,9 +58,9 @@ const BudgetOverview: React.FC<BudgetOverviewProps> = ({ monthlyIncome = 0, onBa
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={onBackPress}>
+        {/* <TouchableOpacity onPress={onBackPress}>
           <Text style={styles.backButton}>←</Text>
-        </TouchableOpacity>
+        </TouchableOpacity> */}
         <Text style={styles.headerTitle}>Income & Budget</Text>
         <TouchableOpacity onPress={onOpenSettings}>
           <Text style={styles.settingsButton}>⚙️</Text>

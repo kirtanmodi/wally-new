@@ -270,9 +270,9 @@ const BudgetSettings: React.FC<BudgetSettingsProps> = ({ onBackPress }) => {
       ]}
     >
       <LinearGradient colors={["#FFFFFF", "#F8F9FA"]} style={styles.header}>
-        <TouchableOpacity style={styles.backButtonContainer} onPress={onBackPress} activeOpacity={0.7}>
+        {/* <TouchableOpacity style={styles.backButtonContainer} onPress={onBackPress} activeOpacity={0.7}>
           <Text style={styles.backButton}>←</Text>
-        </TouchableOpacity>
+        </TouchableOpacity> */}
         <Text style={styles.headerTitle}>Budget Settings</Text>
       </LinearGradient>
 

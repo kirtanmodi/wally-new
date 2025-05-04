@@ -93,7 +93,7 @@ const AnimatedCategoryCircle: React.FC<{
             end={{ x: 1, y: 1 }}
             style={styles.categoryCircle}
           >
-            <Text style={styles.categoryPercentage}>{Math.round(percentage)}%</Text>
+            <Text style={styles.categoryPercentage}>{percentage ? Math.round(percentage) : 0}%</Text>
             <View style={styles.circleProgressContainer}>
               <View
                 style={[

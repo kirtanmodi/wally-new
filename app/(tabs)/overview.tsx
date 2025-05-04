@@ -1,12 +1,5 @@
-import React from "react";
-import { Text, View } from "react-native";
+import BudgetScreen from "../BudgetScreen";
 
-const overview = () => {
-  return (
-    <View>
-      <Text>overview</Text>
-    </View>
-  );
-};
-
-export default overview;
+export default function OverviewTab() {
+  return <BudgetScreen initialView="budget" />;
+}

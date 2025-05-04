@@ -19,7 +19,7 @@ import {
 import { BudgetCategory, Expense, ExpenseCategory } from "./types/budget";
 import { KeyboardAwareView } from "./utils/keyboard";
 
-type ScreenView = "welcome" | "budget" | "expenses" | "addExpense" | "settings";
+export type ScreenView = "welcome" | "budget" | "expenses" | "addExpense" | "settings";
 
 interface SaveExpenseData {
   amount: number;
@@ -29,7 +29,11 @@ interface SaveExpenseData {
   date: Date | string;
 }
 
-const BudgetScreen: React.FC = () => {
+interface BudgetScreenProps {
+  initialView?: ScreenView;
+}
+
+const BudgetScreen: React.FC<BudgetScreenProps> = ({ initialView }) => {
   const dispatch = useDispatch();
   const isFirstTimeUser = useSelector(selectIsFirstTimeUser);
   const monthlyIncome = useSelector(selectMonthlyIncome);
@@ -39,6 +43,10 @@ const BudgetScreen: React.FC = () => {
 
   // Determine initial view based on user status and income
   const getInitialView = (): ScreenView => {
+    if (initialView) {
+      return initialView;
+    }
+
     if (isFirstTimeUser) {
       return "welcome";
     }
@@ -56,13 +64,13 @@ const BudgetScreen: React.FC = () => {
   // }, []);
 
   useEffect(() => {
-    if (!isFirstTimeUser && monthlyIncome === 0 && onboarded && currentView === "expenses") {
+    if (!isFirstTimeUser && monthlyIncome === 0 && onboarded && currentView === "expenses" && !initialView) {
       setCurrentView("settings");
     }
-    if (!isFirstTimeUser && monthlyIncome === 0 && !onboarded && currentView === "settings") {
+    if (!isFirstTimeUser && monthlyIncome === 0 && !onboarded && currentView === "settings" && !initialView) {
       setCurrentView("expenses");
     }
-  }, [isFirstTimeUser, monthlyIncome, currentView]);
+  }, [isFirstTimeUser, monthlyIncome, currentView, initialView]);
 
   const handleGetStarted = () => {
     dispatch(setUserOnboarded());
