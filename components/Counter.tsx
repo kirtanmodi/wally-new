@@ -1,8 +1,8 @@
 import React from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
+import { responsiveMargin, responsivePadding, scaleFontSize, wp } from "../app/utils/responsive";
 import { decrementCounter, incrementCounter, resetCounter, selectCounter } from "../redux/slices/appSlice";
-import { responsiveMargin, responsivePadding, scaleFontSize, wp } from "../utils/responsive";
 
 const Counter = () => {
   const count = useSelector(selectCounter) || 0;
