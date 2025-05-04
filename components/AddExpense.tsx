@@ -27,6 +27,12 @@ const AddExpense: React.FC<AddExpenseProps> = ({ onSave, onCancel, isEditing = f
   const [budgetCategory, setBudgetCategory] = useState<BudgetCategory>("Needs");
   const [category, setCategory] = useState<string>("");
   const [date, setDate] = useState(new Date());
+  const [filteredCategories, setFilteredCategories] = useState<CategoryItem[]>([]);
+
+  useEffect(() => {
+    const filteredCategories = allCategories.filter((cat) => cat.type === budgetCategory);
+    setFilteredCategories(filteredCategories);
+  }, [budgetCategory]);
 
   // Get categories from Redux
   const allCategories = useSelector(selectCategories);
@@ -44,9 +50,9 @@ const AddExpense: React.FC<AddExpenseProps> = ({ onSave, onCancel, isEditing = f
   }, [isEditing, initialExpense]);
 
   // Filter categories by budget type
-  const filteredCategories = allCategories.filter((cat) => cat.type === budgetCategory);
+  // const filteredCategories = allCategories.filter((cat) => cat.type === budgetCategory);
 
-  // Set default category when budget category changes
+  // Set default category when budget category changes (only for editing flows)
   useEffect(() => {
     if (filteredCategories.length > 0 && !isEditing) {
       setCategory(filteredCategories[0].name);
@@ -142,7 +148,7 @@ const AddExpense: React.FC<AddExpenseProps> = ({ onSave, onCancel, isEditing = f
       </View>
 
       <View style={styles.formSection}>
-        <Text style={styles.sectionLabel}>Category</Text>
+        <Text style={styles.sectionLabel}>Category (Optional)</Text>
         <View style={styles.categoryGrid}>
           {filteredCategories.length > 0 ? (
             filteredCategories.map((option: CategoryItem) => (
@@ -168,7 +174,7 @@ const AddExpense: React.FC<AddExpenseProps> = ({ onSave, onCancel, isEditing = f
         </TouchableOpacity>
       </View>
 
-      <TouchableOpacity style={[styles.saveButton, !category && styles.disabledButton]} onPress={handleSave} disabled={!category}>
+      <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
         <Text style={styles.saveButtonText}>{isEditing ? "Update Expense" : "Save Expense"}</Text>
       </TouchableOpacity>
     </KeyboardAwareView>
@@ -293,9 +299,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginTop: responsiveMargin(16),
     marginBottom: responsiveMargin(32),
-  },
-  disabledButton: {
-    opacity: 0.6,
   },
   saveButtonText: {
     color: "white",
