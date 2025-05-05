@@ -7,6 +7,7 @@ export default function DetailsLayout() {
       screenOptions={{
         headerShown: false,
         animation: "slide_from_right",
+        contentStyle: { backgroundColor: "#F8F9FA" },
       }}
     >
       <Stack.Screen name="needs" />

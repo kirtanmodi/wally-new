@@ -181,9 +181,9 @@ export default function ProfileScreen() {
           <View style={styles.profileInfo}>
             <View style={styles.avatarContainer}>
               <Image
-                source={avatar ? { uri: avatar } : require("../../assets/images/icon.png")}
+                source={avatar ? { uri: avatar } : require("../../assets/images/wally_logo.png")}
                 style={styles.avatar}
-                defaultSource={require("../../assets/images/icon.png")}
+                defaultSource={require("../../assets/images/wally_logo.png")}
               />
               <TouchableOpacity style={styles.editAvatarButton} onPress={handleAvatarSelection}>
                 <FontAwesome name="camera" size={14} color="#FFF" />

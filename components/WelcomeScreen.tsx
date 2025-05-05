@@ -71,7 +71,7 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onGetStarted }) => {
             },
           ]}
         >
-          <Text style={styles.appTitle}>Budget Wally</Text>
+          <Text style={styles.appTitle}>Wally</Text>
           <Text style={styles.appTagline}>Smart budgeting made simple</Text>
         </Animated.View>
 

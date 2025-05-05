@@ -8,6 +8,7 @@ export default function ModalsLayout() {
         headerShown: false,
         presentation: "modal",
         animation: "slide_from_bottom",
+        contentStyle: { backgroundColor: "#F8F9FA" },
       }}
     >
       <Stack.Screen name="add-expense" />
