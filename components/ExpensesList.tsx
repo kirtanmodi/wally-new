@@ -467,6 +467,10 @@ const ExpensesList: React.FC<ExpensesListProps> = ({
   const openMonthModal = () => {
     setShowMonthModal(true);
     setTemporarySelectedDate(selectedDate); // Initialize with current selection
+
+    // Reset animation value to 0 before starting the animation
+    monthModalAnim.setValue(0);
+
     Animated.timing(monthModalAnim, {
       toValue: 1,
       duration: 300,
@@ -636,22 +640,28 @@ const ExpensesList: React.FC<ExpensesListProps> = ({
 
               {Platform.OS === "ios" ? (
                 <View style={styles.monthPickerContainer}>
-                  <DateTimePicker
-                    value={temporarySelectedDate}
-                    mode="date"
-                    display="spinner"
-                    onChange={(event, date) => {
-                      if (date) {
-                        // For iOS, we need to preserve the day while only changing month/year
-                        const newDate = new Date(temporarySelectedDate);
-                        newDate.setFullYear(date.getFullYear());
-                        newDate.setMonth(date.getMonth());
-                        setTemporarySelectedDate(newDate);
-                      }
-                    }}
-                    maximumDate={new Date(2030, 11, 31)}
-                    minimumDate={new Date(2020, 0, 1)}
-                  />
+                  <View style={styles.datePickerWrapper}>
+                    <DateTimePicker
+                      testID="monthYearPicker"
+                      value={temporarySelectedDate}
+                      mode="date"
+                      display="spinner"
+                      onChange={(event, date) => {
+                        if (date) {
+                          // For iOS, we need to preserve the day while only changing month/year
+                          const newDate = new Date(temporarySelectedDate);
+                          newDate.setFullYear(date.getFullYear());
+                          newDate.setMonth(date.getMonth());
+                          setTemporarySelectedDate(newDate);
+                        }
+                      }}
+                      maximumDate={new Date(2030, 11, 31)}
+                      minimumDate={new Date(2020, 0, 1)}
+                      textColor="#333"
+                      themeVariant="light"
+                      style={{ height: 180, width: 320 }}
+                    />
+                  </View>
 
                   <TouchableOpacity
                     style={styles.monthModalDoneButton}
@@ -1323,7 +1333,7 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     backgroundColor: "rgba(0, 0, 0, 0.5)",
-    zIndex: 1000,
+    zIndex: 9999,
     justifyContent: "flex-end",
   },
   monthModalBackdrop: {
@@ -1335,7 +1345,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     paddingTop: responsivePadding(16),
-    paddingBottom: responsivePadding(32),
+    paddingBottom: Platform.OS === "ios" ? 42 : responsivePadding(32),
     shadowColor: "#000",
     shadowOffset: { width: 0, height: -2 },
     shadowOpacity: 0.15,
@@ -1345,6 +1355,14 @@ const styles = StyleSheet.create({
   monthPickerContainer: {
     padding: responsivePadding(20),
     alignItems: "center",
+    maxHeight: Platform.OS === "ios" ? 380 : "auto",
+  },
+  datePickerWrapper: {
+    width: "100%",
+    backgroundColor: "#FFFFFF",
+    borderRadius: 8,
+    padding: Platform.OS === "ios" ? responsivePadding(8) : 0,
+    overflow: "hidden",
   },
   monthModalDoneButton: {
     marginTop: responsivePadding(20),
