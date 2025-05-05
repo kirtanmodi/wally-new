@@ -1,3 +1,4 @@
+import React from "react";
 import BudgetScreen from "../BudgetScreen";
 
 export default function OverviewTab() {

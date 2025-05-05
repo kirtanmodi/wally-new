@@ -348,6 +348,7 @@ const ExpensesList: React.FC<ExpensesListProps> = ({
   const [searchQuery, setSearchQuery] = useState("");
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showMonthModal, setShowMonthModal] = useState(false);
+  const [temporarySelectedDate, setTemporarySelectedDate] = useState<Date>(new Date());
   const dispatch = useDispatch();
 
   // Animation values
@@ -466,6 +467,7 @@ const ExpensesList: React.FC<ExpensesListProps> = ({
   // Open month modal with animation
   const openMonthModal = () => {
     setShowMonthModal(true);
+    setTemporarySelectedDate(selectedDate); // Initialize with current selection
     Animated.timing(monthModalAnim, {
       toValue: 1,
       duration: 300,
@@ -598,7 +600,7 @@ const ExpensesList: React.FC<ExpensesListProps> = ({
       </View>
 
       {/* Horizontal Month Selector */}
-      <MonthSelector months={availableMonths} selectedMonth={selectedMonth} onSelectMonth={onMonthChange} />
+      {/* <MonthSelector months={availableMonths} selectedMonth={selectedMonth} onSelectMonth={onMonthChange} /> */}
 
       {/* Month Selection Modal */}
       {showMonthModal && (
@@ -632,22 +634,103 @@ const ExpensesList: React.FC<ExpensesListProps> = ({
                   <Text style={styles.monthModalCloseIcon}>✕</Text>
                 </TouchableOpacity>
               </View>
-              <FlatList
-                data={availableMonths}
-                renderItem={({ item }) => (
+
+              {Platform.OS === "ios" ? (
+                <View style={styles.monthPickerContainer}>
+                  <DateTimePicker
+                    value={temporarySelectedDate}
+                    mode="date"
+                    display="spinner"
+                    onChange={(event, date) => {
+                      if (date) {
+                        // For iOS, we need to preserve the day while only changing month/year
+                        const newDate = new Date(temporarySelectedDate);
+                        newDate.setFullYear(date.getFullYear());
+                        newDate.setMonth(date.getMonth());
+                        setTemporarySelectedDate(newDate);
+                      }
+                    }}
+                    maximumDate={new Date(2030, 11, 31)}
+                    minimumDate={new Date(2020, 0, 1)}
+                  />
+
                   <TouchableOpacity
-                    style={[styles.monthModalItem, item.key === selectedMonth && styles.monthModalItemSelected]}
-                    onPress={() => handleMonthSelect(item.key)}
-                    activeOpacity={0.7}
+                    style={styles.monthModalDoneButton}
+                    onPress={() => {
+                      // Apply the selected date
+                      const year = temporarySelectedDate.getFullYear();
+                      const month = temporarySelectedDate.getMonth() + 1;
+                      const newMonthKey = `${year}-${month}`;
+                      handleMonthSelect(newMonthKey);
+                    }}
                   >
-                    <Text style={[styles.monthModalItemText, item.key === selectedMonth && styles.monthModalItemTextSelected]}>{item.display}</Text>
-                    {item.key === selectedMonth && <Text style={styles.monthModalItemCheckmark}>✓</Text>}
+                    <Text style={styles.monthModalDoneButtonText}>Done</Text>
                   </TouchableOpacity>
-                )}
-                keyExtractor={(item) => item.key}
-                contentContainerStyle={styles.monthModalList}
-                showsVerticalScrollIndicator={false}
-              />
+                </View>
+              ) : (
+                // Android implementation - create a simple month/year picker
+                <View style={styles.androidMonthYearPickerContainer}>
+                  <View style={styles.androidPickerRow}>
+                    <TouchableOpacity
+                      style={styles.androidPickerArrow}
+                      onPress={() => {
+                        const newDate = new Date(temporarySelectedDate);
+                        newDate.setFullYear(temporarySelectedDate.getFullYear() - 1);
+                        setTemporarySelectedDate(newDate);
+                      }}
+                    >
+                      <Text style={styles.androidPickerArrowText}>◀</Text>
+                    </TouchableOpacity>
+
+                    <Text style={styles.androidPickerYearText}>{temporarySelectedDate.getFullYear()}</Text>
+
+                    <TouchableOpacity
+                      style={styles.androidPickerArrow}
+                      onPress={() => {
+                        const newDate = new Date(temporarySelectedDate);
+                        newDate.setFullYear(temporarySelectedDate.getFullYear() + 1);
+                        setTemporarySelectedDate(newDate);
+                      }}
+                    >
+                      <Text style={styles.androidPickerArrowText}>▶</Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  <View style={styles.androidMonthsGrid}>
+                    {Array.from({ length: 12 }, (_, i) => {
+                      const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+                      const isSelected = temporarySelectedDate.getMonth() === i;
+
+                      return (
+                        <TouchableOpacity
+                          key={i}
+                          style={[styles.androidMonthButton, isSelected && styles.androidMonthButtonSelected]}
+                          onPress={() => {
+                            const newDate = new Date(temporarySelectedDate);
+                            newDate.setMonth(i);
+                            setTemporarySelectedDate(newDate);
+                          }}
+                        >
+                          <Text style={[styles.androidMonthButtonText, isSelected && styles.androidMonthButtonTextSelected]}>{monthNames[i]}</Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+
+                  <TouchableOpacity
+                    style={styles.monthModalDoneButton}
+                    onPress={() => {
+                      // Apply the selected date
+                      const year = temporarySelectedDate.getFullYear();
+                      const month = temporarySelectedDate.getMonth() + 1;
+                      const newMonthKey = `${year}-${month}`;
+                      handleMonthSelect(newMonthKey);
+                    }}
+                  >
+                    <Text style={styles.monthModalDoneButtonText}>Done</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
             </Animated.View>
           </TouchableOpacity>
         </Animated.View>
@@ -1259,7 +1342,27 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.15,
     shadowRadius: 10,
     elevation: 10,
-    maxHeight: "80%",
+  },
+  monthPickerContainer: {
+    padding: responsivePadding(20),
+    alignItems: "center",
+  },
+  monthModalDoneButton: {
+    marginTop: responsivePadding(20),
+    paddingVertical: responsivePadding(12),
+    paddingHorizontal: responsivePadding(30),
+    backgroundColor: BudgetColors.wants,
+    borderRadius: 12,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  monthModalDoneButtonText: {
+    fontSize: scaleFontSize(16),
+    fontWeight: "600",
+    color: "#FFFFFF",
   },
   monthModalHeader: {
     flexDirection: "row",
@@ -1309,6 +1412,58 @@ const styles = StyleSheet.create({
   monthModalItemCheckmark: {
     fontSize: scaleFontSize(18),
     color: BudgetColors.wants,
+    fontWeight: "600",
+  },
+  androidMonthYearPickerContainer: {
+    padding: responsivePadding(20),
+    alignItems: "center",
+    width: "100%",
+  },
+  androidPickerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: responsiveMargin(20),
+    width: "100%",
+  },
+  androidPickerArrow: {
+    padding: responsivePadding(12),
+  },
+  androidPickerArrowText: {
+    fontSize: scaleFontSize(18),
+    color: BudgetColors.wants,
+    fontWeight: "600",
+  },
+  androidPickerYearText: {
+    fontSize: scaleFontSize(22),
+    fontWeight: "600",
+    color: "#333",
+    paddingHorizontal: responsivePadding(24),
+  },
+  androidMonthsGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "center",
+    width: "100%",
+  },
+  androidMonthButton: {
+    width: "25%",
+    padding: responsivePadding(12),
+    margin: responsiveMargin(4),
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 8,
+    backgroundColor: "#F5F5F5",
+  },
+  androidMonthButtonSelected: {
+    backgroundColor: BudgetColors.wants,
+  },
+  androidMonthButtonText: {
+    fontSize: scaleFontSize(16),
+    color: "#333",
+  },
+  androidMonthButtonTextSelected: {
+    color: "#FFFFFF",
     fontWeight: "600",
   },
 });

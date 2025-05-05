@@ -201,22 +201,25 @@ const GoalSettingModal: React.FC<GoalSettingModalProps> = ({
 
 const SavingsDetailScreen: React.FC<SavingsDetailScreenProps> = ({ onBackPress, selectedMonth = getCurrentMonthYearKey() }) => {
   const dispatch = useDispatch();
-  const expenses = useSelector(selectExpenses);
-  const monthlyIncome = useSelector(selectMonthlyIncome);
-  const budgetRule = useSelector(selectBudgetRule);
-  const currency = useSelector(selectCurrency);
-  const savingsCategories = useSelector((state: RootState) => selectCategoriesByType(state, "Savings"));
-  const savingsGoals = useSelector(selectSavingsGoals);
+  const expenses = useSelector(selectExpenses) || [];
+  const monthlyIncome = useSelector(selectMonthlyIncome) || 0;
+  const budgetRule = useSelector(selectBudgetRule) || { needs: 50, savings: 30, wants: 20 };
+  const currency = useSelector(selectCurrency) || { code: "USD", symbol: "$", name: "US Dollar" };
+  const savingsCategories = useSelector((state: RootState) => selectCategoriesByType(state, "Savings")) || [];
+  const savingsGoals = useSelector(selectSavingsGoals) || {};
 
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<CategoryItem>({ id: "", name: "", icon: "", type: "Savings" });
   const [selectedCategoryGoal, setSelectedCategoryGoal] = useState<SavingsGoal | null>(null);
 
   // Filter expenses by the selected month
-  const monthlyExpenses = React.useMemo(() => filterExpensesByMonth(expenses, selectedMonth), [expenses, selectedMonth]);
+  const monthlyExpenses = React.useMemo(
+    () => filterExpensesByMonth(expenses || [], selectedMonth || getCurrentMonthYearKey()),
+    [expenses, selectedMonth]
+  );
 
   // Calculate savings budget amount
-  const savingsBudgetAmount = monthlyIncome * (budgetRule.savings / 100);
+  const savingsBudgetAmount = (monthlyIncome || 0) * ((budgetRule?.savings || 30) / 100);
 
   // Calculate savings spent
   const savingsSpent = useMemo(() => {
@@ -227,33 +230,50 @@ const SavingsDetailScreen: React.FC<SavingsDetailScreenProps> = ({ onBackPress, 
   const remainingAmount = savingsBudgetAmount - savingsSpent;
 
   // Calculate percentage used
-  const percentageUsed = Math.round((savingsSpent / savingsBudgetAmount) * 100 * 10) / 10;
+  const percentageUsed = Math.round((savingsBudgetAmount > 0 ? savingsSpent / savingsBudgetAmount : 0) * 100 * 10) / 10;
 
-  // Calculate spending by category with goals
+  // Add a calculation for total savings across all months
+  const calculateTotalSavingsByCategory = useMemo(() => {
+    return (savingsCategories || []).reduce((result, category) => {
+      const totalSaved = expenses
+        .filter((expense) => expense.category === "Savings" && expense.subcategory === category.name)
+        .reduce((sum, expense) => sum + expense.amount, 0);
+
+      result[category.id] = totalSaved;
+      return result;
+    }, {} as Record<string, number>);
+  }, [expenses, savingsCategories]);
+
+  // Update the categorySpending calculation to include total amount saved
   const categorySpending = useMemo(() => {
     // Calculate total spent on savings
     const totalSavingsSpent = savingsSpent > 0 ? savingsSpent : 1; // Avoid division by zero
 
-    return savingsCategories.map((category) => {
+    return (savingsCategories || []).map((category) => {
+      // Current month spending
       const spent = monthlyExpenses.filter((expense) => expense.subcategory === category.name).reduce((total, expense) => total + expense.amount, 0);
 
+      // Total spending across all months
+      const totalSpent = calculateTotalSavingsByCategory[category.id] || 0;
+
       // Calculate percentage of total savings spent (this should add up to 100%)
-      const percentage = Math.round((spent / totalSavingsSpent) * 100 * 10) / 10;
+      const percentage = totalSavingsSpent > 0 ? Math.round((spent / totalSavingsSpent) * 100 * 10) / 10 : 0;
 
       // Calculate percentage of budget for progress bar (this shows progress toward budget goal)
-      const budgetPercentage = Math.round((spent / savingsBudgetAmount) * 100 * 10) / 10;
+      const budgetPercentage = savingsBudgetAmount > 0 ? Math.round((spent / savingsBudgetAmount) * 100 * 10) / 10 : 0;
 
-      const goal = savingsGoals[category.id]; // Get goal from redux store
+      const goal = category.id && savingsGoals ? savingsGoals[category.id] : undefined; // Get goal from redux store
 
       return {
         ...category,
         spent,
+        totalSpent,
         percentage,
         budgetPercentage,
         goal,
       };
     });
-  }, [monthlyExpenses, savingsCategories, savingsBudgetAmount, savingsGoals, savingsSpent]);
+  }, [monthlyExpenses, savingsCategories, savingsBudgetAmount, savingsGoals, savingsSpent, selectedMonth, calculateTotalSavingsByCategory]);
 
   // Function to open goal setting modal
   const openGoalSettingModal = (category: CategoryItem) => {
@@ -398,13 +418,24 @@ const SavingsDetailScreen: React.FC<SavingsDetailScreenProps> = ({ onBackPress, 
                         </TouchableOpacity>
                       </View>
 
+                      {/* Use totalSpent for goal progress instead of the current month's spent amount */}
                       <View style={styles.goalProgressBarContainer}>
-                        <View style={[styles.goalProgressBar, { width: `${goalPercentage}%` }]} />
+                        <View style={[styles.goalProgressBar, { width: `${Math.min(100, (category.totalSpent / goal.amount) * 100)}%` }]} />
                       </View>
 
                       <View style={styles.goalProgressInfo}>
-                        <Text style={styles.goalProgressText}>{goalPercentage}% complete</Text>
-                        <Text style={styles.goalRemainingText}>{formatCurrency(Math.max(0, goal.amount - category.spent), currency)} remaining</Text>
+                        <Text style={styles.goalProgressText}>{Math.round((category.totalSpent / goal.amount) * 100 * 10) / 10}% complete</Text>
+                        <Text style={styles.goalRemainingText}>
+                          {formatCurrency(Math.max(0, goal.amount - category.totalSpent), currency)} remaining
+                        </Text>
+                      </View>
+
+                      {/* Add info about this month's contribution vs. total */}
+                      <View style={styles.goalContributionInfo}>
+                        <Text style={styles.goalContributionText}>
+                          Total saved: {formatCurrency(category.totalSpent, currency)}
+                          {category.spent > 0 && ` (${formatCurrency(category.spent, currency)} this month)`}
+                        </Text>
                       </View>
 
                       {goal.note && (
@@ -413,7 +444,7 @@ const SavingsDetailScreen: React.FC<SavingsDetailScreenProps> = ({ onBackPress, 
                         </View>
                       )}
 
-                      {goal && goal.amount <= category.spent && (
+                      {goal && goal.amount <= category.totalSpent && (
                         <View style={styles.goalAchievedContainer}>
                           <Text style={styles.goalAchievedIcon}>🎉</Text>
                           <Text style={styles.goalAchievedText}>Congratulations! You&apos;ve achieved your savings goal for {category.name}.</Text>
@@ -852,6 +883,13 @@ const styles = StyleSheet.create({
     color: "#666",
     fontSize: scaleFontSize(12),
     marginTop: 4,
+  },
+  goalContributionInfo: {
+    marginVertical: responsiveMargin(4),
+  },
+  goalContributionText: {
+    fontSize: scaleFontSize(14),
+    color: "#555",
   },
 });
 

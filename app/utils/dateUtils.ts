@@ -71,14 +71,48 @@ export const getAvailableMonths = (expenses: any[]): { key: string; display: str
  * @returns Filtered expenses for the specified month
  */
 export const filterExpensesByMonth = (expenses: any[], monthYearKey: string): any[] => {
+  if (!expenses || !Array.isArray(expenses)) return [];
   if (!monthYearKey) return expenses;
 
-  const [year, month] = monthYearKey.split("-").map(Number);
+  console.log(`Filtering expenses by month: ${monthYearKey}, total expenses: ${expenses.length}`);
 
-  return expenses.filter((expense) => {
-    const expenseDate = typeof expense.date === "string" ? new Date(expense.date) : expense.date;
-    return expenseDate.getFullYear() === year && expenseDate.getMonth() + 1 === month;
-  });
+  try {
+    const [year, month] = monthYearKey.split("-").map(Number);
+
+    if (isNaN(year) || isNaN(month)) {
+      console.warn(`Invalid month-year key: ${monthYearKey}`);
+      return expenses;
+    }
+
+    const filtered = expenses.filter((expense) => {
+      if (!expense || !expense.date) return false;
+
+      try {
+        const expenseDate = typeof expense.date === "string" ? new Date(expense.date) : expense.date;
+
+        // Check if the date is valid
+        if (isNaN(expenseDate.getTime())) {
+          console.warn(`Invalid expense date: ${expense.date}`);
+          return false;
+        }
+
+        const expenseYear = expenseDate.getFullYear();
+        const expenseMonth = expenseDate.getMonth() + 1;
+
+        const matches = expenseYear === year && expenseMonth === month;
+        return matches;
+      } catch (error) {
+        console.error(`Error processing expense date: ${error}`);
+        return false;
+      }
+    });
+
+    console.log(`Found ${filtered.length} expenses for month ${monthYearKey}`);
+    return filtered;
+  } catch (error) {
+    console.error(`Error in filterExpensesByMonth: ${error}`);
+    return expenses;
+  }
 };
 
 /**

@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo } from "react";
+import React, { useCallback, useEffect, useMemo } from "react";
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSelector } from "react-redux";
 import { BudgetColors } from "../app/constants/Colors";
@@ -11,7 +11,7 @@ import { selectExpenses } from "../redux/slices/expenseSlice";
 import { RootState } from "../redux/types";
 
 interface BudgetOverviewProps {
-  monthlyIncome: number;
+  monthlyIncome?: number;
   onBackPress?: () => void;
   onOpenSettings?: () => void;
   onOpenNeedsDetail?: () => void;
@@ -34,7 +34,7 @@ const SectionHeader: React.FC<{ title: string; subtitle?: string; onPress?: () =
 );
 
 const BudgetOverview: React.FC<BudgetOverviewProps> = ({
-  monthlyIncome,
+  monthlyIncome = 0,
   onBackPress,
   onOpenSettings,
   onOpenNeedsDetail,
@@ -42,48 +42,85 @@ const BudgetOverview: React.FC<BudgetOverviewProps> = ({
   onOpenSavingsDetail,
   selectedMonth = getCurrentMonthYearKey(),
 }) => {
-  const budgetRule = useSelector(selectBudgetRule);
-  const expenses = useSelector(selectExpenses);
-  const currency = useSelector(selectCurrency);
-  const needsCategories = useSelector((state: RootState) => selectCategoriesByType(state, "Needs"));
-  const wantsCategories = useSelector((state: RootState) => selectCategoriesByType(state, "Wants"));
-  const savingsCategories = useSelector((state: RootState) => selectCategoriesByType(state, "Savings"));
-  const savingsGoals = useSelector(selectSavingsGoals);
+  // Add component mount and update tracking
+  useEffect(() => {
+    console.log("BudgetOverview component - selectedMonth updated:", selectedMonth);
 
-  // Filter expenses by selected month
-  const monthlyExpenses = useMemo(() => filterExpensesByMonth(expenses, selectedMonth), [expenses, selectedMonth]);
+    // Return a cleanup function
+    return () => {
+      console.log("BudgetOverview component - cleaning up for month:", selectedMonth);
+    };
+  }, [selectedMonth]);
+
+  const budgetRule = useSelector(selectBudgetRule) || { needs: 50, savings: 30, wants: 20 };
+  const expenses = useSelector(selectExpenses) || [];
+  const currency = useSelector(selectCurrency) || { code: "USD", symbol: "$", name: "US Dollar" };
+  const needsCategories = useSelector((state: RootState) => selectCategoriesByType(state, "Needs")) || [];
+  const wantsCategories = useSelector((state: RootState) => selectCategoriesByType(state, "Wants")) || [];
+  const savingsCategories = useSelector((state: RootState) => selectCategoriesByType(state, "Savings")) || [];
+  const savingsGoals = useSelector(selectSavingsGoals) || {};
+
+  // Log selected month to verify it's changing
+  console.log("BudgetOverview - Selected Month:", selectedMonth);
+
+  // Filter expenses by selected month - ensure this is recalculated when month changes
+  const monthlyExpenses = useMemo(() => {
+    console.log("Recalculating monthly expenses for month:", selectedMonth);
+    const filteredExpenses = filterExpensesByMonth(expenses || [], selectedMonth || getCurrentMonthYearKey());
+    console.log(`Found ${filteredExpenses.length} expenses for month ${selectedMonth}`);
+    return filteredExpenses;
+  }, [expenses, selectedMonth]);
 
   // Calculate budget data based on income, rules, and expenses
   const budgetData = useMemo<BudgetData>(() => {
+    console.log("Recalculating budget data for month:", selectedMonth);
     // Calculate budget amounts
-    const needsBudget = monthlyIncome * (budgetRule.needs / 100);
-    const savingsBudget = monthlyIncome * (budgetRule.savings / 100);
-    const wantsBudget = monthlyIncome * (budgetRule.wants / 100);
+    const rule = budgetRule || { needs: 50, savings: 30, wants: 20 };
+    const income = monthlyIncome || 0;
 
-    // Calculate spend amounts from expenses
+    const needsBudget = income * (rule.needs / 100);
+    const savingsBudget = income * (rule.savings / 100);
+    const wantsBudget = income * (rule.wants / 100);
+
+    // Calculate spend amounts from expenses for the selected month only
     const needsSpent = monthlyExpenses.filter((exp) => exp.category === "Needs").reduce((sum, exp) => sum + exp.amount, 0);
     const savingsSpent = monthlyExpenses.filter((exp) => exp.category === "Savings").reduce((sum, exp) => sum + exp.amount, 0);
     const wantsSpent = monthlyExpenses.filter((exp) => exp.category === "Wants").reduce((sum, exp) => sum + exp.amount, 0);
 
+    console.log(`Month ${selectedMonth} - Needs spent: ${needsSpent}, Savings spent: ${savingsSpent}, Wants spent: ${wantsSpent}`);
+
     return {
-      monthlyIncome,
+      monthlyIncome: income,
       needs: {
-        percentage: budgetRule.needs,
+        percentage: rule.needs,
         amount: needsBudget,
         spent: needsSpent,
       },
       savings: {
-        percentage: budgetRule.savings,
+        percentage: rule.savings,
         amount: savingsBudget,
         spent: savingsSpent,
       },
       wants: {
-        percentage: budgetRule.wants,
+        percentage: rule.wants,
         amount: wantsBudget,
         spent: wantsSpent,
       },
     };
-  }, [monthlyIncome, budgetRule, monthlyExpenses]);
+  }, [monthlyIncome, budgetRule, monthlyExpenses, selectedMonth]);
+
+  // Get selected date from the selected month string for display
+  const selectedDate = useMemo(() => {
+    if (!selectedMonth) return new Date();
+
+    const [year, month] = selectedMonth.split("-").map(Number);
+    return new Date(year, month - 1, 1);
+  }, [selectedMonth]);
+
+  // Format the month name for display
+  const formattedMonthYear = useMemo(() => {
+    return selectedDate.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+  }, [selectedDate]);
 
   // Format currency to appropriate locale with 2 decimal places
   const formatBudgetAmount = useCallback(
@@ -104,6 +141,20 @@ const BudgetOverview: React.FC<BudgetOverviewProps> = ({
     return Math.min(100, (spent / budgeted) * 100);
   };
 
+  // Add calculation for total savings across all months
+  const calculateTotalSavingsByCategoryId = useMemo(() => {
+    // Only needed for Savings categories
+    return (savingsCategories || []).reduce((result, category) => {
+      // Get all expenses for this savings category across all time
+      const totalSaved = expenses
+        .filter((expense) => expense.category === "Savings" && expense.subcategory === category.name)
+        .reduce((sum, expense) => sum + expense.amount, 0);
+
+      result[category.id] = totalSaved;
+      return result;
+    }, {} as Record<string, number>);
+  }, [expenses, savingsCategories]);
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -111,6 +162,7 @@ const BudgetOverview: React.FC<BudgetOverviewProps> = ({
           <Text style={styles.backButton}>←</Text>
         </TouchableOpacity> */}
         <Text style={styles.headerTitle}>Income & Budget</Text>
+        <Text style={styles.headerSubtitle}>{formattedMonthYear}</Text>
         <TouchableOpacity onPress={onOpenSettings}>
           <Text style={styles.settingsButton}>⚙️</Text>
         </TouchableOpacity>
@@ -208,7 +260,10 @@ const BudgetOverview: React.FC<BudgetOverviewProps> = ({
             <>
               <Text style={styles.categoryGroupTitle}>Needs (Essential Expenses)</Text>
               {needsCategories.map((category) => {
-                const spent = monthlyExpenses.filter((exp) => exp.subcategory === category.name).reduce((total, exp) => total + exp.amount, 0);
+                const spent = monthlyExpenses
+                  .filter((exp) => exp.category === "Needs" && exp.subcategory === category.name)
+                  .reduce((total, exp) => total + exp.amount, 0);
+
                 return (
                   <View key={category.id} style={styles.categoryRow}>
                     <View style={styles.categoryIconContainer}>
@@ -228,10 +283,17 @@ const BudgetOverview: React.FC<BudgetOverviewProps> = ({
             <>
               <Text style={styles.categoryGroupTitle}>Savings</Text>
               {savingsCategories.map((category) => {
+                // Current month's spending
                 const spent = monthlyExpenses
                   .filter((exp) => exp.category === "Savings" && exp.subcategory === category.name)
                   .reduce((total, exp) => total + exp.amount, 0);
+
+                // Total spending across all months
+                const totalSaved = calculateTotalSavingsByCategoryId[category.id] || 0;
+
                 const goal = savingsGoals[category.id];
+                const goalProgress = goal ? Math.min(100, (totalSaved / goal.amount) * 100) : 0;
+
                 return (
                   <View key={category.id} style={styles.categoryRow}>
                     <View style={styles.categoryIconContainer}>
@@ -240,10 +302,18 @@ const BudgetOverview: React.FC<BudgetOverviewProps> = ({
                     <View style={styles.categoryInfoContainer}>
                       <Text style={styles.categoryName}>{category.name}</Text>
                       {goal && (
-                        <Text style={styles.categoryGoal}>
-                          Goal: {formatCurrency(goal.amount, currency, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
-                          {goal.targetDate ? ` by ${goal.targetDate}` : ""}
-                        </Text>
+                        <>
+                          <Text style={styles.categoryGoal}>
+                            Goal: {formatCurrency(goal.amount, currency, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                            {goal.targetDate ? ` by ${goal.targetDate}` : ""}
+                          </Text>
+                          {totalSaved > 0 && (
+                            <Text style={styles.categoryTotalSaved}>
+                              Total saved: {formatCurrency(totalSaved, currency, { minimumFractionDigits: 0, maximumFractionDigits: 0 })} (
+                              {Math.round(goalProgress)}%)
+                            </Text>
+                          )}
+                        </>
                       )}
                     </View>
                     <Text style={styles.categoryAmount}>
@@ -259,7 +329,10 @@ const BudgetOverview: React.FC<BudgetOverviewProps> = ({
             <>
               <Text style={styles.categoryGroupTitle}>Wants (Non-Essential)</Text>
               {wantsCategories.map((category) => {
-                const spent = monthlyExpenses.filter((exp) => exp.subcategory === category.name).reduce((total, exp) => total + exp.amount, 0);
+                const spent = monthlyExpenses
+                  .filter((exp) => exp.category === "Wants" && exp.subcategory === category.name)
+                  .reduce((total, exp) => total + exp.amount, 0);
+
                 return (
                   <View key={category.id} style={styles.categoryRow}>
                     <View style={styles.categoryIconContainer}>
@@ -304,6 +377,13 @@ const styles = StyleSheet.create({
     fontSize: scaleFontSize(18),
     fontWeight: "600",
     color: "#333",
+  },
+  headerSubtitle: {
+    fontSize: scaleFontSize(14),
+    color: "#888",
+    marginLeft: responsiveMargin(4),
+    flex: 1,
+    textAlign: "center",
   },
   settingsButton: {
     padding: responsivePadding(8),
@@ -457,6 +537,11 @@ const styles = StyleSheet.create({
     fontSize: scaleFontSize(16),
     fontWeight: "500",
     color: "#333",
+  },
+  categoryTotalSaved: {
+    fontSize: scaleFontSize(12),
+    color: "#006636",
+    marginTop: 2,
   },
   saveButton: {
     backgroundColor: BudgetColors.needs,

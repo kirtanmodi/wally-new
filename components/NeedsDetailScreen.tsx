@@ -15,22 +15,22 @@ interface NeedsDetailScreenProps {
 }
 
 const NeedsDetailScreen: React.FC<NeedsDetailScreenProps> = ({ onBackPress, selectedMonth = getCurrentMonthYearKey() }) => {
-  const expenses = useSelector(selectExpenses);
-  const monthlyIncome = useSelector(selectMonthlyIncome);
-  const budgetRule = useSelector(selectBudgetRule);
-  const currency = useSelector(selectCurrency);
-  const needsCategories = useSelector((state: RootState) => selectCategoriesByType(state, "Needs"));
+  const expenses = useSelector(selectExpenses) || [];
+  const monthlyIncome = useSelector(selectMonthlyIncome) || 0;
+  const budgetRule = useSelector(selectBudgetRule) || { needs: 50, savings: 30, wants: 20 };
+  const currency = useSelector(selectCurrency) || { code: "USD", symbol: "$", name: "US Dollar" };
+  const needsCategories = useSelector((state: RootState) => selectCategoriesByType(state, "Needs")) || [];
 
   // Filter expenses by month
-  const monthlyExpenses = useMemo(() => filterExpensesByMonth(expenses, selectedMonth), [expenses, selectedMonth]);
+  const monthlyExpenses = useMemo(() => filterExpensesByMonth(expenses || [], selectedMonth || getCurrentMonthYearKey()), [expenses, selectedMonth]);
 
   // Calculate budget and spent for Needs
   const budgetData = useMemo(() => {
-    const needsBudget = monthlyIncome * (budgetRule.needs / 100);
+    const needsBudget = (monthlyIncome || 0) * ((budgetRule?.needs || 50) / 100);
     const needsSpent = monthlyExpenses.filter((exp) => exp.category === "Needs").reduce((sum, exp) => sum + exp.amount, 0);
 
     // Calculate spending by subcategory within Needs
-    const subcategorySpendings = needsCategories.map((category) => {
+    const subcategorySpendings = (needsCategories || []).map((category) => {
       const spent = monthlyExpenses
         .filter((exp) => exp.category === "Needs" && exp.subcategory === category.name)
         .reduce((sum, exp) => sum + exp.amount, 0);
@@ -49,7 +49,7 @@ const NeedsDetailScreen: React.FC<NeedsDetailScreenProps> = ({ onBackPress, sele
       remaining: needsBudget - needsSpent,
       subcategories: subcategorySpendings,
     };
-  }, [monthlyIncome, budgetRule, monthlyExpenses, needsCategories]);
+  }, [monthlyIncome, budgetRule, monthlyExpenses, needsCategories, selectedMonth]);
 
   // Format currency amount
   const formatBudgetAmount = (amount: number) => {

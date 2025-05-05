@@ -1,5 +1,6 @@
+import DateTimePicker from "@react-native-community/datetimepicker";
 import React, { useEffect, useState } from "react";
-import { StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { useSelector } from "react-redux";
 import { BudgetColors } from "../app/constants/Colors";
 import { BudgetCategory, Expense, ExpenseCategory } from "../app/types/budget";
@@ -28,6 +29,8 @@ const AddExpense: React.FC<AddExpenseProps> = ({ onSave, onCancel, isEditing = f
   const [category, setCategory] = useState<string>("");
   const [date, setDate] = useState(new Date());
   const [filteredCategories, setFilteredCategories] = useState<CategoryItem[]>([]);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showIOSModal, setShowIOSModal] = useState(false);
 
   useEffect(() => {
     const filteredCategories = allCategories.filter((cat) => cat.type === budgetCategory);
@@ -77,6 +80,37 @@ const AddExpense: React.FC<AddExpenseProps> = ({ onSave, onCancel, isEditing = f
         date,
       });
     }
+  };
+
+  // Date picker handling
+  const onDateChange = (event: any, selectedDate?: Date) => {
+    if (selectedDate) {
+      setDate(selectedDate);
+    }
+
+    // Hide date picker on Android automatically
+    if (Platform.OS === "android") {
+      setShowDatePicker(false);
+    }
+  };
+
+  // Show date picker - platform specific
+  const showDatepicker = () => {
+    if (Platform.OS === "ios") {
+      setShowIOSModal(true);
+    } else {
+      setShowDatePicker(true);
+    }
+  };
+
+  // For iOS - handle the done button
+  const handleIOSDone = () => {
+    setShowIOSModal(false);
+  };
+
+  // For iOS - handle cancel
+  const handleIOSCancel = () => {
+    setShowIOSModal(false);
   };
 
   return (
@@ -169,9 +203,36 @@ const AddExpense: React.FC<AddExpenseProps> = ({ onSave, onCancel, isEditing = f
 
       <View style={styles.formSection}>
         <Text style={styles.sectionLabel}>Date</Text>
-        <TouchableOpacity style={styles.datePickerButton}>
+        <TouchableOpacity style={styles.datePickerButton} onPress={showDatepicker}>
           <Text style={styles.dateText}>{formatDate(date)}</Text>
         </TouchableOpacity>
+
+        {/* Android Date Picker */}
+        {Platform.OS === "android" && showDatePicker && (
+          <DateTimePicker value={date} mode="date" display="default" onChange={onDateChange} maximumDate={new Date()} />
+        )}
+
+        {/* iOS Date Picker with modal */}
+        {Platform.OS === "ios" && showIOSModal && (
+          <View style={styles.iosDatePickerContainer}>
+            <View style={styles.iosDatePickerHeader}>
+              <TouchableOpacity onPress={handleIOSCancel}>
+                <Text style={styles.iosDatePickerButton}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={handleIOSDone}>
+                <Text style={[styles.iosDatePickerButton, { color: BudgetColors.needs }]}>Done</Text>
+              </TouchableOpacity>
+            </View>
+            <DateTimePicker
+              value={date}
+              mode="date"
+              display="spinner"
+              onChange={onDateChange}
+              maximumDate={new Date()}
+              style={styles.iosDatePicker}
+            />
+          </View>
+        )}
       </View>
 
       <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
@@ -304,6 +365,35 @@ const styles = StyleSheet.create({
     color: "white",
     fontSize: scaleFontSize(16),
     fontWeight: "600",
+  },
+  iosDatePickerContainer: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: "#fff",
+    borderTopWidth: 1,
+    borderTopColor: "#e0e0e0",
+    zIndex: 1000,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: -3 },
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+    elevation: 5,
+  },
+  iosDatePickerHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    padding: responsivePadding(12),
+    borderBottomWidth: 1,
+    borderBottomColor: "#e0e0e0",
+  },
+  iosDatePickerButton: {
+    fontSize: scaleFontSize(16),
+    padding: responsivePadding(4),
+  },
+  iosDatePicker: {
+    height: 200,
   },
 });
 
