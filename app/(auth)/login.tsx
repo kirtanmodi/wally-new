@@ -121,9 +121,9 @@ export default function LoginScreen() {
   // Mobile welcome screen
   const renderWelcomeScreen = () => (
     <LinearGradient colors={["#6684ED", "#7E6EE8"]} style={styles.welcomeContainer}>
-      <TouchableOpacity style={styles.skipButton} onPress={handleSkip}>
+      {/* <TouchableOpacity style={styles.skipButton} onPress={handleSkip}>
         <Text style={styles.skipText}>Skip</Text>
-      </TouchableOpacity>
+      </TouchableOpacity> */}
 
       <View style={styles.welcomeContent}>
         <Image source={require("../../assets/images/icon.png")} style={styles.welcomeImage} />

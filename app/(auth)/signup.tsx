@@ -38,7 +38,7 @@ export default function SignupScreen() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [currentPage, setCurrentPage] = useState(0);
+  // const [currentPage, setCurrentPage] = useState(0);
 
   // Effect to handle Google auth response
   useEffect(() => {
@@ -126,17 +126,13 @@ export default function SignupScreen() {
   };
 
   // Handle page navigation
-  const handleNextPage = () => {
-    setCurrentPage(1);
-  };
+  // const handleNextPage = () => {
+  //   setCurrentPage(1);
+  // };
 
   // Mobile welcome screen
   const renderWelcomeScreen = () => (
     <LinearGradient colors={["#6684ED", "#7E6EE8"]} style={styles.welcomeContainer}>
-      <TouchableOpacity style={styles.skipButton} onPress={() => router.push("/(tabs)")}>
-        <Text style={styles.skipText}>Skip</Text>
-      </TouchableOpacity>
-
       <View style={styles.welcomeContent}>
         <Image source={require("../../assets/images/icon.png")} style={styles.welcomeImage} />
 
@@ -151,13 +147,9 @@ export default function SignupScreen() {
       </View>
 
       <View style={styles.welcomeButtonContainer}>
-        <TouchableOpacity style={styles.createAccountButton} onPress={handleNextPage}>
+        {/* <TouchableOpacity style={styles.createAccountButton} onPress={handleNextPage}>
           <Text style={styles.createAccountButtonText}>Create Account</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.signInButton} onPress={() => router.push("/(auth)/login")}>
-          <Text style={styles.signInButtonText}>Sign In Instead</Text>
-        </TouchableOpacity>
+        </TouchableOpacity> */}
       </View>
     </LinearGradient>
   );
@@ -166,7 +158,7 @@ export default function SignupScreen() {
   const renderSignupForm = () => (
     <View style={styles.signupFormContainer}>
       <View style={styles.signupHeader}>
-        <TouchableOpacity onPress={() => setCurrentPage(0)} style={styles.backButton}>
+        <TouchableOpacity onPress={() => router.push("/(auth)/login")} style={styles.backButton}>
           <FontAwesome name="arrow-left" size={20} color="#7E6EE8" />
         </TouchableOpacity>
         <Text style={styles.signupTitle}>Create Account</Text>
@@ -377,7 +369,7 @@ export default function SignupScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" />
-      {Platform.OS === "web" || width > 768 ? renderDesktopLayout() : currentPage === 0 ? renderWelcomeScreen() : renderSignupForm()}
+      {Platform.OS === "web" || width > 768 ? renderDesktopLayout() : renderSignupForm()}
     </SafeAreaView>
   );
 }
