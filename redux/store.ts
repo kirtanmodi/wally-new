@@ -14,7 +14,7 @@ const persistConfig = {
   version: 1,
   storage: AsyncStorage,
   // Whitelist (save specific reducers)
-  whitelist: ["user", "app", "budget", "expenses"],
+  whitelist: ["user", "app", "budget", "expenses", "savingsGoals"],
   // Blacklist (don't save specific reducers)
   // blacklist: [],
 };

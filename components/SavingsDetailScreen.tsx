@@ -1,10 +1,12 @@
-import React, { useMemo, useState } from "react";
-import { Alert, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import DateTimePicker from "@react-native-community/datetimepicker";
+import React, { useEffect, useMemo, useState } from "react";
+import { Alert, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
 import { BudgetColors } from "../app/constants/Colors";
 import { formatCurrency } from "../app/utils/currency";
 import { responsiveMargin, responsivePadding, scaleFontSize } from "../app/utils/responsive";
 import {
+  SavingsGoal,
   SavingsGoals,
   selectBudgetRule,
   selectCategoriesByType,
@@ -46,6 +48,77 @@ const GoalSettingModal: React.FC<GoalSettingModalProps> = ({
   const [amount, setAmount] = useState(currentAmount.toString());
   const [note, setNote] = useState(currentNote);
   const [targetDate, setTargetDate] = useState(currentTargetDate);
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+
+  // Format MM/YYYY to human-readable format
+  const formatTargetDateForDisplay = (dateString: string): string => {
+    if (!dateString) return "";
+
+    const [month, year] = dateString.split("/");
+    const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+
+    // Convert month string to number (1-12) and subtract 1 for array index (0-11)
+    const monthIndex = parseInt(month, 10) - 1;
+    if (monthIndex >= 0 && monthIndex < 12) {
+      return `${monthNames[monthIndex]} ${year}`;
+    }
+    return dateString; // Return original if parsing failed
+  };
+
+  // Reset form fields when the modal becomes visible or current values change
+  useEffect(() => {
+    if (visible) {
+      setAmount(currentAmount.toString());
+      setNote(currentNote);
+
+      // Parse the target date if it exists
+      if (currentTargetDate) {
+        try {
+          const [month, year] = currentTargetDate.split("/").map(Number);
+          if (!isNaN(month) && !isNaN(year)) {
+            const date = new Date(year, month - 1); // Month is 0-indexed
+            setSelectedDate(date);
+            setTargetDate(currentTargetDate);
+          } else {
+            setSelectedDate(null);
+            setTargetDate("");
+          }
+        } catch {
+          setSelectedDate(null);
+          setTargetDate("");
+        }
+      } else {
+        setSelectedDate(null);
+        setTargetDate("");
+      }
+    }
+  }, [visible, currentAmount, currentNote, currentTargetDate]);
+
+  const onDateChange = (event: any, date?: Date) => {
+    setShowDatePicker(Platform.OS === "ios");
+
+    if (date) {
+      setSelectedDate(date);
+
+      // Format date as MM/YYYY
+      const month = date.getMonth() + 1; // getMonth() is 0-indexed
+      const year = date.getFullYear();
+      const formattedDate = `${month < 10 ? "0" + month : month}/${year}`;
+      setTargetDate(formattedDate);
+    }
+  };
+
+  const showDatepicker = () => {
+    setShowDatePicker(true);
+  };
+
+  // Calculate minimum date (current month)
+  const minimumDate = useMemo(() => {
+    const now = new Date();
+    // Set to the first day of current month
+    return new Date(now.getFullYear(), now.getMonth(), 1);
+  }, []);
 
   const handleSave = () => {
     const numAmount = parseFloat(amount);
@@ -53,6 +126,7 @@ const GoalSettingModal: React.FC<GoalSettingModalProps> = ({
       Alert.alert("Invalid Amount", "Please enter a valid positive number for your goal amount.");
       return;
     }
+
     onSave(numAmount, note, targetDate);
     onClose();
   };
@@ -77,7 +151,23 @@ const GoalSettingModal: React.FC<GoalSettingModalProps> = ({
 
           <View style={styles.inputContainer}>
             <Text style={styles.inputLabel}>Target Date (Optional)</Text>
-            <TextInput style={styles.input} value={targetDate} onChangeText={setTargetDate} placeholder="MM/YYYY" />
+            <TouchableOpacity style={[styles.input, styles.datePickerButton]} onPress={showDatepicker}>
+              <Text style={targetDate ? styles.dateText : styles.placeholderText}>
+                {targetDate ? formatTargetDateForDisplay(targetDate) : "Select a target date"}
+              </Text>
+            </TouchableOpacity>
+
+            {showDatePicker && (
+              <DateTimePicker
+                value={selectedDate || minimumDate}
+                mode="date"
+                display={Platform.OS === "ios" ? "spinner" : "default"}
+                onChange={onDateChange}
+                minimumDate={minimumDate}
+                // On iOS we use spinner view which can easily show just month and year
+                // For Android, we'll still show day but process only month/year
+              />
+            )}
           </View>
 
           <View style={styles.inputContainer}>
@@ -117,7 +207,9 @@ const SavingsDetailScreen: React.FC<SavingsDetailScreenProps> = ({ onBackPress }
   // Goal setting modal state
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<{ id: string; name: string }>({ id: "", name: "" });
+  const [selectedCategoryGoal, setSelectedCategoryGoal] = useState<SavingsGoal | null>(null);
 
+  // console.log("selectedCategoryGoal", selectedCategoryGoal);
   // Get all savings categories
   const savingsCategories = useSelector((state) => selectCategoriesByType(state, "Savings"));
 
@@ -164,6 +256,8 @@ const SavingsDetailScreen: React.FC<SavingsDetailScreenProps> = ({ onBackPress }
   // Function to open goal setting modal
   const openGoalModal = (categoryId: string, categoryName: string) => {
     setSelectedCategory({ id: categoryId, name: categoryName });
+    const goal = savingsGoals[categoryId];
+    setSelectedCategoryGoal(goal || null);
     setModalVisible(true);
   };
 
@@ -188,8 +282,31 @@ const SavingsDetailScreen: React.FC<SavingsDetailScreenProps> = ({ onBackPress }
   const monthName = currentDate.toLocaleString("default", { month: "long" });
   const year = currentDate.getFullYear();
 
+  useEffect(() => {
+    if (selectedCategory.id) {
+      setSelectedCategoryGoal(savingsGoals[selectedCategory.id]);
+    }
+  }, [selectedCategory, savingsGoals]);
+
   // Get selected category data
-  const selectedCategoryGoal = selectedCategory.id ? savingsGoals[selectedCategory.id] : null;
+  // const selectedCategoryGoal = selectedCategory.id ? savingsGoals[selectedCategory.id] : null;
+
+  // console.log("selectedCategoryGoal", selectedCategoryGoal);
+
+  // Function to format target date for display
+  const formatTargetDate = (dateString: string): string => {
+    if (!dateString) return "";
+
+    const [month, year] = dateString.split("/");
+    const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+
+    // Convert month string to number (1-12) and subtract 1 for array index (0-11)
+    const monthIndex = parseInt(month, 10) - 1;
+    if (monthIndex >= 0 && monthIndex < 12) {
+      return `${monthNames[monthIndex]} ${year}`;
+    }
+    return dateString; // Return original if parsing failed
+  };
 
   return (
     <View style={styles.container}>
@@ -266,9 +383,10 @@ const SavingsDetailScreen: React.FC<SavingsDetailScreenProps> = ({ onBackPress }
                   </View>
                 </View>
 
-                <View style={styles.categoryProgressContainer}>
+                {/* savings overall progress bar */}
+                {/* <View style={styles.categoryProgressContainer}>
                   <View style={[styles.categoryProgressBar, { width: `${Math.min(100, category.budgetPercentage)}%` }]} />
-                </View>
+                </View> */}
 
                 {/* Goal Section */}
                 <View style={styles.goalSection}>
@@ -277,7 +395,7 @@ const SavingsDetailScreen: React.FC<SavingsDetailScreenProps> = ({ onBackPress }
                       <View style={styles.goalHeader}>
                         <View>
                           <Text style={styles.goalTitle}>Goal: {formatCurrency(goal.amount, currency)}</Text>
-                          {goal.targetDate && <Text style={styles.goalSubtitle}>Target: {goal.targetDate}</Text>}
+                          {goal.targetDate && <Text style={styles.goalSubtitle}>Target: {formatTargetDate(goal.targetDate)}</Text>}
                         </View>
                         <TouchableOpacity style={styles.editGoalButton} onPress={() => openGoalModal(category.id, category.name)}>
                           <Text style={styles.editGoalButtonText}>Edit</Text>
@@ -712,6 +830,32 @@ const styles = StyleSheet.create({
     fontSize: scaleFontSize(14),
     color: "#2E7D32",
     fontWeight: "500",
+  },
+  // Date picker styles
+  datePickerButton: {
+    justifyContent: "center",
+    height: 48,
+  },
+  dateText: {
+    fontSize: scaleFontSize(16),
+    color: "#333",
+  },
+  placeholderText: {
+    fontSize: scaleFontSize(16),
+    color: "#999",
+  },
+  inputError: {
+    borderColor: "#FF3B30",
+  },
+  errorText: {
+    color: "#FF3B30",
+    fontSize: scaleFontSize(12),
+    marginTop: 4,
+  },
+  helperText: {
+    color: "#666",
+    fontSize: scaleFontSize(12),
+    marginTop: 4,
   },
 });
 
