@@ -6,6 +6,8 @@ import BudgetOverview from "../components/BudgetOverview";
 import BudgetSettings from "../components/BudgetSettings";
 import ExpensesList from "../components/ExpensesList";
 import NeedsDetailScreen from "../components/NeedsDetailScreen";
+import SavingsDetailScreen from "../components/SavingsDetailScreen";
+import WantsDetailScreen from "../components/WantsDetailScreen";
 import WelcomeScreen from "../components/WelcomeScreen";
 import { resetBudget, selectMonthlyIncome } from "../redux/slices/budgetSlice";
 import {
@@ -21,7 +23,7 @@ import {
 import { BudgetCategory, Expense, ExpenseCategory } from "./types/budget";
 import { KeyboardAwareView } from "./utils/keyboard";
 
-export type ScreenView = "welcome" | "budget" | "expenses" | "addExpense" | "settings" | "needsDetail";
+export type ScreenView = "welcome" | "budget" | "expenses" | "addExpense" | "settings" | "needsDetail" | "wantsDetail" | "savingsDetail";
 
 interface SaveExpenseData {
   amount: number;
@@ -191,6 +193,8 @@ const BudgetScreen: React.FC<BudgetScreenProps> = ({ initialView }) => {
           <ExpensesList
             expenses={expenses}
             onOpenNeedsDetail={() => setCurrentView("needsDetail")}
+            onOpenWantsDetail={() => setCurrentView("wantsDetail")}
+            onOpenSavingsDetail={() => setCurrentView("savingsDetail")}
             onAddExpense={() => {
               setExpenseToEdit(null);
               setCurrentView("addExpense");
@@ -207,6 +211,8 @@ const BudgetScreen: React.FC<BudgetScreenProps> = ({ initialView }) => {
             onBackPress={() => setCurrentView("expenses")}
             onOpenSettings={() => setCurrentView("settings")}
             onOpenNeedsDetail={() => setCurrentView("needsDetail")}
+            onOpenWantsDetail={() => setCurrentView("wantsDetail")}
+            onOpenSavingsDetail={() => setCurrentView("savingsDetail")}
           />
         )}
 
@@ -219,6 +225,10 @@ const BudgetScreen: React.FC<BudgetScreenProps> = ({ initialView }) => {
         )}
 
         {currentView === "needsDetail" && <NeedsDetailScreen onBackPress={() => setCurrentView("expenses")} />}
+
+        {currentView === "wantsDetail" && <WantsDetailScreen onBackPress={() => setCurrentView("expenses")} />}
+
+        {currentView === "savingsDetail" && <SavingsDetailScreen onBackPress={() => setCurrentView("expenses")} />}
       </KeyboardAwareView>
     </SafeAreaView>
   );

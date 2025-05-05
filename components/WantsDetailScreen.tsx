@@ -7,39 +7,39 @@ import { responsiveMargin, responsivePadding, scaleFontSize } from "../app/utils
 import { selectBudgetRule, selectCategoriesByType, selectCurrency, selectMonthlyIncome } from "../redux/slices/budgetSlice";
 import { selectExpenses } from "../redux/slices/expenseSlice";
 
-interface NeedsDetailScreenProps {
+interface WantsDetailScreenProps {
   onBackPress?: () => void;
 }
 
-const NeedsDetailScreen: React.FC<NeedsDetailScreenProps> = ({ onBackPress }) => {
+const WantsDetailScreen: React.FC<WantsDetailScreenProps> = ({ onBackPress }) => {
   const monthlyIncome = useSelector(selectMonthlyIncome);
   const budgetRule = useSelector(selectBudgetRule);
   const currency = useSelector(selectCurrency);
   const expenses = useSelector(selectExpenses);
 
-  // Get all needs categories
-  const needsCategories = useSelector((state) => selectCategoriesByType(state, "Needs"));
+  // Get all wants categories
+  const wantsCategories = useSelector((state) => selectCategoriesByType(state, "Wants"));
 
-  // Calculate needs budget amount
-  const needsBudgetAmount = monthlyIncome * (budgetRule.needs / 100);
+  // Calculate wants budget amount
+  const wantsBudgetAmount = monthlyIncome * (budgetRule.wants / 100);
 
-  // Calculate needs spent
-  const needsSpent = useMemo(() => {
-    return expenses.filter((expense) => expense.category === "Needs").reduce((total, expense) => total + expense.amount, 0);
+  // Calculate wants spent
+  const wantsSpent = useMemo(() => {
+    return expenses.filter((expense) => expense.category === "Wants").reduce((total, expense) => total + expense.amount, 0);
   }, [expenses]);
 
   // Calculate remaining amount
-  const remainingAmount = needsBudgetAmount - needsSpent;
+  const remainingAmount = wantsBudgetAmount - wantsSpent;
 
   // Calculate percentage used
-  const percentageUsed = Math.round((needsSpent / needsBudgetAmount) * 100 * 10) / 10;
+  const percentageUsed = Math.round((wantsSpent / wantsBudgetAmount) * 100 * 10) / 10;
 
   // Calculate spending by category
   const categorySpending = useMemo(() => {
-    return needsCategories.map((category) => {
+    return wantsCategories.map((category) => {
       const spent = expenses.filter((expense) => expense.subcategory === category.name).reduce((total, expense) => total + expense.amount, 0);
 
-      const percentage = Math.round((spent / needsBudgetAmount) * 100 * 10) / 10;
+      const percentage = Math.round((spent / wantsBudgetAmount) * 100 * 10) / 10;
 
       return {
         ...category,
@@ -47,7 +47,7 @@ const NeedsDetailScreen: React.FC<NeedsDetailScreenProps> = ({ onBackPress }) =>
         percentage,
       };
     });
-  }, [expenses, needsCategories, needsBudgetAmount]);
+  }, [expenses, wantsCategories, wantsBudgetAmount]);
 
   // Get current month and year for header
   const currentDate = new Date();
@@ -60,7 +60,7 @@ const NeedsDetailScreen: React.FC<NeedsDetailScreenProps> = ({ onBackPress }) =>
         <TouchableOpacity onPress={onBackPress} style={styles.backButton}>
           <Text style={styles.backButtonText}>←</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Needs ({budgetRule.needs}%)</Text>
+        <Text style={styles.headerTitle}>Wants ({budgetRule.wants}%)</Text>
       </View>
 
       <ScrollView style={styles.scrollView}>
@@ -73,12 +73,12 @@ const NeedsDetailScreen: React.FC<NeedsDetailScreenProps> = ({ onBackPress }) =>
           <View style={styles.amountContainer}>
             <View style={styles.amountColumn}>
               <Text style={styles.amountLabel}>Spent</Text>
-              <Text style={styles.spentAmount}>{formatCurrency(needsSpent, currency)}</Text>
+              <Text style={styles.spentAmount}>{formatCurrency(wantsSpent, currency)}</Text>
             </View>
 
             <View style={styles.amountColumn}>
               <Text style={styles.amountLabel}>Allocated</Text>
-              <Text style={styles.allocatedAmount}>{formatCurrency(needsBudgetAmount, currency)}</Text>
+              <Text style={styles.allocatedAmount}>{formatCurrency(wantsBudgetAmount, currency)}</Text>
             </View>
           </View>
 
@@ -94,7 +94,7 @@ const NeedsDetailScreen: React.FC<NeedsDetailScreenProps> = ({ onBackPress }) =>
 
         {/* Categories Section */}
         <View style={styles.categoriesSection}>
-          <Text style={styles.sectionTitle}>Needs Categories</Text>
+          <Text style={styles.sectionTitle}>Wants Categories</Text>
 
           {categorySpending.map((category) => (
             <View key={category.id} style={styles.categoryItem}>
@@ -105,40 +105,44 @@ const NeedsDetailScreen: React.FC<NeedsDetailScreenProps> = ({ onBackPress }) =>
                 <View style={styles.categoryInfo}>
                   <Text style={styles.categoryName}>{category.name}</Text>
                   <Text style={styles.categoryDescription}>
-                    {category.name === "Housing"
-                      ? "Rent, mortgage, utilities"
-                      : category.name === "Groceries"
-                      ? "Essential food items"
-                      : category.name === "Transportation"
-                      ? "Gas, public transit, car payment"
-                      : category.name === "Healthcare"
-                      ? "Insurance, medications"
-                      : "Essential expenses"}
+                    {category.name === "Entertainment"
+                      ? "Movies, streaming, hobbies"
+                      : category.name === "Dining Out"
+                      ? "Restaurants, cafes, takeout"
+                      : category.name === "Shopping"
+                      ? "Non-essential purchases"
+                      : category.name === "Travel"
+                      ? "Vacations, weekend trips"
+                      : "Discretionary spending"}
                   </Text>
                 </View>
                 <View style={styles.categoryAmountContainer}>
                   <Text style={styles.categoryAmount}>{formatCurrency(category.spent, currency)}</Text>
-                  <Text style={styles.categoryPercentage}>{category.percentage}% of needs</Text>
+                  <Text style={styles.categoryPercentage}>{category.percentage}% of wants</Text>
                 </View>
               </View>
 
               <View style={styles.categoryProgressContainer}>
-                <View style={[styles.categoryProgressBar, { width: `${Math.min(100, (category.spent / needsBudgetAmount) * 100)}%` }]} />
+                <View style={[styles.categoryProgressBar, { width: `${Math.min(100, (category.spent / wantsBudgetAmount) * 100)}%` }]} />
               </View>
             </View>
           ))}
         </View>
 
         {/* AI Insight Section */}
-        {/* <View style={styles.insightContainer}>
+        <View style={styles.insightContainer}>
           <View style={styles.insightHeader}>
             <Text style={styles.insightIcon}>💡</Text>
-            <Text style={styles.insightTitle}>AI Insight</Text>
+            <Text style={styles.insightTitle}>Insight</Text>
           </View>
           <Text style={styles.insightText}>
-            You&apos;re on track with your Needs budget for {monthName}. Your utility bill is due in 3 days—remember to pay it before the due date.
+            {percentageUsed > 90
+              ? `You've nearly reached your Wants budget for ${monthName}. Consider saving some discretionary spending for later in the month.`
+              : percentageUsed > 75
+              ? `You're using your Wants budget faster than usual this ${monthName}. Try to pace your non-essential spending.`
+              : `You're managing your Wants budget well for ${monthName}. You have room for some treats while staying on track with your financial goals.`}
           </Text>
-        </View> */}
+        </View>
       </ScrollView>
     </View>
   );
@@ -176,7 +180,7 @@ const styles = StyleSheet.create({
     padding: responsivePadding(16),
   },
   budgetCard: {
-    backgroundColor: BudgetColors.needs,
+    backgroundColor: BudgetColors.wants,
     borderRadius: 20,
     padding: responsivePadding(20),
     marginBottom: responsiveMargin(20),
@@ -264,7 +268,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "#f0f9f4",
+    backgroundColor: "#f0f0ff", // Light purple background for the wants category
     justifyContent: "center",
     alignItems: "center",
     marginRight: responsiveMargin(12),
@@ -292,7 +296,7 @@ const styles = StyleSheet.create({
   },
   categoryPercentage: {
     fontSize: scaleFontSize(14),
-    color: BudgetColors.needs,
+    color: BudgetColors.wants,
   },
   categoryProgressContainer: {
     height: 8,
@@ -302,11 +306,11 @@ const styles = StyleSheet.create({
   },
   categoryProgressBar: {
     height: "100%",
-    backgroundColor: BudgetColors.needs,
+    backgroundColor: BudgetColors.wants,
     borderRadius: 4,
   },
   insightContainer: {
-    backgroundColor: "#F8F0FF",
+    backgroundColor: "#F0F0FF", // Light purple background for wants insight
     borderRadius: 16,
     padding: responsivePadding(16),
     marginBottom: responsiveMargin(20),
@@ -323,7 +327,7 @@ const styles = StyleSheet.create({
   insightTitle: {
     fontSize: scaleFontSize(16),
     fontWeight: "600",
-    color: "#7209B7",
+    color: "#605BFF", // Purple for wants category
   },
   insightText: {
     fontSize: scaleFontSize(14),
@@ -332,4 +336,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default NeedsDetailScreen;
+export default WantsDetailScreen;

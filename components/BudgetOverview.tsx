@@ -14,9 +14,18 @@ interface BudgetOverviewProps {
   onBackPress?: () => void;
   onOpenSettings?: () => void;
   onOpenNeedsDetail?: () => void;
+  onOpenWantsDetail?: () => void;
+  onOpenSavingsDetail?: () => void;
 }
 
-const BudgetOverview: React.FC<BudgetOverviewProps> = ({ monthlyIncome = 0, onBackPress, onOpenSettings, onOpenNeedsDetail }) => {
+const BudgetOverview: React.FC<BudgetOverviewProps> = ({
+  monthlyIncome = 0,
+  onBackPress,
+  onOpenSettings,
+  onOpenNeedsDetail,
+  onOpenWantsDetail,
+  onOpenSavingsDetail,
+}) => {
   const budgetRule = useSelector(selectBudgetRule);
 
   // Create memoized selector functions for each category type
@@ -118,7 +127,7 @@ const BudgetOverview: React.FC<BudgetOverviewProps> = ({ monthlyIncome = 0, onBa
             </View>
           </TouchableOpacity>
 
-          <View style={styles.budgetItem}>
+          <TouchableOpacity style={styles.budgetItem} onPress={onOpenSavingsDetail} disabled={!onOpenSavingsDetail}>
             <View style={styles.budgetItemLeft}>
               <Text style={styles.budgetItemLabel}>Savings ({budgetRule.savings}%)</Text>
               <View style={[styles.progressBar, { backgroundColor: BudgetColors.savings + "30" }]}>
@@ -141,9 +150,9 @@ const BudgetOverview: React.FC<BudgetOverviewProps> = ({ monthlyIncome = 0, onBa
                 of {formatCurrency(budgetData.savings.amount, currency, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
               </Text>
             </View>
-          </View>
+          </TouchableOpacity>
 
-          <View style={styles.budgetItem}>
+          <TouchableOpacity style={styles.budgetItem} onPress={onOpenWantsDetail} disabled={!onOpenWantsDetail}>
             <View style={styles.budgetItemLeft}>
               <Text style={styles.budgetItemLabel}>Wants ({budgetRule.wants}%)</Text>
               <View style={[styles.progressBar, { backgroundColor: BudgetColors.wants + "30" }]}>
@@ -166,7 +175,7 @@ const BudgetOverview: React.FC<BudgetOverviewProps> = ({ monthlyIncome = 0, onBa
                 of {formatCurrency(budgetData.wants.amount, currency, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
               </Text>
             </View>
-          </View>
+          </TouchableOpacity>
         </View>
 
         <View style={styles.categoriesSection}>

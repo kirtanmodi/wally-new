@@ -16,6 +16,8 @@ interface ExpensesListProps {
   onOpenSettings?: () => void;
   onEditExpense?: (expense: Expense) => void;
   onOpenNeedsDetail?: () => void;
+  onOpenWantsDetail?: () => void;
+  onOpenSavingsDetail?: () => void;
 }
 
 // Animated Category Circle Component
@@ -24,7 +26,9 @@ const AnimatedCategoryCircle: React.FC<{
   index: number;
   onOpenBudget?: () => void;
   onOpenNeedsDetail?: () => void;
-}> = ({ item, index, onOpenBudget, onOpenNeedsDetail }) => {
+  onOpenWantsDetail?: () => void;
+  onOpenSavingsDetail?: () => void;
+}> = ({ item, index, onOpenBudget, onOpenNeedsDetail, onOpenWantsDetail, onOpenSavingsDetail }) => {
   const percentage = Math.min(100, (item.spent / item.total) * 100);
   const isOverBudget = item.spent > item.total;
   const itemFade = useRef(new Animated.Value(0)).current;
@@ -81,6 +85,10 @@ const AnimatedCategoryCircle: React.FC<{
   const handleCategoryPress = () => {
     if (item.category === "Needs") {
       onOpenNeedsDetail?.();
+    } else if (item.category === "Wants") {
+      onOpenWantsDetail?.();
+    } else if (item.category === "Savings") {
+      onOpenSavingsDetail?.();
     } else {
       onOpenBudget?.();
     }
@@ -250,6 +258,8 @@ const ExpensesList: React.FC<ExpensesListProps> = ({
   onOpenSettings,
   onEditExpense,
   onOpenNeedsDetail,
+  onOpenWantsDetail,
+  onOpenSavingsDetail,
 }) => {
   const [activeTab, setActiveTab] = useState<"All" | BudgetCategory>("All");
   const [showMenu, setShowMenu] = useState(false);
@@ -407,7 +417,15 @@ const ExpensesList: React.FC<ExpensesListProps> = ({
       <View style={styles.categoriesContainer}>
         <View style={styles.categoryCirclesWrapper}>
           {categorySummaries.map((item, index) => (
-            <AnimatedCategoryCircle key={item.category} item={item} index={index} onOpenBudget={onOpenBudget} onOpenNeedsDetail={onOpenNeedsDetail} />
+            <AnimatedCategoryCircle
+              key={item.category}
+              item={item}
+              index={index}
+              onOpenBudget={onOpenBudget}
+              onOpenNeedsDetail={onOpenNeedsDetail}
+              onOpenWantsDetail={onOpenWantsDetail}
+              onOpenSavingsDetail={onOpenSavingsDetail}
+            />
           ))}
         </View>
       </View>

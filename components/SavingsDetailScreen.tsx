@@ -7,39 +7,39 @@ import { responsiveMargin, responsivePadding, scaleFontSize } from "../app/utils
 import { selectBudgetRule, selectCategoriesByType, selectCurrency, selectMonthlyIncome } from "../redux/slices/budgetSlice";
 import { selectExpenses } from "../redux/slices/expenseSlice";
 
-interface NeedsDetailScreenProps {
+interface SavingsDetailScreenProps {
   onBackPress?: () => void;
 }
 
-const NeedsDetailScreen: React.FC<NeedsDetailScreenProps> = ({ onBackPress }) => {
+const SavingsDetailScreen: React.FC<SavingsDetailScreenProps> = ({ onBackPress }) => {
   const monthlyIncome = useSelector(selectMonthlyIncome);
   const budgetRule = useSelector(selectBudgetRule);
   const currency = useSelector(selectCurrency);
   const expenses = useSelector(selectExpenses);
 
-  // Get all needs categories
-  const needsCategories = useSelector((state) => selectCategoriesByType(state, "Needs"));
+  // Get all savings categories
+  const savingsCategories = useSelector((state) => selectCategoriesByType(state, "Savings"));
 
-  // Calculate needs budget amount
-  const needsBudgetAmount = monthlyIncome * (budgetRule.needs / 100);
+  // Calculate savings budget amount
+  const savingsBudgetAmount = monthlyIncome * (budgetRule.savings / 100);
 
-  // Calculate needs spent
-  const needsSpent = useMemo(() => {
-    return expenses.filter((expense) => expense.category === "Needs").reduce((total, expense) => total + expense.amount, 0);
+  // Calculate savings spent
+  const savingsSpent = useMemo(() => {
+    return expenses.filter((expense) => expense.category === "Savings").reduce((total, expense) => total + expense.amount, 0);
   }, [expenses]);
 
   // Calculate remaining amount
-  const remainingAmount = needsBudgetAmount - needsSpent;
+  const remainingAmount = savingsBudgetAmount - savingsSpent;
 
   // Calculate percentage used
-  const percentageUsed = Math.round((needsSpent / needsBudgetAmount) * 100 * 10) / 10;
+  const percentageUsed = Math.round((savingsSpent / savingsBudgetAmount) * 100 * 10) / 10;
 
   // Calculate spending by category
   const categorySpending = useMemo(() => {
-    return needsCategories.map((category) => {
+    return savingsCategories.map((category) => {
       const spent = expenses.filter((expense) => expense.subcategory === category.name).reduce((total, expense) => total + expense.amount, 0);
 
-      const percentage = Math.round((spent / needsBudgetAmount) * 100 * 10) / 10;
+      const percentage = Math.round((spent / savingsBudgetAmount) * 100 * 10) / 10;
 
       return {
         ...category,
@@ -47,7 +47,7 @@ const NeedsDetailScreen: React.FC<NeedsDetailScreenProps> = ({ onBackPress }) =>
         percentage,
       };
     });
-  }, [expenses, needsCategories, needsBudgetAmount]);
+  }, [expenses, savingsCategories, savingsBudgetAmount]);
 
   // Get current month and year for header
   const currentDate = new Date();
@@ -60,7 +60,7 @@ const NeedsDetailScreen: React.FC<NeedsDetailScreenProps> = ({ onBackPress }) =>
         <TouchableOpacity onPress={onBackPress} style={styles.backButton}>
           <Text style={styles.backButtonText}>←</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Needs ({budgetRule.needs}%)</Text>
+        <Text style={styles.headerTitle}>Savings ({budgetRule.savings}%)</Text>
       </View>
 
       <ScrollView style={styles.scrollView}>
@@ -72,13 +72,13 @@ const NeedsDetailScreen: React.FC<NeedsDetailScreenProps> = ({ onBackPress }) =>
 
           <View style={styles.amountContainer}>
             <View style={styles.amountColumn}>
-              <Text style={styles.amountLabel}>Spent</Text>
-              <Text style={styles.spentAmount}>{formatCurrency(needsSpent, currency)}</Text>
+              <Text style={styles.amountLabel}>Saved</Text>
+              <Text style={styles.spentAmount}>{formatCurrency(savingsSpent, currency)}</Text>
             </View>
 
             <View style={styles.amountColumn}>
-              <Text style={styles.amountLabel}>Allocated</Text>
-              <Text style={styles.allocatedAmount}>{formatCurrency(needsBudgetAmount, currency)}</Text>
+              <Text style={styles.amountLabel}>Goal</Text>
+              <Text style={styles.allocatedAmount}>{formatCurrency(savingsBudgetAmount, currency)}</Text>
             </View>
           </View>
 
@@ -87,14 +87,14 @@ const NeedsDetailScreen: React.FC<NeedsDetailScreenProps> = ({ onBackPress }) =>
           </View>
 
           <View style={styles.progressInfoContainer}>
-            <Text style={styles.percentageText}>{percentageUsed}% used</Text>
-            <Text style={styles.remainingText}>{formatCurrency(remainingAmount, currency)} remaining</Text>
+            <Text style={styles.percentageText}>{percentageUsed}% of goal</Text>
+            <Text style={styles.remainingText}>{formatCurrency(remainingAmount, currency)} more to goal</Text>
           </View>
         </View>
 
         {/* Categories Section */}
         <View style={styles.categoriesSection}>
-          <Text style={styles.sectionTitle}>Needs Categories</Text>
+          <Text style={styles.sectionTitle}>Savings Categories</Text>
 
           {categorySpending.map((category) => (
             <View key={category.id} style={styles.categoryItem}>
@@ -105,40 +105,46 @@ const NeedsDetailScreen: React.FC<NeedsDetailScreenProps> = ({ onBackPress }) =>
                 <View style={styles.categoryInfo}>
                   <Text style={styles.categoryName}>{category.name}</Text>
                   <Text style={styles.categoryDescription}>
-                    {category.name === "Housing"
-                      ? "Rent, mortgage, utilities"
-                      : category.name === "Groceries"
-                      ? "Essential food items"
-                      : category.name === "Transportation"
-                      ? "Gas, public transit, car payment"
-                      : category.name === "Healthcare"
-                      ? "Insurance, medications"
-                      : "Essential expenses"}
+                    {category.name === "Emergency Fund"
+                      ? "3-6 months of essential expenses"
+                      : category.name === "Investments"
+                      ? "Stocks, bonds, retirement accounts"
+                      : category.name === "Down Payment"
+                      ? "Saving for home purchase"
+                      : category.name === "Education"
+                      ? "College funds, continuing education"
+                      : "Long-term financial security"}
                   </Text>
                 </View>
                 <View style={styles.categoryAmountContainer}>
                   <Text style={styles.categoryAmount}>{formatCurrency(category.spent, currency)}</Text>
-                  <Text style={styles.categoryPercentage}>{category.percentage}% of needs</Text>
+                  <Text style={styles.categoryPercentage}>{category.percentage}% of savings</Text>
                 </View>
               </View>
 
               <View style={styles.categoryProgressContainer}>
-                <View style={[styles.categoryProgressBar, { width: `${Math.min(100, (category.spent / needsBudgetAmount) * 100)}%` }]} />
+                <View style={[styles.categoryProgressBar, { width: `${Math.min(100, (category.spent / savingsBudgetAmount) * 100)}%` }]} />
               </View>
             </View>
           ))}
         </View>
 
         {/* AI Insight Section */}
-        {/* <View style={styles.insightContainer}>
+        <View style={styles.insightContainer}>
           <View style={styles.insightHeader}>
             <Text style={styles.insightIcon}>💡</Text>
-            <Text style={styles.insightTitle}>AI Insight</Text>
+            <Text style={styles.insightTitle}>Insight</Text>
           </View>
           <Text style={styles.insightText}>
-            You&apos;re on track with your Needs budget for {monthName}. Your utility bill is due in 3 days—remember to pay it before the due date.
+            {percentageUsed >= 100
+              ? `Excellent work! You've met your savings goal for ${monthName}. Consistent saving is key to long-term financial health.`
+              : percentageUsed >= 75
+              ? `You're on track with your savings goal for ${monthName}. Just a bit more to reach your target!`
+              : percentageUsed >= 50
+              ? `You're making progress on your savings for ${monthName}, but try to allocate a bit more to stay on track with your annual goals.`
+              : `Consider reviewing your budget to prioritize savings this month. Even small, consistent contributions add up over time.`}
           </Text>
-        </View> */}
+        </View>
       </ScrollView>
     </View>
   );
@@ -176,7 +182,7 @@ const styles = StyleSheet.create({
     padding: responsivePadding(16),
   },
   budgetCard: {
-    backgroundColor: BudgetColors.needs,
+    backgroundColor: BudgetColors.savings,
     borderRadius: 20,
     padding: responsivePadding(20),
     marginBottom: responsiveMargin(20),
@@ -264,7 +270,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "#f0f9f4",
+    backgroundColor: "#FFF8F0", // Light orange background for savings category
     justifyContent: "center",
     alignItems: "center",
     marginRight: responsiveMargin(12),
@@ -292,7 +298,7 @@ const styles = StyleSheet.create({
   },
   categoryPercentage: {
     fontSize: scaleFontSize(14),
-    color: BudgetColors.needs,
+    color: BudgetColors.savings,
   },
   categoryProgressContainer: {
     height: 8,
@@ -302,11 +308,11 @@ const styles = StyleSheet.create({
   },
   categoryProgressBar: {
     height: "100%",
-    backgroundColor: BudgetColors.needs,
+    backgroundColor: BudgetColors.savings,
     borderRadius: 4,
   },
   insightContainer: {
-    backgroundColor: "#F8F0FF",
+    backgroundColor: "#FFF8F0", // Light orange background for savings insight
     borderRadius: 16,
     padding: responsivePadding(16),
     marginBottom: responsiveMargin(20),
@@ -323,7 +329,7 @@ const styles = StyleSheet.create({
   insightTitle: {
     fontSize: scaleFontSize(16),
     fontWeight: "600",
-    color: "#7209B7",
+    color: "#FF9C36", // Orange for savings category
   },
   insightText: {
     fontSize: scaleFontSize(14),
@@ -332,4 +338,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default NeedsDetailScreen;
+export default SavingsDetailScreen;
