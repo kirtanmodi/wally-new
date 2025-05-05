@@ -1,50 +1,118 @@
-# Welcome to your Expo app 👋
+# Wally - Personal Finance Assistant
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Wally is a mobile app that helps users track their expenses, set budgets, and manage their finances with ease.
 
-## Get started
+## Features
 
-1. Install dependencies
+- 💰 **Expense Tracking**: Log and categorize your expenses
+- 📊 **Budget Management**: Create and monitor spending limits
+- 📈 **Financial Analytics**: View spending patterns and trends
+- 👤 **User Profiles**: Customize your experience
+- 🔔 **Notifications**: Get alerts for budget limits and financial goals
+- 🔒 **Privacy Settings**: Control your data security preferences
+- 🔐 **Authentication**: Login with email or Google account
 
-   ```bash
+## Development Setup
+
+1. Install dependencies:
+   ```
    npm install
    ```
 
-2. Start the app
-
-   ```bash
-   npx expo start
+2. Start the development server:
+   ```
+   npm start
    ```
 
-In the output, you'll find options to open the app in a
+3. Run on iOS simulator:
+   ```
+   npm run ios
+   ```
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+4. Run on Android emulator:
+   ```
+   npm run android
+   ```
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+## Authentication Setup
 
-## Get a fresh project
+### Google Authentication
 
-When you're ready, run:
+To set up Google authentication:
 
-```bash
-npm run reset-project
+1. Create a project in the [Google Cloud Console](https://console.cloud.google.com/)
+2. Configure the OAuth consent screen
+3. Create OAuth 2.0 Client IDs for iOS, Android, and Web
+4. Update the client IDs in `app/services/AuthService.ts`
+
+For detailed instructions, see [Google Authentication Setup](app/services/GoogleAuthREADME.md).
+
+## Environment Configuration
+
+The app supports three environments:
+
+- **Development**: For local development with hot reloading
+- **Preview**: For internal testing before release
+- **Production**: For app store releases
+
+## Publishing the App
+
+### Build Configuration
+
+This app uses Expo Application Services (EAS) for building and publishing. The configuration is defined in `eas.json`.
+
+### Building a Preview
+
+```
+npm run build:preview
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+This creates a build for internal testing distributed through EAS.
 
-## Learn more
+### Building for Production
 
-To learn more about developing your project with Expo, look at the following resources:
+```
+npm run build:production
+```
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+This creates a production-ready build for App Store and Google Play submission.
 
-## Join the community
+### Submitting to App Stores
 
-Join our community of developers creating universal apps.
+For iOS:
+```
+npm run submit:ios
+```
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+For Android:
+```
+npm run submit:android
+```
+
+### Over-the-Air Updates
+
+After making changes, you can push updates without requiring a new store submission:
+
+```
+npm run publish:update
+```
+
+## Project Structure
+
+- `app/` - Main application code
+  - `(auth)/` - Authentication screens
+  - `(tabs)/` - Main tab screens
+  - `(modals)/` - Modal screens
+  - `(details)/` - Detail screens
+  - `services/` - Application services
+- `redux/` - State management
+- `assets/` - Images and other static assets
+- `components/` - Reusable UI components
+
+## Technologies Used
+
+- React Native
+- Expo
+- Redux Toolkit
+- Expo Router
+- TypeScript

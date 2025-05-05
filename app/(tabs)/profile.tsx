@@ -1,17 +1,48 @@
 import { FontAwesome } from "@expo/vector-icons";
+import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
-import React, { useMemo } from "react";
-import { Image, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import React, { useCallback, useMemo } from "react";
+import { Alert, Image, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import Animated, { FadeIn } from "react-native-reanimated";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { selectBudgetRule, selectMonthlyIncome } from "../../redux/slices/budgetSlice";
 import { selectExpenses } from "../../redux/slices/expenseSlice";
+import {
+  logout,
+  selectAuthProvider,
+  selectUserAvatar,
+  selectUserEmail,
+  selectUserFullName,
+  selectUserPreferences,
+  selectUsername,
+  updateProfile,
+} from "../../redux/slices/userSlice";
 
 export default function ProfileScreen() {
   const router = useRouter();
+  const dispatch = useDispatch();
+
+  // User information
+  const username = useSelector(selectUsername);
+  const email = useSelector(selectUserEmail);
+  const fullName = useSelector(selectUserFullName);
+  const avatar = useSelector(selectUserAvatar);
+  const preferences = useSelector(selectUserPreferences);
+  const authProvider = useSelector(selectAuthProvider);
+
+  // Budget information
   const expenses = useSelector(selectExpenses);
   const monthlyIncome = useSelector(selectMonthlyIncome);
   const budgetRules = useSelector(selectBudgetRule);
+
+  // Default display names
+  const displayName = fullName || username || "Guest User";
+  const displayEmail = email || "user@example.com";
+
+  // Determine membership status
+  const membershipStatus = useMemo(() => {
+    return preferences?.membership?.status || "free";
+  }, [preferences]);
 
   // Filter expenses for current month
   const currentMonthExpenses = useMemo(() => {
@@ -45,13 +76,103 @@ export default function ProfileScreen() {
     return "$" + amount.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
   };
 
+  // Handle avatar selection
+  const handleAvatarSelection = useCallback(async () => {
+    try {
+      // Request permission
+      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+      if (!permissionResult.granted) {
+        Alert.alert("Permission Denied", "You need to grant permission to access your photo library");
+        return;
+      }
+
+      // Launch image picker
+      const pickerResult = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+
+      if (!pickerResult.canceled) {
+        const selectedImageUri = pickerResult.assets[0].uri;
+        // Update profile with new avatar
+        dispatch(updateProfile({ avatar: selectedImageUri }));
+      }
+    } catch (error) {
+      console.error("Error selecting avatar:", error);
+      Alert.alert("Error", "There was an error selecting your avatar");
+    }
+  }, [dispatch]);
+
+  // Navigation handlers
+  const handleNavigateToSettings = useCallback(() => {
+    router.push("/(tabs)/settings");
+  }, [router]);
+
+  const handleNavigateToAnalytics = useCallback(() => {
+    router.push("/(tabs)/analytics");
+  }, [router]);
+
+  // Menu item handlers
+  const handleMenuItemPress = useCallback(
+    (section: string) => {
+      switch (section) {
+        case "notifications":
+          router.push("/(modals)/notifications");
+          break;
+        case "privacy":
+          router.push("/(modals)/privacy");
+          break;
+        case "payment":
+        case "help":
+        default:
+          // If route doesn't exist yet, show alert
+          Alert.alert("Coming Soon", `The ${section} section is coming soon!`);
+      }
+    },
+    [router]
+  );
+
+  // Handle membership upgrade
+  const handleUpgradeMembership = useCallback(() => {
+    if (membershipStatus === "premium") {
+      Alert.alert("Already Premium", "You're already enjoying premium benefits!");
+    } else {
+      Alert.alert("Upgrade to Premium", "Would you like to upgrade to a premium membership for exclusive features?", [
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+        {
+          text: "Upgrade",
+          onPress: () => {
+            // In a real app, you would handle payment processing here
+            dispatch(
+              updateProfile({
+                preferences: {
+                  membership: {
+                    status: "premium",
+                    startDate: new Date().toISOString(),
+                  },
+                },
+              })
+            );
+            Alert.alert("Success", "You've been upgraded to Premium!");
+          },
+        },
+      ]);
+    }
+  }, [dispatch, membershipStatus]);
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         <Animated.View style={styles.profileCard} entering={FadeIn.duration(300)}>
           <View style={styles.header}>
             <Text style={styles.title}>Profile</Text>
-            <TouchableOpacity style={styles.settingsButton} onPress={() => router.push("/(tabs)/settings")}>
+            <TouchableOpacity style={styles.settingsButton} onPress={handleNavigateToSettings}>
               <FontAwesome name="gear" size={24} color="#666" />
             </TouchableOpacity>
           </View>
@@ -59,16 +180,34 @@ export default function ProfileScreen() {
           {/* Profile picture and name */}
           <View style={styles.profileInfo}>
             <View style={styles.avatarContainer}>
-              <Image source={require("../../assets/images/icon.png")} style={styles.avatar} defaultSource={require("../../assets/images/icon.png")} />
-              <TouchableOpacity style={styles.editAvatarButton}>
+              <Image
+                source={avatar ? { uri: avatar } : require("../../assets/images/icon.png")}
+                style={styles.avatar}
+                defaultSource={require("../../assets/images/icon.png")}
+              />
+              <TouchableOpacity style={styles.editAvatarButton} onPress={handleAvatarSelection}>
                 <FontAwesome name="camera" size={14} color="#FFF" />
               </TouchableOpacity>
             </View>
-            <Text style={styles.userName}>Alex Johnson</Text>
-            <Text style={styles.userEmail}>alex.johnson@example.com</Text>
-            <View style={styles.membershipBadge}>
-              <FontAwesome name="star" size={12} color="#FFD700" />
-              <Text style={styles.membershipText}>Premium Member</Text>
+            <Text style={styles.userName}>{displayName}</Text>
+            <Text style={styles.userEmail}>{displayEmail}</Text>
+            <TouchableOpacity
+              style={[styles.membershipBadge, membershipStatus === "premium" ? styles.premiumBadge : styles.freeBadge]}
+              onPress={handleUpgradeMembership}
+            >
+              <FontAwesome name="star" size={12} color={membershipStatus === "premium" ? "#FFD700" : "#888"} />
+              <Text style={[styles.membershipText, membershipStatus === "premium" ? styles.premiumText : styles.freeText]}>
+                {membershipStatus === "premium" ? "Premium Member" : "Free Account"}
+              </Text>
+            </TouchableOpacity>
+            <View style={styles.statsContainer}>
+              {/* Display auth method badge */}
+              {authProvider && (
+                <View style={styles.authBadgeContainer}>
+                  <FontAwesome name={authProvider === "google" ? "google" : "envelope"} size={14} color="#fff" style={styles.authBadgeIcon} />
+                  <Text style={styles.authBadgeText}>{authProvider === "google" ? "Google" : "Email"} Login</Text>
+                </View>
+              )}
             </View>
           </View>
 
@@ -76,7 +215,7 @@ export default function ProfileScreen() {
           <View style={styles.statsCard}>
             <View style={styles.sectionTitleRow}>
               <Text style={styles.sectionTitle}>Budget Stats</Text>
-              <TouchableOpacity onPress={() => router.push("/(tabs)/analytics")}>
+              <TouchableOpacity onPress={handleNavigateToAnalytics}>
                 <Text style={styles.viewMoreLink}>View Analytics</Text>
               </TouchableOpacity>
             </View>
@@ -156,7 +295,7 @@ export default function ProfileScreen() {
           {/* Menu items */}
           <Text style={styles.menuSectionTitle}>Settings</Text>
 
-          <TouchableOpacity style={styles.menuItem} onPress={() => {}}>
+          <TouchableOpacity style={styles.menuItem} onPress={() => handleMenuItemPress("notifications")}>
             <View style={styles.menuIconContainer}>
               <FontAwesome name="bell" size={20} color="#8A2BE2" />
             </View>
@@ -167,7 +306,7 @@ export default function ProfileScreen() {
             <FontAwesome name="angle-right" size={20} color="#999" />
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.menuItem} onPress={() => {}}>
+          <TouchableOpacity style={styles.menuItem} onPress={() => handleMenuItemPress("privacy")}>
             <View style={styles.menuIconContainer}>
               <FontAwesome name="shield" size={20} color="#8A2BE2" />
             </View>
@@ -178,7 +317,7 @@ export default function ProfileScreen() {
             <FontAwesome name="angle-right" size={20} color="#999" />
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.menuItem} onPress={() => {}}>
+          <TouchableOpacity style={styles.menuItem} onPress={() => handleMenuItemPress("payment")}>
             <View style={styles.menuIconContainer}>
               <FontAwesome name="credit-card" size={20} color="#8A2BE2" />
             </View>
@@ -189,7 +328,7 @@ export default function ProfileScreen() {
             <FontAwesome name="angle-right" size={20} color="#999" />
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.menuItem} onPress={() => {}}>
+          <TouchableOpacity style={styles.menuItem} onPress={() => handleMenuItemPress("help")}>
             <View style={styles.menuIconContainer}>
               <FontAwesome name="question-circle" size={20} color="#8A2BE2" />
             </View>
@@ -198,6 +337,33 @@ export default function ProfileScreen() {
               <Text style={styles.menuSubtext}>Get assistance and FAQs</Text>
             </View>
             <FontAwesome name="angle-right" size={20} color="#999" />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.menuItem, styles.logoutButton]}
+            onPress={() => {
+              Alert.alert("Logout", "Are you sure you want to log out?", [
+                {
+                  text: "Cancel",
+                  style: "cancel",
+                },
+                {
+                  text: "Logout",
+                  onPress: () => {
+                    dispatch(logout());
+                  },
+                  style: "destructive",
+                },
+              ]);
+            }}
+          >
+            <View style={styles.menuIconContainer}>
+              <FontAwesome name="sign-out" size={20} color="#ff3b30" />
+            </View>
+            <View style={styles.menuTextContainer}>
+              <Text style={[styles.menuText, { color: "#ff3b30" }]}>Logout</Text>
+              <Text style={styles.menuSubtext}>Sign out of your account</Text>
+            </View>
           </TouchableOpacity>
 
           <View style={styles.footer}>
@@ -289,18 +455,29 @@ const styles = StyleSheet.create({
   membershipBadge: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#FFF9E5",
     borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderWidth: 1,
+  },
+  premiumBadge: {
+    backgroundColor: "#FFF9E5",
     borderColor: "#FFE082",
+  },
+  freeBadge: {
+    backgroundColor: "#F5F5F5",
+    borderColor: "#E0E0E0",
   },
   membershipText: {
     fontSize: 12,
-    color: "#D4A000",
     fontWeight: "600",
     marginLeft: 6,
+  },
+  premiumText: {
+    color: "#D4A000",
+  },
+  freeText: {
+    color: "#666",
   },
   statsCard: {
     backgroundColor: "#FFF",
@@ -496,6 +673,11 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: "#888",
   },
+  logoutButton: {
+    backgroundColor: "#FFF",
+    borderWidth: 1,
+    borderColor: "#E0E0E0",
+  },
   footer: {
     alignItems: "center",
     marginTop: 24,
@@ -504,5 +686,28 @@ const styles = StyleSheet.create({
   versionText: {
     fontSize: 12,
     color: "#888",
+  },
+  statsContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 10,
+  },
+  authBadgeContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#8A2BE2",
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 12,
+    marginTop: 10,
+    alignSelf: "center",
+  },
+  authBadgeIcon: {
+    marginRight: 6,
+  },
+  authBadgeText: {
+    color: "#FFFFFF",
+    fontSize: 12,
+    fontWeight: "600",
   },
 });

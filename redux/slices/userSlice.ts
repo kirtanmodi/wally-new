@@ -1,4 +1,5 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
+import { RootState } from "../store";
 
 // Define a type for the user state
 interface UserState {
@@ -7,6 +8,7 @@ interface UserState {
   username: string | null;
   email: string | null;
   token: string | null;
+  authProvider: "email" | "google" | null;
   profile: {
     fullName: string | null;
     avatar: string | null;
@@ -21,6 +23,7 @@ const initialState: UserState = {
   username: null,
   email: null,
   token: null,
+  authProvider: null,
   profile: {
     fullName: null,
     avatar: null,
@@ -47,6 +50,26 @@ export const userSlice = createSlice({
       state.username = action.payload.username;
       state.email = action.payload.email;
       state.token = action.payload.token;
+      state.authProvider = "email";
+    },
+    googleLogin: (
+      state,
+      action: PayloadAction<{
+        userId: string;
+        email: string;
+        fullName: string;
+        avatar: string;
+        token: string;
+      }>
+    ) => {
+      state.isAuthenticated = true;
+      state.userId = action.payload.userId;
+      state.username = action.payload.email.split("@")[0];
+      state.email = action.payload.email;
+      state.token = action.payload.token;
+      state.authProvider = "google";
+      state.profile.fullName = action.payload.fullName;
+      state.profile.avatar = action.payload.avatar;
     },
     logout: (state) => {
       return initialState;
@@ -76,7 +99,18 @@ export const userSlice = createSlice({
 });
 
 // Export actions
-export const { login, logout, updateProfile } = userSlice.actions;
+export const { login, googleLogin, logout, updateProfile } = userSlice.actions;
+
+// Selectors
+export const selectUser = (state: RootState) => state.user;
+export const selectIsAuthenticated = (state: RootState) => state.user.isAuthenticated;
+export const selectUsername = (state: RootState) => state.user.username;
+export const selectUserEmail = (state: RootState) => state.user.email;
+export const selectUserProfile = (state: RootState) => state.user.profile;
+export const selectUserFullName = (state: RootState) => state.user.profile.fullName;
+export const selectUserAvatar = (state: RootState) => state.user.profile.avatar;
+export const selectUserPreferences = (state: RootState) => state.user.profile.preferences;
+export const selectAuthProvider = (state: RootState) => state.user.authProvider;
 
 // Export reducer
 export default userSlice.reducer;
