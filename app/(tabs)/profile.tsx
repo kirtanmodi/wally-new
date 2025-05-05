@@ -78,30 +78,6 @@ export default function ProfileScreen() {
             </View>
           </View>
 
-          {/* GTD Stats */}
-          <View style={styles.statsCard}>
-            <View style={styles.sectionTitleRow}>
-              <Text style={styles.sectionTitle}>GTD Stats</Text>
-              <TouchableOpacity>
-                <Text style={styles.viewMoreLink}>View Details</Text>
-              </TouchableOpacity>
-            </View>
-            <View style={styles.statsRow}>
-              <View style={styles.statItem}>
-                <Text style={styles.statValue}>{tasksCompleted}</Text>
-                <Text style={styles.statLabel}>Tasks Completed</Text>
-              </View>
-              <View style={styles.statItem}>
-                <Text style={styles.statValue}>{activeProjects}</Text>
-                <Text style={styles.statLabel}>Projects Active</Text>
-              </View>
-              <View style={styles.statItem}>
-                <Text style={styles.statValue}>{currentStreak}</Text>
-                <Text style={styles.statLabel}>Days Streak</Text>
-              </View>
-            </View>
-          </View>
-
           {/* Budget Stats */}
           <View style={styles.statsCard}>
             <View style={styles.sectionTitleRow}>
