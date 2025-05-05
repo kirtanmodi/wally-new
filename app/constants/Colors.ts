@@ -10,15 +10,19 @@ const primaryWants = "#605BFF"; // Purple-blue for "Wants" category
 
 // Background colors
 const backgroundLight = "#F8F9FA";
-const backgroundDark = "#F8F9FA"; // Using light background for both modes as shown in image
+const backgroundDark = "#121212"; // Dark background for dark mode
 
 // Text colors
-const text = "#333333";
-// const textDark = '#E2E8F0';
+const textLight = "#333333";
+const textDark = "#E2E8F0";
 
 // Card colors
 const cardLight = "#FFFFFF";
-const cardDark = "#2D3748";
+const cardDark = "#1E1E1E";
+
+// Border colors
+const borderLight = "#E2E8F0";
+const borderDark = "#2D3748";
 
 // Category colors (for items within categories)
 const categoryFood = "#FF6B6B"; // Red for food
@@ -29,7 +33,7 @@ const categoryHealth = "#B980F0"; // Purple for health
 
 export const Colors = {
   light: {
-    text: text,
+    text: textLight,
     background: backgroundLight,
     tint: primaryNeeds,
     accent: primarySavings,
@@ -37,10 +41,14 @@ export const Colors = {
     tabIconDefault: "#687076",
     tabIconSelected: primaryNeeds,
     card: cardLight,
-    border: "#E2E8F0",
+    border: borderLight,
+    shadow: "rgba(0, 0, 0, 0.1)",
+    inputBackground: "#F1F5F9",
+    placeholder: "#94A3B8",
+    muted: "#64748B",
   },
   dark: {
-    text: text,
+    text: textDark,
     background: backgroundDark,
     tint: primaryNeeds,
     accent: primarySavings,
@@ -48,7 +56,11 @@ export const Colors = {
     tabIconDefault: "#9BA1A6",
     tabIconSelected: primaryNeeds,
     card: cardDark,
-    border: "#4A5568",
+    border: borderDark,
+    shadow: "rgba(0, 0, 0, 0.3)",
+    inputBackground: "#2D3748",
+    placeholder: "#64748B",
+    muted: "#94A3B8",
   },
 };
 

@@ -5,6 +5,7 @@ import { Provider, useSelector } from "react-redux";
 import { PersistGate } from "redux-persist/integration/react";
 import { selectIsAuthenticated } from "../redux/slices/userSlice";
 import { persistor, store } from "../redux/store";
+import { ThemeProvider } from "./components/ThemeProvider";
 
 // Auth context to handle authentication flow
 function AuthContextProvider({ children }: { children: React.ReactNode }) {
@@ -58,53 +59,55 @@ export default function RootLayout() {
         }
         persistor={persistor}
       >
-        <AuthContextProvider>
-          <Stack
-            screenOptions={{
-              headerShown: false,
-            }}
-          >
-            <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            <Stack.Screen
-              name="(modals)/add-expense"
-              options={{
-                presentation: "modal",
-                animation: "slide_from_bottom",
-              }}
-            />
-            <Stack.Screen
-              name="(modals)/edit-expense"
-              options={{
-                presentation: "modal",
-                animation: "slide_from_bottom",
-              }}
-            />
-            <Stack.Screen
-              name="(modals)/notifications"
-              options={{
-                presentation: "modal",
-                animation: "slide_from_bottom",
-              }}
-            />
-            <Stack.Screen
-              name="(modals)/privacy"
-              options={{
-                presentation: "modal",
-                animation: "slide_from_bottom",
-              }}
-            />
-            <Stack.Screen
-              name="(details)"
-              options={{
+        <ThemeProvider>
+          <AuthContextProvider>
+            <Stack
+              screenOptions={{
                 headerShown: false,
-                animation: "slide_from_right",
               }}
-            />
-            <Stack.Screen name="welcome" options={{ headerShown: false }} />
-            <Stack.Screen name="+not-found" />
-          </Stack>
-        </AuthContextProvider>
+            >
+              <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+              <Stack.Screen
+                name="(modals)/add-expense"
+                options={{
+                  presentation: "modal",
+                  animation: "slide_from_bottom",
+                }}
+              />
+              <Stack.Screen
+                name="(modals)/edit-expense"
+                options={{
+                  presentation: "modal",
+                  animation: "slide_from_bottom",
+                }}
+              />
+              <Stack.Screen
+                name="(modals)/notifications"
+                options={{
+                  presentation: "modal",
+                  animation: "slide_from_bottom",
+                }}
+              />
+              <Stack.Screen
+                name="(modals)/privacy"
+                options={{
+                  presentation: "modal",
+                  animation: "slide_from_bottom",
+                }}
+              />
+              <Stack.Screen
+                name="(details)"
+                options={{
+                  headerShown: false,
+                  animation: "slide_from_right",
+                }}
+              />
+              <Stack.Screen name="welcome" options={{ headerShown: false }} />
+              <Stack.Screen name="+not-found" />
+            </Stack>
+          </AuthContextProvider>
+        </ThemeProvider>
       </PersistGate>
     </Provider>
   );
