@@ -155,3 +155,24 @@ export const getDateRangeDisplay = (range: "day" | "week" | "month" | "year" | "
       return "Custom Range";
   }
 };
+
+/**
+ * Get an array of previous months from the current date
+ * @param numMonths - Number of previous months to return
+ * @returns Array of month objects with keys and display names
+ */
+export const getPreviousMonths = (numMonths: number = 6): { key: string; display: string }[] => {
+  const months = [];
+  const now = new Date();
+
+  for (let i = 0; i < numMonths; i++) {
+    const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const key = `${date.getFullYear()}-${date.getMonth() + 1}`;
+    months.push({
+      key,
+      display: formatMonthYear(date),
+    });
+  }
+
+  return months;
+};
