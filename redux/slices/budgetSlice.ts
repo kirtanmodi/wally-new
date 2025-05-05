@@ -93,12 +93,15 @@ export const budgetSlice = createSlice({
       };
       state.categories = [
         { id: "housing", name: "Housing", icon: "🏠", type: "Needs" },
+        { id: "work", name: "Work", icon: "💼", type: "Needs" },
         { id: "groceries", name: "Groceries", icon: "🛒", type: "Needs" },
         { id: "transportation", name: "Transportation", icon: "🚗", type: "Needs" },
         { id: "emergency", name: "Emergency Fund", icon: "💰", type: "Savings" },
         { id: "investments", name: "Investments", icon: "📈", type: "Savings" },
-        { id: "entertainment", name: "Entertainment", icon: "🎬", type: "Wants" },
         { id: "dining", name: "Dining Out", icon: "🍽️", type: "Wants" },
+        { id: "shopping", name: "Shopping", icon: "🛍️", type: "Wants" },
+        { id: "entertainment", name: "Entertainment", icon: "🎬", type: "Wants" },
+        { id: "other", name: "Other", icon: "💡", type: "Wants" },
       ];
       state.savingsGoals = {};
     },

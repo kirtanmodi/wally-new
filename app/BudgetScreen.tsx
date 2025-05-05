@@ -9,10 +9,11 @@ import NeedsDetailScreen from "../components/NeedsDetailScreen";
 import SavingsDetailScreen from "../components/SavingsDetailScreen";
 import WantsDetailScreen from "../components/WantsDetailScreen";
 import WelcomeScreen from "../components/WelcomeScreen";
-import { selectMonthlyIncome } from "../redux/slices/budgetSlice";
+import { resetBudget, selectMonthlyIncome } from "../redux/slices/budgetSlice";
 import {
   addExpense,
   clearSampleExpenses,
+  resetExpenses,
   selectExpenses,
   selectIsFirstTimeUser,
   selectOnboarded,
@@ -63,10 +64,10 @@ const BudgetScreen: React.FC<BudgetScreenProps> = ({ initialView }) => {
 
   const [currentView, setCurrentView] = useState<ScreenView>(getInitialView());
 
-  // useEffect(() => {
-  //   dispatch(resetExpenses());
-  //   dispatch(resetBudget());
-  // }, []);
+  useEffect(() => {
+    dispatch(resetExpenses());
+    dispatch(resetBudget());
+  }, []);
 
   useEffect(() => {
     if (!isFirstTimeUser && monthlyIncome === 0 && onboarded && currentView === "expenses" && !initialView) {
