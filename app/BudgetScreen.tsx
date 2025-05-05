@@ -20,6 +20,7 @@ import {
   updateExpense,
 } from "../redux/slices/expenseSlice";
 import { BudgetCategory, Expense, ExpenseCategory } from "./types/budget";
+import { getCurrentMonthYearKey } from "./utils/dateUtils";
 import { KeyboardAwareView } from "./utils/keyboard";
 
 export type ScreenView = "welcome" | "budget" | "expenses" | "addExpense" | "settings" | "needsDetail" | "wantsDetail" | "savingsDetail";
@@ -43,6 +44,7 @@ const BudgetScreen: React.FC<BudgetScreenProps> = ({ initialView }) => {
   const onboarded = useSelector(selectOnboarded);
   const expenses = useSelector(selectExpenses);
   const [expenseToEdit, setExpenseToEdit] = useState<Expense | null>(null);
+  const [selectedMonth, setSelectedMonth] = useState(getCurrentMonthYearKey());
 
   // Determine initial view based on user status and income
   const getInitialView = (): ScreenView => {
@@ -183,6 +185,11 @@ const BudgetScreen: React.FC<BudgetScreenProps> = ({ initialView }) => {
     }
   };
 
+  // Function to handle month selection from ExpensesList
+  const handleMonthChange = (monthKey: string) => {
+    setSelectedMonth(monthKey);
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <KeyboardAwareView scrollEnabled={false} style={styles.container}>
@@ -201,6 +208,8 @@ const BudgetScreen: React.FC<BudgetScreenProps> = ({ initialView }) => {
             onOpenBudget={() => setCurrentView("budget")}
             onOpenSettings={() => setCurrentView("settings")}
             onEditExpense={handleEditExpense}
+            selectedMonth={selectedMonth}
+            onMonthChange={handleMonthChange}
           />
         )}
 
@@ -212,6 +221,7 @@ const BudgetScreen: React.FC<BudgetScreenProps> = ({ initialView }) => {
             onOpenNeedsDetail={() => setCurrentView("needsDetail")}
             onOpenWantsDetail={() => setCurrentView("wantsDetail")}
             onOpenSavingsDetail={() => setCurrentView("savingsDetail")}
+            selectedMonth={selectedMonth}
           />
         )}
 
@@ -223,11 +233,11 @@ const BudgetScreen: React.FC<BudgetScreenProps> = ({ initialView }) => {
           <BudgetSettings onBackPress={() => setCurrentView(monthlyIncome === 0 && isFirstTimeUser ? "welcome" : "expenses")} />
         )}
 
-        {currentView === "needsDetail" && <NeedsDetailScreen onBackPress={() => setCurrentView("expenses")} />}
+        {currentView === "needsDetail" && <NeedsDetailScreen onBackPress={() => setCurrentView("expenses")} selectedMonth={selectedMonth} />}
 
-        {currentView === "wantsDetail" && <WantsDetailScreen onBackPress={() => setCurrentView("expenses")} />}
+        {currentView === "wantsDetail" && <WantsDetailScreen onBackPress={() => setCurrentView("expenses")} selectedMonth={selectedMonth} />}
 
-        {currentView === "savingsDetail" && <SavingsDetailScreen onBackPress={() => setCurrentView("expenses")} />}
+        {currentView === "savingsDetail" && <SavingsDetailScreen onBackPress={() => setCurrentView("expenses")} selectedMonth={selectedMonth} />}
       </KeyboardAwareView>
     </SafeAreaView>
   );

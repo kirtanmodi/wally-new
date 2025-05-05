@@ -4,6 +4,7 @@ import { useSelector } from "react-redux";
 import { BudgetColors } from "../app/constants/Colors";
 import { BudgetData } from "../app/types/budget";
 import { formatCurrency } from "../app/utils/currency";
+import { filterExpensesByMonth, getCurrentMonthYearKey } from "../app/utils/dateUtils";
 import { responsiveMargin, responsivePadding, scaleFontSize } from "../app/utils/responsive";
 import { selectBudgetRule, selectCategoriesByType, selectCurrency, selectSavingsGoals } from "../redux/slices/budgetSlice";
 import { selectExpenses } from "../redux/slices/expenseSlice";
@@ -16,71 +17,92 @@ interface BudgetOverviewProps {
   onOpenNeedsDetail?: () => void;
   onOpenWantsDetail?: () => void;
   onOpenSavingsDetail?: () => void;
+  selectedMonth?: string;
 }
 
+// Section Header Component
+const SectionHeader: React.FC<{ title: string; subtitle?: string; onPress?: () => void }> = ({ title, subtitle, onPress }) => (
+  <View style={styles.sectionHeader}>
+    <Text style={styles.sectionTitle}>{title}</Text>
+    {subtitle && <Text style={styles.sectionSubtitle}>{subtitle}</Text>}
+    {onPress && (
+      <TouchableOpacity onPress={onPress}>
+        <Text style={styles.sectionButton}>Edit</Text>
+      </TouchableOpacity>
+    )}
+  </View>
+);
+
 const BudgetOverview: React.FC<BudgetOverviewProps> = ({
-  monthlyIncome = 0,
+  monthlyIncome,
   onBackPress,
   onOpenSettings,
   onOpenNeedsDetail,
   onOpenWantsDetail,
   onOpenSavingsDetail,
+  selectedMonth = getCurrentMonthYearKey(),
 }) => {
   const budgetRule = useSelector(selectBudgetRule);
-
-  // Create memoized selector functions for each category type
-  const selectNeeds = useCallback((state: RootState) => selectCategoriesByType(state, "Needs"), []);
-  const selectSavings = useCallback((state: RootState) => selectCategoriesByType(state, "Savings"), []);
-  const selectWants = useCallback((state: RootState) => selectCategoriesByType(state, "Wants"), []);
-
-  // Use the memoized selector functions
-  const needsCategories = useSelector(selectNeeds);
-  const savingsCategories = useSelector(selectSavings);
-  const wantsCategories = useSelector(selectWants);
-
   const expenses = useSelector(selectExpenses);
   const currency = useSelector(selectCurrency);
+  const needsCategories = useSelector((state: RootState) => selectCategoriesByType(state, "Needs"));
+  const wantsCategories = useSelector((state: RootState) => selectCategoriesByType(state, "Wants"));
+  const savingsCategories = useSelector((state: RootState) => selectCategoriesByType(state, "Savings"));
   const savingsGoals = useSelector(selectSavingsGoals);
 
-  // Memoize the spent calculations to avoid recalculation on every render
-  const { needsSpent, savingsSpent, wantsSpent, calculateSpentBySubcategory } = useMemo(() => {
-    // Calculate spending by subcategory - memoized
-    const calculateSpentBySubcategory = (subcategory: string) => {
-      return expenses.filter((expense) => expense.subcategory === subcategory).reduce((total, expense) => total + expense.amount, 0);
-    };
+  // Filter expenses by selected month
+  const monthlyExpenses = useMemo(() => filterExpensesByMonth(expenses, selectedMonth), [expenses, selectedMonth]);
 
-    // Calculate total spent by budget category - memoized
-    const needsSpent = expenses.filter((expense) => expense.category === "Needs").reduce((total, expense) => total + expense.amount, 0);
+  // Calculate budget data based on income, rules, and expenses
+  const budgetData = useMemo<BudgetData>(() => {
+    // Calculate budget amounts
+    const needsBudget = monthlyIncome * (budgetRule.needs / 100);
+    const savingsBudget = monthlyIncome * (budgetRule.savings / 100);
+    const wantsBudget = monthlyIncome * (budgetRule.wants / 100);
 
-    const savingsSpent = expenses.filter((expense) => expense.category === "Savings").reduce((total, expense) => total + expense.amount, 0);
+    // Calculate spend amounts from expenses
+    const needsSpent = monthlyExpenses.filter((exp) => exp.category === "Needs").reduce((sum, exp) => sum + exp.amount, 0);
+    const savingsSpent = monthlyExpenses.filter((exp) => exp.category === "Savings").reduce((sum, exp) => sum + exp.amount, 0);
+    const wantsSpent = monthlyExpenses.filter((exp) => exp.category === "Wants").reduce((sum, exp) => sum + exp.amount, 0);
 
-    const wantsSpent = expenses.filter((expense) => expense.category === "Wants").reduce((total, expense) => total + expense.amount, 0);
-
-    return { needsSpent, savingsSpent, wantsSpent, calculateSpentBySubcategory };
-  }, [expenses]);
-
-  // Calculate budget amounts based on the user's budget rule
-  const budgetData: BudgetData = useMemo(
-    () => ({
+    return {
       monthlyIncome,
       needs: {
         percentage: budgetRule.needs,
-        amount: monthlyIncome * (budgetRule.needs / 100),
+        amount: needsBudget,
         spent: needsSpent,
       },
       savings: {
         percentage: budgetRule.savings,
-        amount: monthlyIncome * (budgetRule.savings / 100),
+        amount: savingsBudget,
         spent: savingsSpent,
       },
       wants: {
         percentage: budgetRule.wants,
-        amount: monthlyIncome * (budgetRule.wants / 100),
+        amount: wantsBudget,
         spent: wantsSpent,
       },
-    }),
-    [monthlyIncome, budgetRule, needsSpent, savingsSpent, wantsSpent]
+    };
+  }, [monthlyIncome, budgetRule, monthlyExpenses]);
+
+  // Format currency to appropriate locale with 2 decimal places
+  const formatBudgetAmount = useCallback(
+    (amount: number) => {
+      return formatCurrency(amount, currency);
+    },
+    [currency]
   );
+
+  // Format percentage
+  const formatPercentage = (percentage: number): string => {
+    return `${Math.round(percentage)}%`;
+  };
+
+  // Calculate progress percentage
+  const getProgressPercentage = (spent: number, budgeted: number): number => {
+    if (budgeted === 0) return 0;
+    return Math.min(100, (spent / budgeted) * 100);
+  };
 
   return (
     <View style={styles.container}>
@@ -186,7 +208,7 @@ const BudgetOverview: React.FC<BudgetOverviewProps> = ({
             <>
               <Text style={styles.categoryGroupTitle}>Needs (Essential Expenses)</Text>
               {needsCategories.map((category) => {
-                const spent = calculateSpentBySubcategory(category.name);
+                const spent = monthlyExpenses.filter((exp) => exp.subcategory === category.name).reduce((total, exp) => total + exp.amount, 0);
                 return (
                   <View key={category.id} style={styles.categoryRow}>
                     <View style={styles.categoryIconContainer}>
@@ -206,7 +228,9 @@ const BudgetOverview: React.FC<BudgetOverviewProps> = ({
             <>
               <Text style={styles.categoryGroupTitle}>Savings</Text>
               {savingsCategories.map((category) => {
-                const spent = calculateSpentBySubcategory(category.name);
+                const spent = monthlyExpenses
+                  .filter((exp) => exp.category === "Savings" && exp.subcategory === category.name)
+                  .reduce((total, exp) => total + exp.amount, 0);
                 const goal = savingsGoals[category.id];
                 return (
                   <View key={category.id} style={styles.categoryRow}>
@@ -235,7 +259,7 @@ const BudgetOverview: React.FC<BudgetOverviewProps> = ({
             <>
               <Text style={styles.categoryGroupTitle}>Wants (Non-Essential)</Text>
               {wantsCategories.map((category) => {
-                const spent = calculateSpentBySubcategory(category.name);
+                const spent = monthlyExpenses.filter((exp) => exp.subcategory === category.name).reduce((total, exp) => total + exp.amount, 0);
                 return (
                   <View key={category.id} style={styles.categoryRow}>
                     <View style={styles.categoryIconContainer}>
@@ -271,23 +295,39 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     padding: responsivePadding(16),
     borderBottomWidth: 1,
-    borderBottomColor: "#EAEAEA",
+    borderBottomColor: "#E8E8E8",
   },
   backButton: {
-    fontSize: scaleFontSize(24),
-    color: "#333",
-    width: 24,
+    padding: responsivePadding(8),
   },
   headerTitle: {
-    fontSize: scaleFontSize(20),
+    fontSize: scaleFontSize(18),
     fontWeight: "600",
     color: "#333",
   },
   settingsButton: {
-    fontSize: scaleFontSize(20),
+    padding: responsivePadding(8),
+  },
+  sectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginVertical: responsiveMargin(16),
+  },
+  sectionTitle: {
+    fontSize: scaleFontSize(18),
+    fontWeight: "600",
     color: "#333",
-    width: 24,
-    textAlign: "right",
+  },
+  sectionSubtitle: {
+    fontSize: scaleFontSize(14),
+    color: "#888",
+    marginLeft: responsiveMargin(8),
+  },
+  sectionButton: {
+    fontSize: scaleFontSize(14),
+    color: BudgetColors.wants,
+    fontWeight: "500",
   },
   incomeSection: {
     marginBottom: responsiveMargin(20),

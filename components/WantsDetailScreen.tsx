@@ -3,145 +3,144 @@ import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-nati
 import { useSelector } from "react-redux";
 import { BudgetColors } from "../app/constants/Colors";
 import { formatCurrency } from "../app/utils/currency";
+import { filterExpensesByMonth, getCurrentMonthYearKey } from "../app/utils/dateUtils";
 import { responsiveMargin, responsivePadding, scaleFontSize } from "../app/utils/responsive";
 import { selectBudgetRule, selectCategoriesByType, selectCurrency, selectMonthlyIncome } from "../redux/slices/budgetSlice";
 import { selectExpenses } from "../redux/slices/expenseSlice";
+import { RootState } from "../redux/types";
 
 interface WantsDetailScreenProps {
   onBackPress?: () => void;
+  selectedMonth?: string;
 }
 
-const WantsDetailScreen: React.FC<WantsDetailScreenProps> = ({ onBackPress }) => {
+const WantsDetailScreen: React.FC<WantsDetailScreenProps> = ({ onBackPress, selectedMonth = getCurrentMonthYearKey() }) => {
+  const expenses = useSelector(selectExpenses);
   const monthlyIncome = useSelector(selectMonthlyIncome);
   const budgetRule = useSelector(selectBudgetRule);
   const currency = useSelector(selectCurrency);
-  const expenses = useSelector(selectExpenses);
+  const wantsCategories = useSelector((state: RootState) => selectCategoriesByType(state, "Wants"));
 
-  // Get all wants categories
-  const wantsCategories = useSelector((state) => selectCategoriesByType(state, "Wants"));
+  // Filter expenses by month
+  const monthlyExpenses = useMemo(() => filterExpensesByMonth(expenses, selectedMonth), [expenses, selectedMonth]);
 
-  // Calculate wants budget amount
-  const wantsBudgetAmount = monthlyIncome * (budgetRule.wants / 100);
+  // Calculate budget and spent for Wants
+  const budgetData = useMemo(() => {
+    const wantsBudget = monthlyIncome * (budgetRule.wants / 100);
+    const wantsSpent = monthlyExpenses.filter((exp) => exp.category === "Wants").reduce((sum, exp) => sum + exp.amount, 0);
 
-  // Calculate wants spent
-  const wantsSpent = useMemo(() => {
-    return expenses.filter((expense) => expense.category === "Wants").reduce((total, expense) => total + expense.amount, 0);
-  }, [expenses]);
-
-  // Calculate remaining amount
-  const remainingAmount = wantsBudgetAmount - wantsSpent;
-
-  // Calculate percentage used
-  const percentageUsed = Math.round((wantsSpent / wantsBudgetAmount) * 100 * 10) / 10;
-
-  // Calculate spending by category
-  const categorySpending = useMemo(() => {
-    return wantsCategories.map((category) => {
-      const spent = expenses.filter((expense) => expense.subcategory === category.name).reduce((total, expense) => total + expense.amount, 0);
-
-      const percentage = Math.round((spent / wantsBudgetAmount) * 100 * 10) / 10;
+    // Calculate spending by subcategory within Wants
+    const subcategorySpendings = wantsCategories.map((category) => {
+      const spent = monthlyExpenses
+        .filter((exp) => exp.category === "Wants" && exp.subcategory === category.name)
+        .reduce((sum, exp) => sum + exp.amount, 0);
 
       return {
-        ...category,
+        id: category.id,
+        name: category.name,
+        icon: category.icon,
         spent,
-        percentage,
       };
     });
-  }, [expenses, wantsCategories, wantsBudgetAmount]);
 
-  // Get current month and year for header
-  const currentDate = new Date();
-  const monthName = currentDate.toLocaleString("default", { month: "long" });
-  const year = currentDate.getFullYear();
+    return {
+      budget: wantsBudget,
+      spent: wantsSpent,
+      remaining: wantsBudget - wantsSpent,
+      subcategories: subcategorySpendings,
+    };
+  }, [monthlyIncome, budgetRule, monthlyExpenses, wantsCategories]);
+
+  // Format currency amount
+  const formatBudgetAmount = (amount: number) => {
+    return formatCurrency(amount, currency);
+  };
+
+  // Calculate and format percentage of total wants spending
+  const getPercentage = (amount: number) => {
+    if (budgetData.spent === 0) return "0%";
+    return `${Math.round((amount / budgetData.spent) * 100)}%`;
+  };
+
+  // Calculate progress percentage
+  const getProgress = (spent: number) => {
+    if (budgetData.budget === 0) return 0;
+    return Math.min(100, (spent / budgetData.budget) * 100);
+  };
 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={onBackPress} style={styles.backButton}>
+        <TouchableOpacity style={styles.backButton} onPress={onBackPress}>
           <Text style={styles.backButtonText}>←</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Wants ({budgetRule.wants}%)</Text>
+        <Text style={styles.headerTitle}>Wants Details</Text>
+        <View style={styles.placeholderRight} />
       </View>
 
-      <ScrollView style={styles.scrollView}>
-        {/* Budget Card */}
-        <View style={styles.budgetCard}>
-          <Text style={styles.monthLabel}>
-            {monthName} {year}
-          </Text>
+      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+        <View style={styles.summaryCard}>
+          <Text style={styles.summaryTitle}>Wants Budget Summary</Text>
 
-          <View style={styles.amountContainer}>
-            <View style={styles.amountColumn}>
-              <Text style={styles.amountLabel}>Spent</Text>
-              <Text style={styles.spentAmount}>{formatCurrency(wantsSpent, currency)}</Text>
-            </View>
-
-            <View style={styles.amountColumn}>
-              <Text style={styles.amountLabel}>Allocated</Text>
-              <Text style={styles.allocatedAmount}>{formatCurrency(wantsBudgetAmount, currency)}</Text>
-            </View>
+          <View style={styles.budgetRow}>
+            <Text style={styles.budgetLabel}>Budget</Text>
+            <Text style={styles.budgetAmount}>{formatBudgetAmount(budgetData.budget)}</Text>
           </View>
 
-          <View style={styles.progressBarContainer}>
-            <View style={[styles.progressBar, { width: `${Math.min(100, percentageUsed)}%` }]} />
+          <View style={styles.budgetRow}>
+            <Text style={styles.budgetLabel}>Spent</Text>
+            <Text style={[styles.budgetAmount, budgetData.spent > budgetData.budget && styles.overBudget]}>
+              {formatBudgetAmount(budgetData.spent)}
+            </Text>
           </View>
 
-          <View style={styles.progressInfoContainer}>
-            <Text style={styles.percentageText}>{percentageUsed}% used</Text>
-            <Text style={styles.remainingText}>{formatCurrency(remainingAmount, currency)} remaining</Text>
+          <View style={styles.budgetRow}>
+            <Text style={styles.budgetLabel}>Remaining</Text>
+            <Text style={[styles.budgetAmount, budgetData.remaining < 0 && styles.overBudget]}>{formatBudgetAmount(budgetData.remaining)}</Text>
+          </View>
+
+          <View style={styles.progressContainer}>
+            <View style={styles.progressBar}>
+              <View
+                style={[
+                  styles.progressFill,
+                  { width: `${getProgress(budgetData.spent)}%` },
+                  budgetData.spent > budgetData.budget && styles.progressOverBudget,
+                ]}
+              />
+            </View>
+            <Text style={styles.progressText}>
+              {budgetData.spent > budgetData.budget ? "Over budget" : `${Math.round(getProgress(budgetData.spent))}% of budget used`}
+            </Text>
           </View>
         </View>
 
-        {/* Categories Section */}
-        <View style={styles.categoriesSection}>
-          <Text style={styles.sectionTitle}>Wants Categories</Text>
+        <View style={styles.categorySection}>
+          <Text style={styles.sectionTitle}>Spending By Category</Text>
 
-          {categorySpending.map((category) => (
-            <View key={category.id} style={styles.categoryItem}>
-              <View style={styles.categoryHeader}>
+          {budgetData.subcategories.length === 0 ? (
+            <Text style={styles.noDataText}>No spending data available</Text>
+          ) : (
+            budgetData.subcategories.map((subcategory) => (
+              <View key={subcategory.id} style={styles.categoryItem}>
                 <View style={styles.categoryIconContainer}>
-                  <Text style={styles.categoryIcon}>{category.icon}</Text>
+                  <Text style={styles.categoryIcon}>{subcategory.icon}</Text>
                 </View>
-                <View style={styles.categoryInfo}>
-                  <Text style={styles.categoryName}>{category.name}</Text>
-                  <Text style={styles.categoryDescription}>
-                    {category.name === "Entertainment"
-                      ? "Movies, streaming, hobbies"
-                      : category.name === "Dining Out"
-                      ? "Restaurants, cafes, takeout"
-                      : category.name === "Shopping"
-                      ? "Non-essential purchases"
-                      : category.name === "Travel"
-                      ? "Vacations, weekend trips"
-                      : "Discretionary spending"}
-                  </Text>
+                <View style={styles.categoryDetails}>
+                  <Text style={styles.categoryName}>{subcategory.name}</Text>
+                  <View style={styles.categoryProgressContainer}>
+                    <View style={styles.categoryProgressBar}>
+                      <View style={[styles.categoryProgressFill, { width: `${getProgress(subcategory.spent)}%` }]} />
+                    </View>
+                  </View>
                 </View>
                 <View style={styles.categoryAmountContainer}>
-                  <Text style={styles.categoryAmount}>{formatCurrency(category.spent, currency)}</Text>
-                  <Text style={styles.categoryPercentage}>{category.percentage}% of wants</Text>
+                  <Text style={styles.categoryAmount}>{formatBudgetAmount(subcategory.spent)}</Text>
+                  <Text style={styles.categoryPercentage}>{getPercentage(subcategory.spent)}</Text>
                 </View>
               </View>
-
-              <View style={styles.categoryProgressContainer}>
-                <View style={[styles.categoryProgressBar, { width: `${Math.min(100, (category.spent / wantsBudgetAmount) * 100)}%` }]} />
-              </View>
-            </View>
-          ))}
-        </View>
-
-        {/* AI Insight Section */}
-        <View style={styles.insightContainer}>
-          <View style={styles.insightHeader}>
-            <Text style={styles.insightIcon}>💡</Text>
-            <Text style={styles.insightTitle}>Insight</Text>
-          </View>
-          <Text style={styles.insightText}>
-            {percentageUsed > 90
-              ? `You've nearly reached your Wants budget for ${monthName}. Consider saving some discretionary spending for later in the month.`
-              : percentageUsed > 75
-              ? `You're using your Wants budget faster than usual this ${monthName}. Try to pace your non-essential spending.`
-              : `You're managing your Wants budget well for ${monthName}. You have room for some treats while staying on track with your financial goals.`}
-          </Text>
+            ))
+          )}
         </View>
       </ScrollView>
     </View>
@@ -156,183 +155,164 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: responsivePadding(16),
-    paddingVertical: responsivePadding(12),
+    justifyContent: "space-between",
+    padding: responsivePadding(16),
+    backgroundColor: "#FFFFFF",
     borderBottomWidth: 1,
-    borderBottomColor: "#EAEAEA",
+    borderBottomColor: "#EEEEEE",
   },
   backButton: {
-    padding: 8,
+    padding: responsivePadding(8),
   },
   backButtonText: {
-    fontSize: scaleFontSize(24),
+    fontSize: scaleFontSize(22),
     color: "#333",
   },
   headerTitle: {
-    fontSize: scaleFontSize(20),
+    fontSize: scaleFontSize(18),
     fontWeight: "600",
-    flex: 1,
-    textAlign: "center",
-    marginRight: responsiveMargin(30),
+    color: "#333",
+  },
+  placeholderRight: {
+    width: 30,
   },
   scrollView: {
     flex: 1,
     padding: responsivePadding(16),
   },
-  budgetCard: {
-    backgroundColor: BudgetColors.wants,
-    borderRadius: 20,
-    padding: responsivePadding(20),
-    marginBottom: responsiveMargin(20),
-  },
-  monthLabel: {
-    fontSize: scaleFontSize(20),
-    fontWeight: "600",
-    color: "white",
-    marginBottom: responsiveMargin(10),
-  },
-  amountContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: responsiveMargin(16),
-  },
-  amountColumn: {
-    flex: 1,
-  },
-  amountLabel: {
-    fontSize: scaleFontSize(16),
-    color: "white",
-    opacity: 0.8,
-  },
-  spentAmount: {
-    fontSize: scaleFontSize(22),
-    fontWeight: "700",
-    color: "white",
-  },
-  allocatedAmount: {
-    fontSize: scaleFontSize(22),
-    fontWeight: "700",
-    color: "white",
-    textAlign: "right",
-  },
-  progressBarContainer: {
-    height: 8,
-    backgroundColor: "rgba(255, 255, 255, 0.3)",
-    borderRadius: 4,
-    overflow: "hidden",
-    marginBottom: responsiveMargin(8),
-  },
-  progressBar: {
-    height: "100%",
-    backgroundColor: "white",
-    borderRadius: 4,
-  },
-  progressInfoContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-  },
-  percentageText: {
-    fontSize: scaleFontSize(16),
-    color: "white",
-  },
-  remainingText: {
-    fontSize: scaleFontSize(16),
-    color: "white",
-    textAlign: "right",
-  },
-  categoriesSection: {
-    marginBottom: responsiveMargin(20),
-  },
-  sectionTitle: {
-    fontSize: scaleFontSize(20),
-    fontWeight: "600",
-    marginBottom: responsiveMargin(16),
-  },
-  categoryItem: {
-    backgroundColor: "white",
+  summaryCard: {
+    backgroundColor: "#FFFFFF",
     borderRadius: 16,
     padding: responsivePadding(16),
-    marginBottom: responsiveMargin(16),
+    marginBottom: responsiveMargin(24),
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
-    shadowRadius: 3,
+    shadowRadius: 4,
     elevation: 2,
   },
-  categoryHeader: {
+  summaryTitle: {
+    fontSize: scaleFontSize(18),
+    fontWeight: "600",
+    color: "#333",
+    marginBottom: responsiveMargin(16),
+  },
+  budgetRow: {
     flexDirection: "row",
-    alignItems: "center",
+    justifyContent: "space-between",
     marginBottom: responsiveMargin(12),
   },
-  categoryIconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "#f0f0ff", // Light purple background for the wants category
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: responsiveMargin(12),
+  budgetLabel: {
+    fontSize: scaleFontSize(16),
+    color: "#555",
   },
-  categoryIcon: {
-    fontSize: scaleFontSize(20),
-  },
-  categoryInfo: {
-    flex: 1,
-  },
-  categoryName: {
+  budgetAmount: {
     fontSize: scaleFontSize(16),
     fontWeight: "600",
+    color: "#333",
   },
-  categoryDescription: {
-    fontSize: scaleFontSize(14),
-    color: "#666",
+  overBudget: {
+    color: "#E74C3C",
   },
-  categoryAmountContainer: {
-    alignItems: "flex-end",
+  progressContainer: {
+    marginTop: responsiveMargin(16),
   },
-  categoryAmount: {
-    fontSize: scaleFontSize(18),
-    fontWeight: "700",
-  },
-  categoryPercentage: {
-    fontSize: scaleFontSize(14),
-    color: BudgetColors.wants,
-  },
-  categoryProgressContainer: {
+  progressBar: {
     height: 8,
     backgroundColor: "#F0F0F0",
     borderRadius: 4,
     overflow: "hidden",
   },
-  categoryProgressBar: {
+  progressFill: {
     height: "100%",
     backgroundColor: BudgetColors.wants,
     borderRadius: 4,
   },
-  insightContainer: {
-    backgroundColor: "#F0F0FF", // Light purple background for wants insight
-    borderRadius: 16,
-    padding: responsivePadding(16),
-    marginBottom: responsiveMargin(20),
+  progressOverBudget: {
+    backgroundColor: "#E74C3C",
   },
-  insightHeader: {
+  progressText: {
+    fontSize: scaleFontSize(12),
+    color: "#777",
+    marginTop: responsiveMargin(4),
+    textAlign: "right",
+  },
+  categorySection: {
+    marginBottom: responsiveMargin(40),
+  },
+  sectionTitle: {
+    fontSize: scaleFontSize(18),
+    fontWeight: "600",
+    color: "#333",
+    marginBottom: responsiveMargin(16),
+  },
+  noDataText: {
+    fontSize: scaleFontSize(16),
+    color: "#888",
+    textAlign: "center",
+    padding: responsivePadding(20),
+  },
+  categoryItem: {
     flexDirection: "row",
     alignItems: "center",
+    backgroundColor: "#FFFFFF",
+    borderRadius: 12,
+    padding: responsivePadding(12),
     marginBottom: responsiveMargin(8),
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
   },
-  insightIcon: {
-    fontSize: scaleFontSize(20),
-    marginRight: responsiveMargin(8),
+  categoryIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: `${BudgetColors.wants}15`,
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: responsiveMargin(12),
   },
-  insightTitle: {
+  categoryIcon: {
     fontSize: scaleFontSize(16),
-    fontWeight: "600",
-    color: "#605BFF", // Purple for wants category
   },
-  insightText: {
-    fontSize: scaleFontSize(14),
-    lineHeight: 20,
+  categoryDetails: {
+    flex: 1,
+  },
+  categoryName: {
+    fontSize: scaleFontSize(16),
+    fontWeight: "500",
     color: "#333",
+    marginBottom: responsiveMargin(6),
+  },
+  categoryProgressContainer: {
+    width: "100%",
+  },
+  categoryProgressBar: {
+    height: 4,
+    backgroundColor: "#F0F0F0",
+    borderRadius: 2,
+    overflow: "hidden",
+  },
+  categoryProgressFill: {
+    height: "100%",
+    backgroundColor: BudgetColors.wants,
+    borderRadius: 2,
+  },
+  categoryAmountContainer: {
+    alignItems: "flex-end",
+    marginLeft: responsiveMargin(8),
+  },
+  categoryAmount: {
+    fontSize: scaleFontSize(14),
+    fontWeight: "600",
+    color: "#333",
+  },
+  categoryPercentage: {
+    fontSize: scaleFontSize(12),
+    color: "#777",
+    marginTop: responsiveMargin(2),
   },
 });
 

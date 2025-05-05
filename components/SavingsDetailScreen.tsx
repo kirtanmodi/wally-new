@@ -4,10 +4,11 @@ import { Alert, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, Toucha
 import { useDispatch, useSelector } from "react-redux";
 import { BudgetColors } from "../app/constants/Colors";
 import { formatCurrency } from "../app/utils/currency";
+import { filterExpensesByMonth, getCurrentMonthYearKey } from "../app/utils/dateUtils";
 import { responsiveMargin, responsivePadding, scaleFontSize } from "../app/utils/responsive";
 import {
+  CategoryItem,
   SavingsGoal,
-  SavingsGoals,
   selectBudgetRule,
   selectCategoriesByType,
   selectCurrency,
@@ -16,9 +17,11 @@ import {
   setSavingsGoal,
 } from "../redux/slices/budgetSlice";
 import { selectExpenses } from "../redux/slices/expenseSlice";
+import { RootState } from "../redux/types";
 
 interface SavingsDetailScreenProps {
   onBackPress?: () => void;
+  selectedMonth?: string;
 }
 
 // Goal Setting Modal Component
@@ -196,30 +199,29 @@ const GoalSettingModal: React.FC<GoalSettingModalProps> = ({
   );
 };
 
-const SavingsDetailScreen: React.FC<SavingsDetailScreenProps> = ({ onBackPress }) => {
+const SavingsDetailScreen: React.FC<SavingsDetailScreenProps> = ({ onBackPress, selectedMonth = getCurrentMonthYearKey() }) => {
   const dispatch = useDispatch();
+  const expenses = useSelector(selectExpenses);
   const monthlyIncome = useSelector(selectMonthlyIncome);
   const budgetRule = useSelector(selectBudgetRule);
   const currency = useSelector(selectCurrency);
-  const expenses = useSelector(selectExpenses);
-  const savingsGoals = useSelector(selectSavingsGoals) as SavingsGoals;
+  const savingsCategories = useSelector((state: RootState) => selectCategoriesByType(state, "Savings"));
+  const savingsGoals = useSelector(selectSavingsGoals);
 
-  // Goal setting modal state
   const [modalVisible, setModalVisible] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState<{ id: string; name: string }>({ id: "", name: "" });
+  const [selectedCategory, setSelectedCategory] = useState<CategoryItem>({ id: "", name: "", icon: "", type: "Savings" });
   const [selectedCategoryGoal, setSelectedCategoryGoal] = useState<SavingsGoal | null>(null);
 
-  // console.log("selectedCategoryGoal", selectedCategoryGoal);
-  // Get all savings categories
-  const savingsCategories = useSelector((state) => selectCategoriesByType(state, "Savings"));
+  // Filter expenses by the selected month
+  const monthlyExpenses = React.useMemo(() => filterExpensesByMonth(expenses, selectedMonth), [expenses, selectedMonth]);
 
   // Calculate savings budget amount
   const savingsBudgetAmount = monthlyIncome * (budgetRule.savings / 100);
 
   // Calculate savings spent
   const savingsSpent = useMemo(() => {
-    return expenses.filter((expense) => expense.category === "Savings").reduce((total, expense) => total + expense.amount, 0);
-  }, [expenses]);
+    return monthlyExpenses.filter((expense) => expense.category === "Savings").reduce((total, expense) => total + expense.amount, 0);
+  }, [monthlyExpenses]);
 
   // Calculate remaining amount
   const remainingAmount = savingsBudgetAmount - savingsSpent;
@@ -233,7 +235,7 @@ const SavingsDetailScreen: React.FC<SavingsDetailScreenProps> = ({ onBackPress }
     const totalSavingsSpent = savingsSpent > 0 ? savingsSpent : 1; // Avoid division by zero
 
     return savingsCategories.map((category) => {
-      const spent = expenses.filter((expense) => expense.subcategory === category.name).reduce((total, expense) => total + expense.amount, 0);
+      const spent = monthlyExpenses.filter((expense) => expense.subcategory === category.name).reduce((total, expense) => total + expense.amount, 0);
 
       // Calculate percentage of total savings spent (this should add up to 100%)
       const percentage = Math.round((spent / totalSavingsSpent) * 100 * 10) / 10;
@@ -251,13 +253,12 @@ const SavingsDetailScreen: React.FC<SavingsDetailScreenProps> = ({ onBackPress }
         goal,
       };
     });
-  }, [expenses, savingsCategories, savingsBudgetAmount, savingsGoals, savingsSpent]);
+  }, [monthlyExpenses, savingsCategories, savingsBudgetAmount, savingsGoals, savingsSpent]);
 
   // Function to open goal setting modal
-  const openGoalModal = (categoryId: string, categoryName: string) => {
-    setSelectedCategory({ id: categoryId, name: categoryName });
-    const goal = savingsGoals[categoryId];
-    setSelectedCategoryGoal(goal || null);
+  const openGoalSettingModal = (category: CategoryItem) => {
+    setSelectedCategory(category);
+    setSelectedCategoryGoal(savingsGoals[category.id] || null);
     setModalVisible(true);
   };
 
@@ -287,11 +288,6 @@ const SavingsDetailScreen: React.FC<SavingsDetailScreenProps> = ({ onBackPress }
       setSelectedCategoryGoal(savingsGoals[selectedCategory.id]);
     }
   }, [selectedCategory, savingsGoals]);
-
-  // Get selected category data
-  // const selectedCategoryGoal = selectedCategory.id ? savingsGoals[selectedCategory.id] : null;
-
-  // console.log("selectedCategoryGoal", selectedCategoryGoal);
 
   // Function to format target date for display
   const formatTargetDate = (dateString: string): string => {
@@ -397,7 +393,7 @@ const SavingsDetailScreen: React.FC<SavingsDetailScreenProps> = ({ onBackPress }
                           <Text style={styles.goalTitle}>Goal: {formatCurrency(goal.amount, currency)}</Text>
                           {goal.targetDate && <Text style={styles.goalSubtitle}>Target: {formatTargetDate(goal.targetDate)}</Text>}
                         </View>
-                        <TouchableOpacity style={styles.editGoalButton} onPress={() => openGoalModal(category.id, category.name)}>
+                        <TouchableOpacity style={styles.editGoalButton} onPress={() => openGoalSettingModal(category)}>
                           <Text style={styles.editGoalButtonText}>Edit</Text>
                         </TouchableOpacity>
                       </View>
@@ -425,7 +421,7 @@ const SavingsDetailScreen: React.FC<SavingsDetailScreenProps> = ({ onBackPress }
                       )}
                     </>
                   ) : (
-                    <TouchableOpacity style={styles.setGoalButton} onPress={() => openGoalModal(category.id, category.name)}>
+                    <TouchableOpacity style={styles.setGoalButton} onPress={() => openGoalSettingModal(category)}>
                       <Text style={styles.setGoalButtonText}>+ Set a goal</Text>
                     </TouchableOpacity>
                   )}

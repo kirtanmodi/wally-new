@@ -1,10 +1,12 @@
+import DateTimePicker from "@react-native-community/datetimepicker";
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Animated, FlatList, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { Animated, FlatList, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
 import { BudgetColors } from "../app/constants/Colors";
 import { BudgetCategory, CategorySummary, Expense } from "../app/types/budget";
 import { formatCurrency } from "../app/utils/currency";
+import { filterExpensesByMonth, getAvailableMonths, getCurrentMonthYearKey } from "../app/utils/dateUtils";
 import { responsiveMargin, responsivePadding, scaleFontSize, wp } from "../app/utils/responsive";
 import { selectBudgetRule, selectCurrency, selectMonthlyIncome } from "../redux/slices/budgetSlice";
 import { deleteExpense } from "../redux/slices/expenseSlice";
@@ -18,6 +20,8 @@ interface ExpensesListProps {
   onOpenNeedsDetail?: () => void;
   onOpenWantsDetail?: () => void;
   onOpenSavingsDetail?: () => void;
+  selectedMonth?: string;
+  onMonthChange?: (monthKey: string) => void;
 }
 
 // Animated Category Circle Component
@@ -143,6 +147,82 @@ const AnimatedCategoryCircle: React.FC<{
   );
 };
 
+// Month Selector Component - Enhanced with horizontal scrolling
+const MonthSelector: React.FC<{
+  months: { key: string; display: string }[];
+  selectedMonth: string;
+  onSelectMonth: (monthKey: string) => void;
+}> = ({ months, selectedMonth, onSelectMonth }) => {
+  // Create a flat list ref to programmatically scroll
+  const scrollRef = useRef<FlatList>(null);
+
+  // Find the current index of the selected month
+  const currentIndex = months.findIndex((m) => m.key === selectedMonth);
+  const validIndex = currentIndex >= 0 ? currentIndex : 0;
+
+  // Scroll to selected month when component mounts or selection changes
+  useEffect(() => {
+    if (scrollRef.current && validIndex >= 0) {
+      // Use a timeout to ensure the list has rendered
+      setTimeout(() => {
+        scrollRef.current?.scrollToIndex({
+          index: validIndex,
+          animated: true,
+          viewPosition: 0.5, // Center the item
+        });
+      }, 100);
+    }
+  }, [validIndex]);
+
+  // If no months available, don't render anything
+  if (!months.length) return null;
+
+  // Handle scroll error (when trying to scroll to an index that doesn't exist yet)
+  const handleScrollToIndexFailed = () => {
+    // This happens if the list hasn't fully rendered yet
+    setTimeout(() => {
+      if (scrollRef.current && validIndex >= 0) {
+        scrollRef.current.scrollToIndex({
+          index: Math.min(validIndex, months.length - 1),
+          animated: false,
+          viewPosition: 0.5,
+        });
+      }
+    }, 200);
+  };
+
+  return (
+    <View style={styles.monthSelectorContainer}>
+      <FlatList
+        ref={scrollRef}
+        data={months}
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        renderItem={({ item }) => (
+          <TouchableOpacity
+            style={[styles.monthItem, item.key === selectedMonth && styles.monthItemSelected]}
+            onPress={() => onSelectMonth(item.key)}
+            activeOpacity={0.7}
+          >
+            <Text style={[styles.monthItemText, item.key === selectedMonth && styles.monthItemTextSelected]} numberOfLines={1}>
+              {item.display}
+            </Text>
+          </TouchableOpacity>
+        )}
+        keyExtractor={(item) => item.key}
+        contentContainerStyle={styles.monthsList}
+        onScrollToIndexFailed={handleScrollToIndexFailed}
+        initialScrollIndex={validIndex}
+        getItemLayout={(data, index) => ({
+          length: 120, // Approximate width of each item
+          offset: 120 * index,
+          index,
+        })}
+      />
+    </View>
+  );
+};
+
 // Animated Expense Item Component
 const AnimatedExpenseItem: React.FC<{
   item: Expense;
@@ -260,20 +340,149 @@ const ExpensesList: React.FC<ExpensesListProps> = ({
   onOpenNeedsDetail,
   onOpenWantsDetail,
   onOpenSavingsDetail,
+  selectedMonth = getCurrentMonthYearKey(),
+  onMonthChange = () => {},
 }) => {
   const [activeTab, setActiveTab] = useState<"All" | BudgetCategory>("All");
   const [showMenu, setShowMenu] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showMonthModal, setShowMonthModal] = useState(false);
   const dispatch = useDispatch();
 
   // Animation values
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const translateY = useRef(new Animated.Value(30)).current;
+  const monthModalAnim = useRef(new Animated.Value(0)).current;
 
   // Get budget data from Redux
   const monthlyIncome = useSelector(selectMonthlyIncome);
   const budgetRule = useSelector(selectBudgetRule);
   const currency = useSelector(selectCurrency);
+
+  // Get selected date from the selected month string
+  const selectedDate = useMemo(() => {
+    const [year, month] = selectedMonth.split("-").map(Number);
+    return new Date(year, month - 1, 1);
+  }, [selectedMonth]);
+
+  // Get available months from expenses
+  const availableMonths = useMemo(() => {
+    // Get months from actual expenses
+    const months = getAvailableMonths(expenses);
+
+    // For testing - ensure we have at least a few months regardless of expense data
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth() + 1;
+
+    // Add the current month if it doesn't exist
+    const currentMonthKey = `${currentYear}-${currentMonth}`;
+    if (!months.some((m) => m.key === currentMonthKey)) {
+      months.push({
+        key: currentMonthKey,
+        display: new Date(currentYear, currentMonth - 1).toLocaleDateString("en-US", { month: "long", year: "numeric" }),
+      });
+    }
+
+    // Add previous months
+    for (let i = 1; i <= 5; i++) {
+      let prevMonth = currentMonth - i;
+      let prevYear = currentYear;
+
+      if (prevMonth <= 0) {
+        prevMonth = 12 + prevMonth;
+        prevYear = currentYear - 1;
+      }
+
+      const prevMonthKey = `${prevYear}-${prevMonth}`;
+      if (!months.some((m) => m.key === prevMonthKey)) {
+        const prevDate = new Date(prevYear, prevMonth - 1, 1);
+        months.push({
+          key: prevMonthKey,
+          display: prevDate.toLocaleDateString("en-US", { month: "long", year: "numeric" }),
+        });
+      }
+    }
+
+    // Add future months
+    for (let i = 1; i <= 2; i++) {
+      let nextMonth = currentMonth + i;
+      let nextYear = currentYear;
+
+      if (nextMonth > 12) {
+        nextMonth = nextMonth - 12;
+        nextYear = currentYear + 1;
+      }
+
+      const nextMonthKey = `${nextYear}-${nextMonth}`;
+      if (!months.some((m) => m.key === nextMonthKey)) {
+        const nextDate = new Date(nextYear, nextMonth - 1, 1);
+        months.push({
+          key: nextMonthKey,
+          display: nextDate.toLocaleDateString("en-US", { month: "long", year: "numeric" }),
+        });
+      }
+    }
+
+    // Resort the months
+    return months.sort((a, b) => {
+      const [yearA, monthA] = a.key.split("-").map(Number);
+      const [yearB, monthB] = b.key.split("-").map(Number);
+
+      if (yearA !== yearB) return yearB - yearA;
+      return monthB - monthA;
+    });
+  }, [expenses]);
+
+  // Handle date change from the date picker
+  const handleDateChange = (event: any, date?: Date) => {
+    setShowDatePicker(false);
+
+    if (date) {
+      const year = date.getFullYear();
+      const month = date.getMonth() + 1;
+      const newMonthKey = `${year}-${month}`;
+
+      console.log("Date selected:", date, "New month key:", newMonthKey);
+      onMonthChange(newMonthKey);
+    }
+  };
+
+  // Handle month selection from the month modal
+  const handleMonthSelect = (monthKey: string) => {
+    // Close the modal with animation
+    Animated.timing(monthModalAnim, {
+      toValue: 0,
+      duration: 300,
+      useNativeDriver: true,
+    }).start(() => {
+      setShowMonthModal(false);
+    });
+
+    onMonthChange(monthKey);
+  };
+
+  // Open month modal with animation
+  const openMonthModal = () => {
+    setShowMonthModal(true);
+    Animated.timing(monthModalAnim, {
+      toValue: 1,
+      duration: 300,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  // Close month modal with animation
+  const closeMonthModal = () => {
+    Animated.timing(monthModalAnim, {
+      toValue: 0,
+      duration: 300,
+      useNativeDriver: true,
+    }).start(() => {
+      setShowMonthModal(false);
+    });
+  };
 
   useEffect(() => {
     // Entrance animation
@@ -291,17 +500,20 @@ const ExpensesList: React.FC<ExpensesListProps> = ({
     ]).start();
   }, []);
 
-  // Calculate category summaries based on expenses
+  // Filter expenses by the selected month
+  const monthlyExpenses = useMemo(() => filterExpensesByMonth(expenses, selectedMonth), [expenses, selectedMonth]);
+
+  // Calculate category summaries based on monthly expenses
   const categorySummaries: CategorySummary[] = useMemo(() => {
     // Calculate budget amounts based on user's income and budget rule percentages
     const needsBudget = monthlyIncome * (budgetRule.needs / 100);
     const savingsBudget = monthlyIncome * (budgetRule.savings / 100);
     const wantsBudget = monthlyIncome * (budgetRule.wants / 100);
 
-    // Calculate spent amounts in each category
-    const needsSpent = expenses.filter((exp) => exp.category === "Needs").reduce((sum, exp) => sum + exp.amount, 0);
-    const savingsSpent = expenses.filter((exp) => exp.category === "Savings").reduce((sum, exp) => sum + exp.amount, 0);
-    const wantsSpent = expenses.filter((exp) => exp.category === "Wants").reduce((sum, exp) => sum + exp.amount, 0);
+    // Calculate spent amounts in each category for the selected month
+    const needsSpent = monthlyExpenses.filter((exp) => exp.category === "Needs").reduce((sum, exp) => sum + exp.amount, 0);
+    const savingsSpent = monthlyExpenses.filter((exp) => exp.category === "Savings").reduce((sum, exp) => sum + exp.amount, 0);
+    const wantsSpent = monthlyExpenses.filter((exp) => exp.category === "Wants").reduce((sum, exp) => sum + exp.amount, 0);
 
     return [
       {
@@ -326,11 +538,11 @@ const ExpensesList: React.FC<ExpensesListProps> = ({
         gradientColors: ["#837BFF", "#605BFF"],
       },
     ];
-  }, [expenses, monthlyIncome, budgetRule]);
+  }, [monthlyExpenses, monthlyIncome, budgetRule]);
 
   // Filter expenses based on active tab and search query
   const filteredExpenses = useMemo(() => {
-    let filtered = activeTab === "All" ? expenses : expenses.filter((expense) => expense.category === activeTab);
+    let filtered = activeTab === "All" ? monthlyExpenses : monthlyExpenses.filter((expense) => expense.category === activeTab);
 
     // Apply search filter if query exists
     if (searchQuery.trim()) {
@@ -339,7 +551,7 @@ const ExpensesList: React.FC<ExpensesListProps> = ({
     }
 
     return filtered;
-  }, [expenses, activeTab, searchQuery]);
+  }, [monthlyExpenses, activeTab, searchQuery]);
 
   const getCategoryColor = (category: BudgetCategory) => {
     switch (category) {
@@ -377,42 +589,116 @@ const ExpensesList: React.FC<ExpensesListProps> = ({
     >
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Expenses</Text>
-        {/* <TouchableOpacity style={styles.menuButton} onPress={() => setShowMenu(!showMenu)} activeOpacity={0.7}>
-          <Text style={styles.menuIcon}>⋮</Text>
-        </TouchableOpacity> */}
+        <TouchableOpacity style={styles.monthButton} onPress={openMonthModal} activeOpacity={0.8}>
+          <View style={styles.currentMonthContainer}>
+            <Text style={styles.currentMonthText}>{selectedDate.toLocaleDateString("en-US", { month: "long", year: "numeric" })}</Text>
+            <Text style={styles.calendarIcon}>📅</Text>
+          </View>
+        </TouchableOpacity>
+      </View>
 
-        {showMenu && (
-          <View style={styles.menuDropdown}>
-            <TouchableOpacity
-              style={styles.menuItem}
-              onPress={() => {
-                setShowMenu(false);
-                onOpenBudget && onOpenBudget();
-              }}
-              activeOpacity={0.7}
+      {/* Horizontal Month Selector */}
+      <MonthSelector months={availableMonths} selectedMonth={selectedMonth} onSelectMonth={onMonthChange} />
+
+      {/* Month Selection Modal */}
+      {showMonthModal && (
+        <Animated.View
+          style={[
+            styles.monthModalOverlay,
+            {
+              opacity: monthModalAnim,
+            },
+          ]}
+        >
+          <TouchableOpacity style={styles.monthModalBackdrop} onPress={closeMonthModal} activeOpacity={1}>
+            <Animated.View
+              style={[
+                styles.monthModalContainer,
+                {
+                  transform: [
+                    {
+                      translateY: monthModalAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [300, 0],
+                      }),
+                    },
+                  ],
+                },
+              ]}
             >
-              <View style={styles.menuItemContent}>
-                <Text style={styles.menuItemIcon}>📊</Text>
-                <Text style={styles.menuItemText}>Budget Overview</Text>
+              <View style={styles.monthModalHeader}>
+                <Text style={styles.monthModalTitle}>Select Month</Text>
+                <TouchableOpacity onPress={closeMonthModal} style={styles.monthModalCloseButton}>
+                  <Text style={styles.monthModalCloseIcon}>✕</Text>
+                </TouchableOpacity>
               </View>
+              <FlatList
+                data={availableMonths}
+                renderItem={({ item }) => (
+                  <TouchableOpacity
+                    style={[styles.monthModalItem, item.key === selectedMonth && styles.monthModalItemSelected]}
+                    onPress={() => handleMonthSelect(item.key)}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={[styles.monthModalItemText, item.key === selectedMonth && styles.monthModalItemTextSelected]}>{item.display}</Text>
+                    {item.key === selectedMonth && <Text style={styles.monthModalItemCheckmark}>✓</Text>}
+                  </TouchableOpacity>
+                )}
+                keyExtractor={(item) => item.key}
+                contentContainerStyle={styles.monthModalList}
+                showsVerticalScrollIndicator={false}
+              />
+            </Animated.View>
+          </TouchableOpacity>
+        </Animated.View>
+      )}
+
+      {/* Date Picker for iOS */}
+      {showDatePicker && Platform.OS === "ios" && (
+        <View style={styles.datePickerContainer}>
+          <View style={styles.datePickerHeader}>
+            <TouchableOpacity onPress={() => setShowDatePicker(false)} style={styles.datePickerButton}>
+              <Text style={styles.datePickerCancel}>Cancel</Text>
             </TouchableOpacity>
-            <View style={styles.menuDivider} />
             <TouchableOpacity
-              style={styles.menuItem}
               onPress={() => {
-                setShowMenu(false);
-                onOpenSettings && onOpenSettings();
+                setShowDatePicker(false);
+                // The date is already selected in the picker
               }}
-              activeOpacity={0.7}
+              style={styles.datePickerButton}
             >
-              <View style={styles.menuItemContent}>
-                <Text style={styles.menuItemIcon}>⚙️</Text>
-                <Text style={styles.menuItemText}>Budget Settings</Text>
-              </View>
+              <Text style={styles.datePickerDone}>Done</Text>
             </TouchableOpacity>
           </View>
-        )}
-      </View>
+          <DateTimePicker
+            value={selectedDate}
+            mode="date"
+            display="spinner"
+            onChange={(event, date) => {
+              if (date) {
+                const year = date.getFullYear();
+                const month = date.getMonth() + 1;
+                const newMonthKey = `${year}-${month}`;
+                onMonthChange(newMonthKey);
+              }
+            }}
+            maximumDate={new Date(2030, 11, 31)}
+            minimumDate={new Date(2020, 0, 1)}
+          />
+        </View>
+      )}
+
+      {/* Date Picker for Android */}
+      {showDatePicker && Platform.OS === "android" && (
+        <DateTimePicker
+          value={selectedDate}
+          mode="date"
+          display="default"
+          onChange={handleDateChange}
+          maximumDate={new Date(2030, 11, 31)}
+          minimumDate={new Date(2020, 0, 1)}
+        />
+      )}
 
       <View style={styles.categoriesContainer}>
         <View style={styles.categoryCirclesWrapper}>
@@ -453,7 +739,13 @@ const ExpensesList: React.FC<ExpensesListProps> = ({
       {filteredExpenses.length === 0 ? (
         <View style={styles.emptyContainer}>
           <Text style={styles.emptyText}>No expenses found</Text>
-          <Text style={styles.emptySubText}>{searchQuery ? "Try a different search term" : "Add your first expense by tapping the + button"}</Text>
+          <Text style={styles.emptySubText}>
+            {searchQuery
+              ? "Try a different search term"
+              : monthlyExpenses.length === 0
+              ? `No expenses for ${availableMonths.find((m) => m.key === selectedMonth)?.display || "the selected month"}`
+              : "No expenses match your current filters"}
+          </Text>
         </View>
       ) : (
         <FlatList
@@ -492,7 +784,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: responsiveMargin(24),
+    marginBottom: responsiveMargin(16),
     zIndex: 1000,
   },
   headerTitle: {
@@ -501,57 +793,35 @@ const styles = StyleSheet.create({
     color: "#333",
     letterSpacing: 0.5,
   },
-  menuButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "#ADD8E6",
-    justifyContent: "center",
-    alignItems: "center",
-    elevation: 2,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-  },
-  menuIcon: {
-    fontSize: scaleFontSize(18),
-    color: "#555",
-  },
-  menuDropdown: {
-    position: "absolute",
-    top: 50,
-    right: 0,
-    backgroundColor: "#FFFFFF",
+  monthButton: {
+    paddingVertical: responsivePadding(8),
+    paddingHorizontal: responsivePadding(12),
     borderRadius: 16,
-    padding: responsivePadding(8),
-    elevation: 4,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    width: 200,
-  },
-  menuItem: {
-    paddingVertical: responsivePadding(10),
-    paddingHorizontal: responsivePadding(16),
-  },
-  menuItemContent: {
+    backgroundColor: "#FFFFFF",
     flexDirection: "row",
     alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 2,
+    elevation: 1,
+    borderWidth: 1,
+    borderColor: "#F0F0F0",
   },
-  menuItemIcon: {
-    fontSize: scaleFontSize(18),
-    marginRight: responsiveMargin(10),
+  currentMonthContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
   },
-  menuItemText: {
+  currentMonthText: {
     fontSize: scaleFontSize(16),
+    fontWeight: "500",
     color: "#333",
   },
-  menuDivider: {
-    height: 1,
-    backgroundColor: "#F0F0F0",
-    marginVertical: responsiveMargin(6),
+  calendarIcon: {
+    fontSize: scaleFontSize(16),
+    marginLeft: responsiveMargin(8),
+    color: BudgetColors.wants,
   },
   categoriesContainer: {
     marginBottom: responsiveMargin(20),
@@ -871,6 +1141,175 @@ const styles = StyleSheet.create({
     color: "#FF4040",
     marginTop: responsiveMargin(2),
     textAlign: "center",
+  },
+  disabledButton: {
+    opacity: 0.5,
+  },
+  disabledText: {
+    color: "#CCCCCC",
+  },
+  monthSelectorContainer: {
+    marginBottom: responsiveMargin(16),
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    padding: responsivePadding(4),
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  monthsList: {
+    paddingHorizontal: responsivePadding(4),
+  },
+  monthItem: {
+    paddingVertical: responsivePadding(12),
+    paddingHorizontal: responsivePadding(16),
+    marginHorizontal: responsiveMargin(4),
+    borderRadius: 16,
+    minWidth: 120,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  monthItemSelected: {
+    backgroundColor: "rgba(96, 91, 255, 0.08)",
+  },
+  monthItemText: {
+    fontSize: scaleFontSize(14),
+    fontWeight: "500",
+    color: "#777",
+  },
+  monthItemTextSelected: {
+    fontWeight: "600",
+    color: BudgetColors.wants,
+  },
+  monthNavigationButton: {
+    padding: responsivePadding(8),
+    borderRadius: 8,
+  },
+  monthNavigationIcon: {
+    fontSize: scaleFontSize(14),
+    color: BudgetColors.wants,
+  },
+  selectedMonthContainer: {
+    flex: 1,
+    alignItems: "center",
+  },
+  selectedMonthText: {
+    fontSize: scaleFontSize(16),
+    fontWeight: "600",
+    color: "#333",
+  },
+  datePickerContainer: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 1000,
+  },
+  datePickerHeader: {
+    backgroundColor: "#FFFFFF",
+    padding: responsivePadding(16),
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  datePickerButton: {
+    padding: responsivePadding(8),
+    borderRadius: 8,
+  },
+  datePickerCancel: {
+    fontSize: scaleFontSize(16),
+    fontWeight: "600",
+    color: "#333",
+  },
+  datePickerDone: {
+    fontSize: scaleFontSize(16),
+    fontWeight: "600",
+    color: BudgetColors.wants,
+  },
+  monthModalOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    zIndex: 1000,
+    justifyContent: "flex-end",
+  },
+  monthModalBackdrop: {
+    flex: 1,
+    justifyContent: "flex-end",
+  },
+  monthModalContainer: {
+    backgroundColor: "#FFFFFF",
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingTop: responsivePadding(16),
+    paddingBottom: responsivePadding(32),
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 10,
+    elevation: 10,
+    maxHeight: "80%",
+  },
+  monthModalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: responsivePadding(20),
+    paddingBottom: responsivePadding(12),
+    borderBottomWidth: 1,
+    borderBottomColor: "#F0F0F0",
+  },
+  monthModalTitle: {
+    fontSize: scaleFontSize(18),
+    fontWeight: "600",
+    color: "#333",
+  },
+  monthModalCloseButton: {
+    padding: responsivePadding(8),
+  },
+  monthModalCloseIcon: {
+    fontSize: scaleFontSize(18),
+    color: "#999",
+  },
+  monthModalList: {
+    paddingHorizontal: responsivePadding(16),
+    paddingBottom: responsivePadding(16),
+  },
+  monthModalItem: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: responsivePadding(14),
+    paddingHorizontal: responsivePadding(16),
+    borderBottomWidth: 1,
+    borderBottomColor: "#F0F0F0",
+  },
+  monthModalItemSelected: {
+    backgroundColor: "rgba(96, 91, 255, 0.05)",
+  },
+  monthModalItemText: {
+    fontSize: scaleFontSize(16),
+    color: "#333",
+  },
+  monthModalItemTextSelected: {
+    color: BudgetColors.wants,
+    fontWeight: "600",
+  },
+  monthModalItemCheckmark: {
+    fontSize: scaleFontSize(18),
+    color: BudgetColors.wants,
+    fontWeight: "600",
   },
 });
 
