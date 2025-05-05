@@ -1,4 +1,4 @@
-import { createSlice, PayloadAction } from "@reduxjs/toolkit";
+import { createSelector, createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { BudgetCategory } from "../../app/types/budget";
 import { RootState } from "../types";
 
@@ -130,13 +130,21 @@ export const budgetSlice = createSlice({
 // Export actions
 export const { setMonthlyIncome, updateBudgetRule, addCategory, updateCategory, deleteCategory, resetBudget, setCurrency } = budgetSlice.actions;
 
+// Base selectors
+const selectBudgetState = (state: RootState) => state.budget;
+const selectCategoriesState = (state: RootState) => state.budget.categories;
+
 // Export selectors
 export const selectBudget = (state: RootState) => state.budget;
 export const selectMonthlyIncome = (state: RootState) => state.budget.monthlyIncome;
 export const selectBudgetRule = (state: RootState) => state.budget.budgetRule;
 export const selectCategories = (state: RootState) => state.budget.categories;
 export const selectCurrency = (state: RootState) => state.budget.currency;
-export const selectCategoriesByType = (state: RootState, type: BudgetCategory) => state.budget.categories.filter((cat) => cat.type === type);
+
+// Memoized selector for categories by type
+export const selectCategoriesByType = createSelector([selectCategoriesState, (_, type: BudgetCategory) => type], (categories, type) =>
+  categories.filter((cat) => cat.type === type)
+);
 
 // Export reducer
 export default budgetSlice.reducer;

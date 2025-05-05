@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useCallback, useMemo } from "react";
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSelector } from "react-redux";
 import { BudgetColors } from "../app/constants/Colors";
@@ -17,43 +17,59 @@ interface BudgetOverviewProps {
 
 const BudgetOverview: React.FC<BudgetOverviewProps> = ({ monthlyIncome = 0, onBackPress, onOpenSettings }) => {
   const budgetRule = useSelector(selectBudgetRule);
-  const needsCategories = useSelector((state: RootState) => selectCategoriesByType(state, "Needs"));
-  const savingsCategories = useSelector((state: RootState) => selectCategoriesByType(state, "Savings"));
-  const wantsCategories = useSelector((state: RootState) => selectCategoriesByType(state, "Wants"));
+
+  // Create memoized selector functions for each category type
+  const selectNeeds = useCallback((state: RootState) => selectCategoriesByType(state, "Needs"), []);
+  const selectSavings = useCallback((state: RootState) => selectCategoriesByType(state, "Savings"), []);
+  const selectWants = useCallback((state: RootState) => selectCategoriesByType(state, "Wants"), []);
+
+  // Use the memoized selector functions
+  const needsCategories = useSelector(selectNeeds);
+  const savingsCategories = useSelector(selectSavings);
+  const wantsCategories = useSelector(selectWants);
+
   const expenses = useSelector(selectExpenses);
   const currency = useSelector(selectCurrency);
 
-  // Calculate spending by category
-  const calculateSpentBySubcategory = (subcategory: string) => {
-    return expenses.filter((expense) => expense.subcategory === subcategory).reduce((total, expense) => total + expense.amount, 0);
-  };
+  // Memoize the spent calculations to avoid recalculation on every render
+  const { needsSpent, savingsSpent, wantsSpent, calculateSpentBySubcategory } = useMemo(() => {
+    // Calculate spending by subcategory - memoized
+    const calculateSpentBySubcategory = (subcategory: string) => {
+      return expenses.filter((expense) => expense.subcategory === subcategory).reduce((total, expense) => total + expense.amount, 0);
+    };
 
-  // Calculate total spent by budget category
-  const needsSpent = expenses.filter((expense) => expense.category === "Needs").reduce((total, expense) => total + expense.amount, 0);
+    // Calculate total spent by budget category - memoized
+    const needsSpent = expenses.filter((expense) => expense.category === "Needs").reduce((total, expense) => total + expense.amount, 0);
 
-  const savingsSpent = expenses.filter((expense) => expense.category === "Savings").reduce((total, expense) => total + expense.amount, 0);
+    const savingsSpent = expenses.filter((expense) => expense.category === "Savings").reduce((total, expense) => total + expense.amount, 0);
 
-  const wantsSpent = expenses.filter((expense) => expense.category === "Wants").reduce((total, expense) => total + expense.amount, 0);
+    const wantsSpent = expenses.filter((expense) => expense.category === "Wants").reduce((total, expense) => total + expense.amount, 0);
+
+    return { needsSpent, savingsSpent, wantsSpent, calculateSpentBySubcategory };
+  }, [expenses]);
 
   // Calculate budget amounts based on the user's budget rule
-  const budgetData: BudgetData = {
-    monthlyIncome,
-    needs: {
-      percentage: budgetRule.needs,
-      amount: monthlyIncome * (budgetRule.needs / 100),
-      spent: needsSpent,
-    },
-    savings: {
-      percentage: budgetRule.savings,
-      amount: monthlyIncome * (budgetRule.savings / 100),
-      spent: savingsSpent,
-    },
-    wants: {
-      percentage: budgetRule.wants,
-      amount: monthlyIncome * (budgetRule.wants / 100),
-      spent: wantsSpent,
-    },
-  };
+  const budgetData: BudgetData = useMemo(
+    () => ({
+      monthlyIncome,
+      needs: {
+        percentage: budgetRule.needs,
+        amount: monthlyIncome * (budgetRule.needs / 100),
+        spent: needsSpent,
+      },
+      savings: {
+        percentage: budgetRule.savings,
+        amount: monthlyIncome * (budgetRule.savings / 100),
+        spent: savingsSpent,
+      },
+      wants: {
+        percentage: budgetRule.wants,
+        amount: monthlyIncome * (budgetRule.wants / 100),
+        spent: wantsSpent,
+      },
+    }),
+    [monthlyIncome, budgetRule, needsSpent, savingsSpent, wantsSpent]
+  );
 
   return (
     <View style={styles.container}>

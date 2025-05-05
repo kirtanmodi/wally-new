@@ -1,4 +1,4 @@
-import { createSlice, PayloadAction } from "@reduxjs/toolkit";
+import { createSelector, createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { Expense } from "../../app/types/budget";
 import { RootState } from "../types";
 
@@ -110,23 +110,25 @@ export const expenseSlice = createSlice({
 // Export actions
 export const { addExpense, updateExpense, deleteExpense, clearSampleExpenses, setUserOnboarded, resetExpenses } = expenseSlice.actions;
 
-// Export selectors
-export const selectExpenses = (state: RootState) => {
-  // Convert string dates back to Date objects when accessing expenses
-  return state.expenses.expenses.map((expense) => ({
+// Base selector for expenses state
+const selectExpensesState = (state: RootState) => state.expenses.expenses;
+
+// Export memoized selectors
+export const selectExpenses = createSelector([selectExpensesState], (expenses) =>
+  expenses.map((expense) => ({
     ...expense,
     date: new Date(expense.date),
-  }));
-};
+  }))
+);
 
-export const selectExpensesByCategory = (state: RootState, category: string) => {
-  return state.expenses.expenses
+export const selectExpensesByCategory = createSelector([selectExpensesState, (_, category: string) => category], (expenses, category) =>
+  expenses
     .filter((exp) => exp.category === category)
     .map((expense) => ({
       ...expense,
       date: new Date(expense.date),
-    }));
-};
+    }))
+);
 
 export const selectIsFirstTimeUser = (state: RootState) => state.expenses.isFirstTimeUser;
 export const selectOnboarded = (state: RootState) => state.expenses.onboarded;
