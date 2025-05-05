@@ -4,6 +4,7 @@ import { SafeAreaView, StyleSheet } from "react-native";
 import { useSelector } from "react-redux";
 import ExpensesList from "../../components/ExpensesList";
 import { selectExpenses } from "../../redux/slices/expenseSlice";
+import { Expense } from "../types/budget";
 import { getCurrentMonthYearKey } from "../utils/dateUtils";
 import { KeyboardAwareView } from "../utils/keyboard";
 
@@ -12,7 +13,7 @@ export default function ExpensesTab() {
   const expenses = useSelector(selectExpenses);
   const [selectedMonth, setSelectedMonth] = React.useState(getCurrentMonthYearKey());
 
-  const handleEditExpense = (expense) => {
+  const handleEditExpense = (expense: Expense) => {
     router.push({
       pathname: "/(modals)/edit-expense",
       params: { id: expense.id },
