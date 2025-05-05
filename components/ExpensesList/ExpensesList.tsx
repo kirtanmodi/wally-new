@@ -1,0 +1,429 @@
+import DateTimePicker from "@react-native-community/datetimepicker";
+import { LinearGradient } from "expo-linear-gradient";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { Animated, FlatList, Platform, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { useDispatch, useSelector } from "react-redux";
+import { BudgetColors } from "../../app/constants/Colors";
+import { BudgetCategory, CategorySummary, Expense } from "../../app/types/budget";
+import { filterExpensesByMonth, getAvailableMonths, getCurrentMonthYearKey } from "../../app/utils/dateUtils";
+import { selectBudgetRule, selectCurrency, selectMonthlyIncome } from "../../redux/slices/budgetSlice";
+import { deleteExpense } from "../../redux/slices/expenseSlice";
+import { AnimatedCategoryCircle, AnimatedExpenseItem, MonthPickerModal, ScrollableTab } from "./index";
+import styles from "./styles";
+
+interface ExpensesListProps {
+  expenses?: Expense[];
+  onAddExpense?: () => void;
+  onOpenBudget?: () => void;
+  onOpenSettings?: () => void;
+  onEditExpense?: (expense: Expense) => void;
+  onOpenNeedsDetail?: () => void;
+  onOpenWantsDetail?: () => void;
+  onOpenSavingsDetail?: () => void;
+  selectedMonth?: string;
+  onMonthChange?: (monthKey: string) => void;
+}
+
+const ExpensesList: React.FC<ExpensesListProps> = ({
+  expenses = [],
+  onAddExpense,
+  onOpenBudget,
+  onOpenSettings,
+  onEditExpense,
+  onOpenNeedsDetail,
+  onOpenWantsDetail,
+  onOpenSavingsDetail,
+  selectedMonth = getCurrentMonthYearKey(),
+  onMonthChange = () => {},
+}) => {
+  const [activeTab, setActiveTab] = useState<"All" | BudgetCategory>("All");
+  const [showMenu, setShowMenu] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showMonthModal, setShowMonthModal] = useState(false);
+  const [temporarySelectedDate, setTemporarySelectedDate] = useState<Date>(new Date());
+  const dispatch = useDispatch();
+
+  // Animation values
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const translateY = useRef(new Animated.Value(30)).current;
+  const monthModalAnim = useRef(new Animated.Value(0)).current;
+
+  // Get budget data from Redux
+  const monthlyIncome = useSelector(selectMonthlyIncome);
+  const budgetRule = useSelector(selectBudgetRule);
+  const currency = useSelector(selectCurrency);
+
+  // Get selected date from the selected month string
+  const selectedDate = useMemo(() => {
+    const [year, month] = selectedMonth.split("-").map(Number);
+    return new Date(year, month - 1, 1);
+  }, [selectedMonth]);
+
+  // Get available months from expenses
+  const availableMonths = useMemo(() => {
+    // Get months from actual expenses
+    const months = getAvailableMonths(expenses);
+
+    // For testing - ensure we have at least a few months regardless of expense data
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth() + 1;
+
+    // Add the current month if it doesn't exist
+    const currentMonthKey = `${currentYear}-${currentMonth}`;
+    if (!months.some((m) => m.key === currentMonthKey)) {
+      months.push({
+        key: currentMonthKey,
+        display: new Date(currentYear, currentMonth - 1).toLocaleDateString("en-US", { month: "long", year: "numeric" }),
+      });
+    }
+
+    // Add previous months
+    for (let i = 1; i <= 5; i++) {
+      let prevMonth = currentMonth - i;
+      let prevYear = currentYear;
+
+      if (prevMonth <= 0) {
+        prevMonth = 12 + prevMonth;
+        prevYear = currentYear - 1;
+      }
+
+      const prevMonthKey = `${prevYear}-${prevMonth}`;
+      if (!months.some((m) => m.key === prevMonthKey)) {
+        const prevDate = new Date(prevYear, prevMonth - 1, 1);
+        months.push({
+          key: prevMonthKey,
+          display: prevDate.toLocaleDateString("en-US", { month: "long", year: "numeric" }),
+        });
+      }
+    }
+
+    // Add future months
+    for (let i = 1; i <= 2; i++) {
+      let nextMonth = currentMonth + i;
+      let nextYear = currentYear;
+
+      if (nextMonth > 12) {
+        nextMonth = nextMonth - 12;
+        nextYear = currentYear + 1;
+      }
+
+      const nextMonthKey = `${nextYear}-${nextMonth}`;
+      if (!months.some((m) => m.key === nextMonthKey)) {
+        const nextDate = new Date(nextYear, nextMonth - 1, 1);
+        months.push({
+          key: nextMonthKey,
+          display: nextDate.toLocaleDateString("en-US", { month: "long", year: "numeric" }),
+        });
+      }
+    }
+
+    // Resort the months
+    return months.sort((a, b) => {
+      const [yearA, monthA] = a.key.split("-").map(Number);
+      const [yearB, monthB] = b.key.split("-").map(Number);
+
+      if (yearA !== yearB) return yearB - yearA;
+      return monthB - monthA;
+    });
+  }, [expenses]);
+
+  // Handle date change from the date picker
+  const handleDateChange = (event: any, date?: Date) => {
+    setShowDatePicker(false);
+
+    if (date) {
+      const year = date.getFullYear();
+      const month = date.getMonth() + 1;
+      const newMonthKey = `${year}-${month}`;
+
+      onMonthChange(newMonthKey);
+    }
+  };
+
+  // Handle month selection from the month modal
+  const handleMonthSelect = (monthKey: string) => {
+    // Close the modal with animation
+    Animated.timing(monthModalAnim, {
+      toValue: 0,
+      duration: 300,
+      useNativeDriver: true,
+    }).start(() => {
+      setShowMonthModal(false);
+    });
+
+    onMonthChange(monthKey);
+  };
+
+  // Open month modal with animation
+  const openMonthModal = () => {
+    setShowMonthModal(true);
+    setTemporarySelectedDate(selectedDate); // Initialize with current selection
+
+    // Reset animation value to 0 before starting the animation
+    monthModalAnim.setValue(0);
+
+    Animated.timing(monthModalAnim, {
+      toValue: 1,
+      duration: 300,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  // Close month modal with animation
+  const closeMonthModal = () => {
+    Animated.timing(monthModalAnim, {
+      toValue: 0,
+      duration: 300,
+      useNativeDriver: true,
+    }).start(() => {
+      setShowMonthModal(false);
+    });
+  };
+
+  useEffect(() => {
+    // Entrance animation
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 500,
+        useNativeDriver: true,
+      }),
+      Animated.timing(translateY, {
+        toValue: 0,
+        duration: 500,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
+
+  // Filter expenses by the selected month
+  const monthlyExpenses = useMemo(() => filterExpensesByMonth(expenses, selectedMonth), [expenses, selectedMonth]);
+
+  // Calculate category summaries based on monthly expenses
+  const categorySummaries: CategorySummary[] = useMemo(() => {
+    // Calculate budget amounts based on user's income and budget rule percentages
+    const needsBudget = monthlyIncome * (budgetRule.needs / 100);
+    const savingsBudget = monthlyIncome * (budgetRule.savings / 100);
+    const wantsBudget = monthlyIncome * (budgetRule.wants / 100);
+
+    // Calculate spent amounts in each category for the selected month
+    const needsSpent = monthlyExpenses.filter((exp) => exp.category === "Needs").reduce((sum, exp) => sum + exp.amount, 0);
+    const savingsSpent = monthlyExpenses.filter((exp) => exp.category === "Savings").reduce((sum, exp) => sum + exp.amount, 0);
+    const wantsSpent = monthlyExpenses.filter((exp) => exp.category === "Wants").reduce((sum, exp) => sum + exp.amount, 0);
+
+    return [
+      {
+        category: "Needs",
+        spent: needsSpent,
+        total: needsBudget,
+        color: BudgetColors.needs,
+        gradientColors: ["#5BD990", "#3DB26E"],
+      },
+      {
+        category: "Savings",
+        spent: savingsSpent,
+        total: savingsBudget,
+        color: BudgetColors.savings,
+        gradientColors: ["#FFBA6E", "#FF9C36"],
+      },
+      {
+        category: "Wants",
+        spent: wantsSpent,
+        total: wantsBudget,
+        color: BudgetColors.wants,
+        gradientColors: ["#837BFF", "#605BFF"],
+      },
+    ];
+  }, [monthlyExpenses, monthlyIncome, budgetRule]);
+
+  // Filter expenses based on active tab and search query
+  const filteredExpenses = useMemo(() => {
+    let filtered = activeTab === "All" ? monthlyExpenses : monthlyExpenses.filter((expense) => expense.category === activeTab);
+
+    // Apply search filter if query exists
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter((expense) => expense.title.toLowerCase().includes(query) || expense.subcategory.toLowerCase().includes(query));
+    }
+
+    return filtered;
+  }, [monthlyExpenses, activeTab, searchQuery]);
+
+  const getCategoryColor = (category: BudgetCategory) => {
+    switch (category) {
+      case "Needs":
+        return BudgetColors.needs;
+      case "Savings":
+        return BudgetColors.savings;
+      case "Wants":
+        return BudgetColors.wants;
+      default:
+        return "#999";
+    }
+  };
+
+  // Functions to handle expense actions
+  const handleEditExpense = (expense: Expense) => {
+    if (onEditExpense) {
+      onEditExpense(expense);
+    }
+  };
+
+  const handleDeleteExpense = (id: string) => {
+    dispatch(deleteExpense(id));
+  };
+
+  return (
+    <Animated.View
+      style={[
+        styles.container,
+        {
+          opacity: fadeAnim,
+          transform: [{ translateY }],
+        },
+      ]}
+    >
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>Expenses</Text>
+        <TouchableOpacity style={styles.monthButton} onPress={openMonthModal} activeOpacity={0.8}>
+          <View style={styles.currentMonthContainer}>
+            <Text style={styles.currentMonthText}>{selectedDate.toLocaleDateString("en-US", { month: "long", year: "numeric" })}</Text>
+            <Text style={styles.calendarIcon}>📅</Text>
+          </View>
+        </TouchableOpacity>
+      </View>
+
+      {/* Month Selection Modal */}
+      <MonthPickerModal
+        visible={showMonthModal}
+        onClose={closeMonthModal}
+        onMonthSelect={handleMonthSelect}
+        temporarySelectedDate={temporarySelectedDate}
+        setTemporarySelectedDate={setTemporarySelectedDate}
+        monthModalAnim={monthModalAnim}
+      />
+
+      {/* Date Picker for iOS */}
+      {showDatePicker && Platform.OS === "ios" && (
+        <View style={styles.datePickerContainer}>
+          <View style={styles.datePickerHeader}>
+            <TouchableOpacity onPress={() => setShowDatePicker(false)} style={styles.datePickerButton}>
+              <Text style={styles.datePickerCancel}>Cancel</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => {
+                setShowDatePicker(false);
+                // The date is already selected in the picker
+              }}
+              style={styles.datePickerButton}
+            >
+              <Text style={styles.datePickerDone}>Done</Text>
+            </TouchableOpacity>
+          </View>
+          <DateTimePicker
+            value={selectedDate}
+            mode="date"
+            display="spinner"
+            onChange={(event, date) => {
+              if (date) {
+                const year = date.getFullYear();
+                const month = date.getMonth() + 1;
+                const newMonthKey = `${year}-${month}`;
+                onMonthChange(newMonthKey);
+              }
+            }}
+            maximumDate={new Date(2030, 11, 31)}
+            minimumDate={new Date(2020, 0, 1)}
+          />
+        </View>
+      )}
+
+      {/* Date Picker for Android */}
+      {showDatePicker && Platform.OS === "android" && (
+        <DateTimePicker
+          value={selectedDate}
+          mode="date"
+          display="default"
+          onChange={handleDateChange}
+          maximumDate={new Date(2030, 11, 31)}
+          minimumDate={new Date(2020, 0, 1)}
+        />
+      )}
+
+      <View style={styles.categoriesContainer}>
+        <View style={styles.categoryCirclesWrapper}>
+          {categorySummaries.map((item, index) => (
+            <AnimatedCategoryCircle
+              key={item.category}
+              item={item}
+              index={index}
+              onOpenBudget={onOpenBudget}
+              onOpenNeedsDetail={onOpenNeedsDetail}
+              onOpenWantsDetail={onOpenWantsDetail}
+              onOpenSavingsDetail={onOpenSavingsDetail}
+            />
+          ))}
+        </View>
+      </View>
+
+      <View style={styles.tabsContainer}>
+        <ScrollableTab
+          tabs={["All", "Needs", "Savings", "Wants"]}
+          activeTab={activeTab}
+          onTabChange={(tab) => setActiveTab(tab as "All" | BudgetCategory)}
+        />
+      </View>
+
+      <View style={styles.searchContainer}>
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Search expenses..."
+          placeholderTextColor="#AAAAAA"
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+          submitBehavior="blurAndSubmit"
+          returnKeyType="search"
+        />
+      </View>
+
+      {filteredExpenses.length === 0 ? (
+        <View style={styles.emptyContainer}>
+          <Text style={styles.emptyText}>No expenses found</Text>
+          <Text style={styles.emptySubText}>
+            {searchQuery
+              ? "Try a different search term"
+              : monthlyExpenses.length === 0
+              ? `No expenses for ${availableMonths.find((m) => m.key === selectedMonth)?.display || "the selected month"}`
+              : "No expenses match your current filters"}
+          </Text>
+        </View>
+      ) : (
+        <FlatList
+          data={filteredExpenses}
+          renderItem={({ item, index }) => (
+            <AnimatedExpenseItem
+              item={item}
+              index={index}
+              getCategoryColor={getCategoryColor}
+              onEdit={handleEditExpense}
+              onDelete={handleDeleteExpense}
+            />
+          )}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.expensesList}
+          showsVerticalScrollIndicator={false}
+        />
+      )}
+
+      <TouchableOpacity activeOpacity={0.8} style={styles.addButton} onPress={onAddExpense}>
+        <LinearGradient colors={["#4CD080", "#3DB26E"]} style={styles.addButtonGradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+          <Text style={styles.addButtonIcon}>+</Text>
+        </LinearGradient>
+      </TouchableOpacity>
+    </Animated.View>
+  );
+};
+
+export default ExpensesList;
