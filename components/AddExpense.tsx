@@ -1,6 +1,6 @@
 import DateTimePicker from "@react-native-community/datetimepicker";
-import React, { useEffect, useState } from "react";
-import { Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import React, { useEffect, useRef, useState } from "react";
+import { Animated, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { useSelector } from "react-redux";
 import { BudgetColors } from "../app/constants/Colors";
 import { BudgetCategory, Expense, ExpenseCategory } from "../app/types/budget";
@@ -31,6 +31,7 @@ const AddExpense: React.FC<AddExpenseProps> = ({ onSave, onCancel, isEditing = f
   const [filteredCategories, setFilteredCategories] = useState<CategoryItem[]>([]);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showIOSModal, setShowIOSModal] = useState(false);
+  const datePickerAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     const filteredCategories = allCategories.filter((cat) => cat.type === budgetCategory);
@@ -98,6 +99,11 @@ const AddExpense: React.FC<AddExpenseProps> = ({ onSave, onCancel, isEditing = f
   const showDatepicker = () => {
     if (Platform.OS === "ios") {
       setShowIOSModal(true);
+      Animated.timing(datePickerAnim, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: true,
+      }).start();
     } else {
       setShowDatePicker(true);
     }
@@ -105,12 +111,24 @@ const AddExpense: React.FC<AddExpenseProps> = ({ onSave, onCancel, isEditing = f
 
   // For iOS - handle the done button
   const handleIOSDone = () => {
-    setShowIOSModal(false);
+    Animated.timing(datePickerAnim, {
+      toValue: 0,
+      duration: 300,
+      useNativeDriver: true,
+    }).start(() => {
+      setShowIOSModal(false);
+    });
   };
 
   // For iOS - handle cancel
   const handleIOSCancel = () => {
-    setShowIOSModal(false);
+    Animated.timing(datePickerAnim, {
+      toValue: 0,
+      duration: 300,
+      useNativeDriver: true,
+    }).start(() => {
+      setShowIOSModal(false);
+    });
   };
 
   return (
@@ -214,24 +232,54 @@ const AddExpense: React.FC<AddExpenseProps> = ({ onSave, onCancel, isEditing = f
 
         {/* iOS Date Picker with modal */}
         {Platform.OS === "ios" && showIOSModal && (
-          <View style={styles.iosDatePickerContainer}>
-            <View style={styles.iosDatePickerHeader}>
-              <TouchableOpacity onPress={handleIOSCancel}>
-                <Text style={styles.iosDatePickerButton}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity onPress={handleIOSDone}>
-                <Text style={[styles.iosDatePickerButton, { color: BudgetColors.needs }]}>Done</Text>
-              </TouchableOpacity>
-            </View>
-            <DateTimePicker
-              value={date}
-              mode="date"
-              display="spinner"
-              onChange={onDateChange}
-              maximumDate={new Date()}
-              style={styles.iosDatePicker}
-            />
-          </View>
+          <Animated.View
+            style={[
+              styles.iosModalOverlay,
+              {
+                opacity: datePickerAnim,
+              },
+            ]}
+          >
+            <TouchableOpacity style={styles.iosModalBackdrop} onPress={handleIOSCancel} activeOpacity={1}>
+              <Animated.View
+                style={[
+                  styles.iosDatePickerContainer,
+                  {
+                    transform: [
+                      {
+                        translateY: datePickerAnim.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [300, 0],
+                        }),
+                      },
+                    ],
+                  },
+                ]}
+              >
+                <View style={styles.iosDatePickerHeader}>
+                  <TouchableOpacity onPress={handleIOSCancel}>
+                    <Text style={styles.iosDatePickerButton}>Cancel</Text>
+                  </TouchableOpacity>
+                  <Text style={styles.iosDatePickerTitle}>Select Date</Text>
+                  <TouchableOpacity onPress={handleIOSDone}>
+                    <Text style={[styles.iosDatePickerButton, { color: BudgetColors.needs }]}>Done</Text>
+                  </TouchableOpacity>
+                </View>
+                <View style={styles.datePickerWrapper}>
+                  <DateTimePicker
+                    value={date}
+                    mode="date"
+                    display="spinner"
+                    onChange={onDateChange}
+                    maximumDate={new Date()}
+                    textColor="#333"
+                    themeVariant="light"
+                    style={styles.iosDatePicker}
+                  />
+                </View>
+              </Animated.View>
+            </TouchableOpacity>
+          </Animated.View>
         )}
       </View>
 
@@ -366,34 +414,60 @@ const styles = StyleSheet.create({
     fontSize: scaleFontSize(16),
     fontWeight: "600",
   },
-  iosDatePickerContainer: {
+  iosModalOverlay: {
     position: "absolute",
-    bottom: 0,
+    top: 0,
     left: 0,
     right: 0,
-    backgroundColor: "#fff",
-    borderTopWidth: 1,
-    borderTopColor: "#e0e0e0",
-    zIndex: 1000,
+    bottom: 0,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    zIndex: 9999,
+    justifyContent: "flex-end",
+  },
+  iosModalBackdrop: {
+    flex: 1,
+    justifyContent: "flex-end",
+  },
+  iosDatePickerContainer: {
+    backgroundColor: "#FFFFFF",
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingTop: responsivePadding(16),
+    paddingBottom: Platform.OS === "ios" ? 42 : responsivePadding(32),
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: -3 },
-    shadowOpacity: 0.1,
-    shadowRadius: 5,
-    elevation: 5,
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 10,
+    elevation: 10,
   },
   iosDatePickerHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
-    padding: responsivePadding(12),
+    alignItems: "center",
+    paddingHorizontal: responsivePadding(20),
+    paddingBottom: responsivePadding(12),
     borderBottomWidth: 1,
-    borderBottomColor: "#e0e0e0",
+    borderBottomColor: "#F0F0F0",
+  },
+  iosDatePickerTitle: {
+    fontSize: scaleFontSize(18),
+    fontWeight: "600",
+    color: "#333",
   },
   iosDatePickerButton: {
     fontSize: scaleFontSize(16),
     padding: responsivePadding(4),
   },
+  datePickerWrapper: {
+    width: "100%",
+    backgroundColor: "#FFFFFF",
+    borderRadius: 8,
+    padding: Platform.OS === "ios" ? responsivePadding(8) : 0,
+    overflow: "hidden",
+  },
   iosDatePicker: {
-    height: 200,
+    height: 180,
+    width: "100%",
   },
 });
 
