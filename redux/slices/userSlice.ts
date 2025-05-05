@@ -51,6 +51,13 @@ export const userSlice = createSlice({
       state.email = action.payload.email;
       state.token = action.payload.token;
       state.authProvider = "email";
+      // Ensure profile is properly initialized
+      state.profile = {
+        ...state.profile,
+        fullName: state.profile.fullName || null, // Preserve existing name if any
+        avatar: state.profile.avatar || null, // Preserve existing avatar if any
+        preferences: state.profile.preferences || {},
+      };
     },
     googleLogin: (
       state,
@@ -70,6 +77,8 @@ export const userSlice = createSlice({
       state.authProvider = "google";
       state.profile.fullName = action.payload.fullName;
       state.profile.avatar = action.payload.avatar;
+      // Ensure preferences is initialized
+      state.profile.preferences = state.profile.preferences || {};
     },
     logout: (state) => {
       return initialState;
@@ -82,10 +91,19 @@ export const userSlice = createSlice({
         preferences?: Record<string, any>;
       }>
     ) => {
-      if (action.payload.fullName) {
+      // Ensure profile object exists before updating
+      if (!state.profile) {
+        state.profile = {
+          fullName: null,
+          avatar: null,
+          preferences: {},
+        };
+      }
+
+      if (action.payload.fullName !== undefined) {
         state.profile.fullName = action.payload.fullName;
       }
-      if (action.payload.avatar) {
+      if (action.payload.avatar !== undefined) {
         state.profile.avatar = action.payload.avatar;
       }
       if (action.payload.preferences) {
@@ -107,9 +125,9 @@ export const selectIsAuthenticated = (state: RootState) => state.user.isAuthenti
 export const selectUsername = (state: RootState) => state.user.username;
 export const selectUserEmail = (state: RootState) => state.user.email;
 export const selectUserProfile = (state: RootState) => state.user.profile;
-export const selectUserFullName = (state: RootState) => state.user.profile.fullName;
-export const selectUserAvatar = (state: RootState) => state.user.profile.avatar;
-export const selectUserPreferences = (state: RootState) => state.user.profile.preferences;
+export const selectUserFullName = (state: RootState) => state.user.profile?.fullName; // Add optional chaining
+export const selectUserAvatar = (state: RootState) => state.user.profile?.avatar; // Add optional chaining
+export const selectUserPreferences = (state: RootState) => state.user.profile?.preferences; // Add optional chaining
 export const selectAuthProvider = (state: RootState) => state.user.authProvider;
 
 // Export reducer

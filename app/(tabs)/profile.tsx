@@ -27,12 +27,12 @@ export default function ProfileScreen() {
   const email = useSelector(selectUserEmail);
   const fullName = useSelector(selectUserFullName);
   const avatar = useSelector(selectUserAvatar);
-  const preferences = useSelector(selectUserPreferences);
+  const preferences = useSelector(selectUserPreferences) || {};
   const authProvider = useSelector(selectAuthProvider);
 
   // Budget information
-  const expenses = useSelector(selectExpenses);
-  const monthlyIncome = useSelector(selectMonthlyIncome);
+  const expenses = useSelector(selectExpenses) || [];
+  const monthlyIncome = useSelector(selectMonthlyIncome) || 0;
   const budgetRules = useSelector(selectBudgetRule);
 
   // Default display names
@@ -58,7 +58,10 @@ export default function ProfileScreen() {
   // Calculate current spending
   const totalSpent = useMemo(() => currentMonthExpenses.reduce((sum, expense) => sum + expense.amount, 0), [currentMonthExpenses]);
   const remainingBudget = useMemo(() => monthlyIncome - totalSpent, [monthlyIncome, totalSpent]);
-  const spendingPercentage = useMemo(() => Math.min((totalSpent / monthlyIncome) * 100, 100), [totalSpent, monthlyIncome]);
+  const spendingPercentage = useMemo(() => {
+    if (!monthlyIncome) return 0;
+    return Math.min((totalSpent / monthlyIncome) * 100, 100);
+  }, [totalSpent, monthlyIncome]);
 
   // Calculate category spending
   const categorySpending = useMemo(() => {
