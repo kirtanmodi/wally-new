@@ -15,6 +15,7 @@ interface ExpensesListProps {
   onOpenBudget?: () => void;
   onOpenSettings?: () => void;
   onEditExpense?: (expense: Expense) => void;
+  onOpenNeedsDetail?: () => void;
 }
 
 // Animated Category Circle Component
@@ -22,7 +23,8 @@ const AnimatedCategoryCircle: React.FC<{
   item: CategorySummary;
   index: number;
   onOpenBudget?: () => void;
-}> = ({ item, index, onOpenBudget }) => {
+  onOpenNeedsDetail?: () => void;
+}> = ({ item, index, onOpenBudget, onOpenNeedsDetail }) => {
   const percentage = Math.min(100, (item.spent / item.total) * 100);
   const isOverBudget = item.spent > item.total;
   const itemFade = useRef(new Animated.Value(0)).current;
@@ -76,6 +78,14 @@ const AnimatedCategoryCircle: React.FC<{
     }
   }, [isOverBudget]);
 
+  const handleCategoryPress = () => {
+    if (item.category === "Needs") {
+      onOpenNeedsDetail?.();
+    } else {
+      onOpenBudget?.();
+    }
+  };
+
   return (
     <Animated.View
       style={{
@@ -85,7 +95,7 @@ const AnimatedCategoryCircle: React.FC<{
         marginHorizontal: responsiveMargin(8),
       }}
     >
-      <TouchableOpacity activeOpacity={0.85} onPress={onOpenBudget}>
+      <TouchableOpacity activeOpacity={0.85} onPress={handleCategoryPress}>
         <Animated.View style={[styles.categoryCircleContainer, isOverBudget && item.category !== "Savings" && {}]}>
           <LinearGradient
             colors={isOverBudget && item.category !== "Savings" ? ["#FF7171", "#FF4040"] : (item.gradientColors as [string, string])}
@@ -233,7 +243,14 @@ const ScrollableTab: React.FC<ScrollableTabProps> = ({ tabs, activeTab, onTabCha
   );
 };
 
-const ExpensesList: React.FC<ExpensesListProps> = ({ expenses = [], onAddExpense, onOpenBudget, onOpenSettings, onEditExpense }) => {
+const ExpensesList: React.FC<ExpensesListProps> = ({
+  expenses = [],
+  onAddExpense,
+  onOpenBudget,
+  onOpenSettings,
+  onEditExpense,
+  onOpenNeedsDetail,
+}) => {
   const [activeTab, setActiveTab] = useState<"All" | BudgetCategory>("All");
   const [showMenu, setShowMenu] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -390,7 +407,7 @@ const ExpensesList: React.FC<ExpensesListProps> = ({ expenses = [], onAddExpense
       <View style={styles.categoriesContainer}>
         <View style={styles.categoryCirclesWrapper}>
           {categorySummaries.map((item, index) => (
-            <AnimatedCategoryCircle key={item.category} item={item} index={index} onOpenBudget={onOpenBudget} />
+            <AnimatedCategoryCircle key={item.category} item={item} index={index} onOpenBudget={onOpenBudget} onOpenNeedsDetail={onOpenNeedsDetail} />
           ))}
         </View>
       </View>

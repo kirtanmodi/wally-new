@@ -13,9 +13,10 @@ interface BudgetOverviewProps {
   monthlyIncome: number;
   onBackPress?: () => void;
   onOpenSettings?: () => void;
+  onOpenNeedsDetail?: () => void;
 }
 
-const BudgetOverview: React.FC<BudgetOverviewProps> = ({ monthlyIncome = 0, onBackPress, onOpenSettings }) => {
+const BudgetOverview: React.FC<BudgetOverviewProps> = ({ monthlyIncome = 0, onBackPress, onOpenSettings, onOpenNeedsDetail }) => {
   const budgetRule = useSelector(selectBudgetRule);
 
   // Create memoized selector functions for each category type
@@ -92,7 +93,7 @@ const BudgetOverview: React.FC<BudgetOverviewProps> = ({ monthlyIncome = 0, onBa
         <View style={styles.ruleSection}>
           <Text style={styles.ruleTitle}>Budget Rule</Text>
 
-          <View style={styles.budgetItem}>
+          <TouchableOpacity style={styles.budgetItem} onPress={onOpenNeedsDetail} disabled={!onOpenNeedsDetail}>
             <View style={styles.budgetItemLeft}>
               <Text style={styles.budgetItemLabel}>Needs ({budgetRule.needs}%)</Text>
               <View style={[styles.progressBar, { backgroundColor: BudgetColors.needs + "30" }]}>
@@ -115,7 +116,7 @@ const BudgetOverview: React.FC<BudgetOverviewProps> = ({ monthlyIncome = 0, onBa
                 of {formatCurrency(budgetData.needs.amount, currency, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
               </Text>
             </View>
-          </View>
+          </TouchableOpacity>
 
           <View style={styles.budgetItem}>
             <View style={styles.budgetItemLeft}>
