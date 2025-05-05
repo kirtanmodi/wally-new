@@ -104,6 +104,7 @@ export const budgetSlice = createSlice({
         { id: "other", name: "Other", icon: "💡", type: "Wants" },
       ];
       state.savingsGoals = {};
+      state.currency = AVAILABLE_CURRENCIES[0];
     },
     setMonthlyIncome: (state, action: PayloadAction<number>) => {
       state.monthlyIncome = action.payload;
