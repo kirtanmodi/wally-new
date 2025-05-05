@@ -1,6 +1,6 @@
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect, useRef } from "react";
-import { Animated, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Animated, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { BudgetColors } from "../app/constants/Colors";
 import { responsiveMargin, responsivePadding, scaleFontSize, wp } from "../app/utils/responsive";
 
@@ -85,7 +85,7 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onGetStarted }) => {
           ]}
         >
           <LinearGradient colors={["#F8F9FA", "#E8F5FF"]} style={styles.illustrationBackground}>
-            <Text style={styles.illustrationIcon}>💵</Text>
+            <Image source={require("../assets/images/wally_logo.png")} style={styles.illustrationIcon} />
           </LinearGradient>
         </Animated.View>
 
@@ -255,7 +255,8 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
   },
   illustrationIcon: {
-    fontSize: scaleFontSize(48),
+    width: wp(60),
+    height: wp(60),
   },
   contentSection: {
     marginBottom: responsiveMargin(30),
