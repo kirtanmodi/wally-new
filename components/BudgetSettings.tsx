@@ -124,7 +124,7 @@ const BudgetSettings: React.FC<BudgetSettingsProps> = ({ onBackPress }) => {
 
   const handleSaveBudgetRule = () => {
     if (!validatePercentages()) {
-      Alert.alert("Error", "Percentages must add up to 100%");
+      // Alert.alert("Error", "Percentages must add up to 100%");
       return;
     }
 

@@ -30,6 +30,18 @@ export interface CategoryItem {
   type: BudgetCategory;
 }
 
+// Define savings goal interface
+export interface SavingsGoal {
+  amount: number;
+  targetDate?: string;
+  note?: string;
+}
+
+// Define savings goals by category
+export interface SavingsGoals {
+  [categoryId: string]: SavingsGoal;
+}
+
 // Define budget settings state
 interface BudgetState {
   monthlyIncome: number;
@@ -40,6 +52,7 @@ interface BudgetState {
   };
   categories: CategoryItem[];
   currency: CurrencyInfo;
+  savingsGoals: SavingsGoals;
 }
 
 // Define initial state
@@ -60,6 +73,7 @@ const initialState: BudgetState = {
     { id: "dining", name: "Dining Out", icon: "🍽️", type: "Wants" },
   ],
   currency: AVAILABLE_CURRENCIES[0], // Default to USD
+  savingsGoals: {}, // Empty savings goals initially
 };
 
 // Create slice
@@ -83,6 +97,7 @@ export const budgetSlice = createSlice({
         { id: "entertainment", name: "Entertainment", icon: "🎬", type: "Wants" },
         { id: "dining", name: "Dining Out", icon: "🍽️", type: "Wants" },
       ];
+      state.savingsGoals = {};
     },
     setMonthlyIncome: (state, action: PayloadAction<number>) => {
       state.monthlyIncome = action.payload;
@@ -124,15 +139,53 @@ export const budgetSlice = createSlice({
     deleteCategory: (state, action: PayloadAction<string>) => {
       state.categories = state.categories.filter((cat) => cat.id !== action.payload);
     },
+    setSavingsGoal: (
+      state,
+      action: PayloadAction<{
+        categoryId: string;
+        goal: SavingsGoal;
+      }>
+    ) => {
+      state.savingsGoals[action.payload.categoryId] = action.payload.goal;
+    },
+    updateSavingsGoal: (
+      state,
+      action: PayloadAction<{
+        categoryId: string;
+        updates: Partial<SavingsGoal>;
+      }>
+    ) => {
+      if (state.savingsGoals[action.payload.categoryId]) {
+        state.savingsGoals[action.payload.categoryId] = {
+          ...state.savingsGoals[action.payload.categoryId],
+          ...action.payload.updates,
+        };
+      }
+    },
+    deleteSavingsGoal: (state, action: PayloadAction<string>) => {
+      delete state.savingsGoals[action.payload];
+    },
   },
 });
 
 // Export actions
-export const { setMonthlyIncome, updateBudgetRule, addCategory, updateCategory, deleteCategory, resetBudget, setCurrency } = budgetSlice.actions;
+export const {
+  setMonthlyIncome,
+  updateBudgetRule,
+  addCategory,
+  updateCategory,
+  deleteCategory,
+  resetBudget,
+  setCurrency,
+  setSavingsGoal,
+  updateSavingsGoal,
+  deleteSavingsGoal,
+} = budgetSlice.actions;
 
 // Base selectors
 const selectBudgetState = (state: RootState) => state.budget;
 const selectCategoriesState = (state: RootState) => state.budget.categories;
+const selectSavingsGoalsState = (state: RootState) => state.budget.savingsGoals;
 
 // Export selectors
 export const selectBudget = (state: RootState) => state.budget;
@@ -140,10 +193,17 @@ export const selectMonthlyIncome = (state: RootState) => state.budget.monthlyInc
 export const selectBudgetRule = (state: RootState) => state.budget.budgetRule;
 export const selectCategories = (state: RootState) => state.budget.categories;
 export const selectCurrency = (state: RootState) => state.budget.currency;
+export const selectSavingsGoals = (state: RootState) => state.budget.savingsGoals;
 
 // Memoized selector for categories by type
 export const selectCategoriesByType = createSelector([selectCategoriesState, (_, type: BudgetCategory) => type], (categories, type) =>
   categories.filter((cat) => cat.type === type)
+);
+
+// Memoized selector for a specific savings goal
+export const selectSavingsGoalByCategory = createSelector(
+  [selectSavingsGoalsState, (_, categoryId: string) => categoryId],
+  (savingsGoals, categoryId) => savingsGoals[categoryId] || null
 );
 
 // Export reducer

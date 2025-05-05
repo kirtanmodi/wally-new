@@ -5,7 +5,7 @@ import { BudgetColors } from "../app/constants/Colors";
 import { BudgetData } from "../app/types/budget";
 import { formatCurrency } from "../app/utils/currency";
 import { responsiveMargin, responsivePadding, scaleFontSize } from "../app/utils/responsive";
-import { selectBudgetRule, selectCategoriesByType, selectCurrency } from "../redux/slices/budgetSlice";
+import { selectBudgetRule, selectCategoriesByType, selectCurrency, selectSavingsGoals } from "../redux/slices/budgetSlice";
 import { selectExpenses } from "../redux/slices/expenseSlice";
 import { RootState } from "../redux/types";
 
@@ -40,6 +40,7 @@ const BudgetOverview: React.FC<BudgetOverviewProps> = ({
 
   const expenses = useSelector(selectExpenses);
   const currency = useSelector(selectCurrency);
+  const savingsGoals = useSelector(selectSavingsGoals);
 
   // Memoize the spent calculations to avoid recalculation on every render
   const { needsSpent, savingsSpent, wantsSpent, calculateSpentBySubcategory } = useMemo(() => {
@@ -206,12 +207,21 @@ const BudgetOverview: React.FC<BudgetOverviewProps> = ({
               <Text style={styles.categoryGroupTitle}>Savings</Text>
               {savingsCategories.map((category) => {
                 const spent = calculateSpentBySubcategory(category.name);
+                const goal = savingsGoals[category.id];
                 return (
                   <View key={category.id} style={styles.categoryRow}>
                     <View style={styles.categoryIconContainer}>
                       <Text style={styles.categoryIcon}>{category.icon}</Text>
                     </View>
-                    <Text style={styles.categoryName}>{category.name}</Text>
+                    <View style={styles.categoryInfoContainer}>
+                      <Text style={styles.categoryName}>{category.name}</Text>
+                      {goal && (
+                        <Text style={styles.categoryGoal}>
+                          Goal: {formatCurrency(goal.amount, currency, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                          {goal.targetDate ? ` by ${goal.targetDate}` : ""}
+                        </Text>
+                      )}
+                    </View>
                     <Text style={styles.categoryAmount}>
                       {formatCurrency(spent, currency, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </Text>
@@ -394,6 +404,14 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: scaleFontSize(16),
     color: "#333",
+  },
+  categoryInfoContainer: {
+    flex: 1,
+  },
+  categoryGoal: {
+    fontSize: scaleFontSize(13),
+    color: BudgetColors.savings,
+    marginTop: 2,
   },
   categoryAmount: {
     fontSize: scaleFontSize(16),

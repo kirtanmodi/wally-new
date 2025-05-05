@@ -38,3 +38,13 @@ export interface CategorySummary {
   color: string;
   gradientColors?: string[];
 }
+
+export interface SavingsGoal {
+  amount: number;
+  targetDate?: string;
+  note?: string;
+}
+
+export interface SavingsGoals {
+  [categoryId: string]: SavingsGoal;
+}

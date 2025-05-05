@@ -205,12 +205,12 @@ const styles = StyleSheet.create({
     opacity: 0.8,
   },
   spentAmount: {
-    fontSize: scaleFontSize(30),
+    fontSize: scaleFontSize(22),
     fontWeight: "700",
     color: "white",
   },
   allocatedAmount: {
-    fontSize: scaleFontSize(30),
+    fontSize: scaleFontSize(22),
     fontWeight: "700",
     color: "white",
     textAlign: "right",

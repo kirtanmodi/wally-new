@@ -36,18 +36,26 @@ const NeedsDetailScreen: React.FC<NeedsDetailScreenProps> = ({ onBackPress }) =>
 
   // Calculate spending by category
   const categorySpending = useMemo(() => {
+    // Calculate total spent on needs
+    const totalNeedsSpent = needsSpent > 0 ? needsSpent : 1; // Avoid division by zero
+
     return needsCategories.map((category) => {
       const spent = expenses.filter((expense) => expense.subcategory === category.name).reduce((total, expense) => total + expense.amount, 0);
 
-      const percentage = Math.round((spent / needsBudgetAmount) * 100 * 10) / 10;
+      // Calculate percentage of total needs spent (this should add up to 100%)
+      const percentage = Math.round((spent / totalNeedsSpent) * 100 * 10) / 10;
+
+      // Calculate percentage of budget for progress bar (this shows progress toward budget goal)
+      const budgetPercentage = Math.round((spent / needsBudgetAmount) * 100 * 10) / 10;
 
       return {
         ...category,
         spent,
         percentage,
+        budgetPercentage,
       };
     });
-  }, [expenses, needsCategories, needsBudgetAmount]);
+  }, [expenses, needsCategories, needsBudgetAmount, needsSpent]);
 
   // Get current month and year for header
   const currentDate = new Date();
@@ -123,7 +131,7 @@ const NeedsDetailScreen: React.FC<NeedsDetailScreenProps> = ({ onBackPress }) =>
               </View>
 
               <View style={styles.categoryProgressContainer}>
-                <View style={[styles.categoryProgressBar, { width: `${Math.min(100, (category.spent / needsBudgetAmount) * 100)}%` }]} />
+                <View style={[styles.categoryProgressBar, { width: `${Math.min(100, category.budgetPercentage)}%` }]} />
               </View>
             </View>
           ))}
@@ -201,12 +209,12 @@ const styles = StyleSheet.create({
     opacity: 0.8,
   },
   spentAmount: {
-    fontSize: scaleFontSize(30),
+    fontSize: scaleFontSize(22),
     fontWeight: "700",
     color: "white",
   },
   allocatedAmount: {
-    fontSize: scaleFontSize(30),
+    fontSize: scaleFontSize(22),
     fontWeight: "700",
     color: "white",
     textAlign: "right",
