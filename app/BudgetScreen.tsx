@@ -187,7 +187,6 @@ const BudgetScreen: React.FC<BudgetScreenProps> = ({ initialView }) => {
 
   // Function to handle month selection from ExpensesList
   const handleMonthChange = (monthKey: string) => {
-    console.log("BudgetScreen - Month changed to:", monthKey);
     setSelectedMonth(monthKey);
   };
 

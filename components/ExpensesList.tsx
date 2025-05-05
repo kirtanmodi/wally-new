@@ -445,7 +445,6 @@ const ExpensesList: React.FC<ExpensesListProps> = ({
       const month = date.getMonth() + 1;
       const newMonthKey = `${year}-${month}`;
 
-      console.log("Date selected:", date, "New month key:", newMonthKey);
       onMonthChange(newMonthKey);
     }
   };

@@ -74,8 +74,6 @@ export const filterExpensesByMonth = (expenses: any[], monthYearKey: string): an
   if (!expenses || !Array.isArray(expenses)) return [];
   if (!monthYearKey) return expenses;
 
-  console.log(`Filtering expenses by month: ${monthYearKey}, total expenses: ${expenses.length}`);
-
   try {
     const [year, month] = monthYearKey.split("-").map(Number);
 
@@ -107,7 +105,6 @@ export const filterExpensesByMonth = (expenses: any[], monthYearKey: string): an
       }
     });
 
-    console.log(`Found ${filtered.length} expenses for month ${monthYearKey}`);
     return filtered;
   } catch (error) {
     console.error(`Error in filterExpensesByMonth: ${error}`);

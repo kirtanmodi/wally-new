@@ -44,12 +44,8 @@ const BudgetOverview: React.FC<BudgetOverviewProps> = ({
 }) => {
   // Add component mount and update tracking
   useEffect(() => {
-    console.log("BudgetOverview component - selectedMonth updated:", selectedMonth);
-
     // Return a cleanup function
-    return () => {
-      console.log("BudgetOverview component - cleaning up for month:", selectedMonth);
-    };
+    return () => {};
   }, [selectedMonth]);
 
   const budgetRule = useSelector(selectBudgetRule) || { needs: 50, savings: 30, wants: 20 };
@@ -61,19 +57,16 @@ const BudgetOverview: React.FC<BudgetOverviewProps> = ({
   const savingsGoals = useSelector(selectSavingsGoals) || {};
 
   // Log selected month to verify it's changing
-  console.log("BudgetOverview - Selected Month:", selectedMonth);
 
   // Filter expenses by selected month - ensure this is recalculated when month changes
   const monthlyExpenses = useMemo(() => {
-    console.log("Recalculating monthly expenses for month:", selectedMonth);
     const filteredExpenses = filterExpensesByMonth(expenses || [], selectedMonth || getCurrentMonthYearKey());
-    console.log(`Found ${filteredExpenses.length} expenses for month ${selectedMonth}`);
+
     return filteredExpenses;
   }, [expenses, selectedMonth]);
 
   // Calculate budget data based on income, rules, and expenses
   const budgetData = useMemo<BudgetData>(() => {
-    console.log("Recalculating budget data for month:", selectedMonth);
     // Calculate budget amounts
     const rule = budgetRule || { needs: 50, savings: 30, wants: 20 };
     const income = monthlyIncome || 0;
@@ -86,8 +79,6 @@ const BudgetOverview: React.FC<BudgetOverviewProps> = ({
     const needsSpent = monthlyExpenses.filter((exp) => exp.category === "Needs").reduce((sum, exp) => sum + exp.amount, 0);
     const savingsSpent = monthlyExpenses.filter((exp) => exp.category === "Savings").reduce((sum, exp) => sum + exp.amount, 0);
     const wantsSpent = monthlyExpenses.filter((exp) => exp.category === "Wants").reduce((sum, exp) => sum + exp.amount, 0);
-
-    console.log(`Month ${selectedMonth} - Needs spent: ${needsSpent}, Savings spent: ${savingsSpent}, Wants spent: ${wantsSpent}`);
 
     return {
       monthlyIncome: income,
