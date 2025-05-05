@@ -118,37 +118,132 @@ export default function LoginScreen() {
     router.replace("/(tabs)");
   };
 
-  const renderOnboardingPage = () => (
-    <View style={styles.onboardingContainer}>
+  // Mobile welcome screen
+  const renderWelcomeScreen = () => (
+    <LinearGradient colors={["#6684ED", "#7E6EE8"]} style={styles.welcomeContainer}>
       <TouchableOpacity style={styles.skipButton} onPress={handleSkip}>
         <Text style={styles.skipText}>Skip</Text>
       </TouchableOpacity>
 
-      <Image source={require("../../assets/images/icon.png")} style={styles.onboardingImage} />
+      <View style={styles.welcomeContent}>
+        <Image source={require("../../assets/images/icon.png")} style={styles.welcomeImage} />
 
-      <View style={styles.onboardingContent}>
-        <Text style={styles.onboardingTitle}>Get Things Done with AI</Text>
-        <Text style={styles.onboardingDescription}>Flow helps you implement the GTD methodology with AI assistance for better productivity</Text>
+        <Text style={styles.welcomeTitle}>Welcome to Wally</Text>
+        <Text style={styles.welcomeDescription}>Your personal AI assistant for expense tracking</Text>
 
         <View style={styles.paginationContainer}>
           <View style={[styles.paginationDot, styles.activeDot]} />
           <View style={styles.paginationDot} />
           <View style={styles.paginationDot} />
         </View>
+      </View>
 
-        <TouchableOpacity style={styles.nextButton} onPress={handleNextPage}>
-          <Text style={styles.nextButtonText}>Next</Text>
+      <View style={styles.welcomeButtonContainer}>
+        <TouchableOpacity style={styles.signInButton} onPress={handleNextPage}>
+          <Text style={styles.signInButtonText}>Sign In</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.createAccountButton} onPress={() => router.push("/(auth)/signup")}>
+          <Text style={styles.createAccountButtonText}>Create Account</Text>
         </TouchableOpacity>
       </View>
+    </LinearGradient>
+  );
+
+  // Mobile login form screen
+  const renderLoginForm = () => (
+    <View style={styles.loginFormContainer}>
+      <View style={styles.loginHeader}>
+        <TouchableOpacity onPress={() => setCurrentPage(0)} style={styles.backButton}>
+          <FontAwesome name="arrow-left" size={20} color="#7E6EE8" />
+        </TouchableOpacity>
+        <Text style={styles.loginTitle}>Sign In</Text>
+        <View style={{ width: 20 }} />
+      </View>
+
+      <ScrollView style={styles.formScrollView} contentContainerStyle={styles.formScrollContent}>
+        <View style={styles.formContainer}>
+          <View style={styles.inputContainer}>
+            <FontAwesome name="envelope" size={20} color="#7E6EE8" style={styles.inputIcon} />
+            <TextInput
+              style={styles.input}
+              placeholder="Email Address"
+              value={email}
+              onChangeText={setEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoCorrect={false}
+              placeholderTextColor="#999"
+            />
+          </View>
+
+          <View style={styles.inputContainer}>
+            <FontAwesome name="lock" size={20} color="#7E6EE8" style={styles.inputIcon} />
+            <TextInput
+              style={styles.input}
+              placeholder="Password"
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry={!showPassword}
+              autoCapitalize="none"
+              autoCorrect={false}
+              placeholderTextColor="#999"
+            />
+            <TouchableOpacity style={styles.passwordToggle} onPress={() => setShowPassword(!showPassword)}>
+              <FontAwesome name={showPassword ? "eye-slash" : "eye"} size={20} color="#666" />
+            </TouchableOpacity>
+          </View>
+
+          <TouchableOpacity style={styles.forgotPasswordContainer}>
+            <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.loginButton} onPress={handleLogin} disabled={isLoading}>
+            {isLoading ? <ActivityIndicator color="#FFF" size="small" /> : <Text style={styles.loginButtonText}>Sign In</Text>}
+          </TouchableOpacity>
+
+          <View style={styles.orContainer}>
+            <View style={styles.divider} />
+            <Text style={styles.orText}>or</Text>
+            <View style={styles.divider} />
+          </View>
+
+          <TouchableOpacity style={styles.googleButton} onPress={handleGoogleSignIn} disabled={googleLoading}>
+            {googleLoading ? (
+              <ActivityIndicator color="#333" size="small" />
+            ) : (
+              <>
+                <Image
+                  source={require("../../assets/images/react-logo.png")}
+                  style={styles.googleIcon}
+                  defaultSource={require("../../assets/images/react-logo.png")}
+                />
+                <Text style={styles.googleButtonText}>Sign in with Google</Text>
+              </>
+            )}
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.demoButton}
+            onPress={() => {
+              setEmail("demo@example.com");
+              setPassword("password");
+            }}
+          >
+            <Text style={styles.demoButtonText}>Use Demo Account</Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
     </View>
   );
 
-  const renderLoginPage = () => (
+  // Desktop/tablet view with side-by-side panels
+  const renderDesktopLayout = () => (
     <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.container}>
       <LinearGradient colors={["#6684ED", "#7E6EE8"]} style={styles.leftPanel}>
         <Image source={require("../../assets/images/icon.png")} style={styles.logo} />
-        <Text style={styles.appName}>Welcome to Flow</Text>
-        <Text style={styles.tagline}>Your AI assistant for GTD task management and expense tracking</Text>
+        <Text style={styles.appName}>Welcome to Wally</Text>
+        <Text style={styles.tagline}>Your AI assistant for expense tracking</Text>
 
         <View style={styles.buttonContainer}>
           <TouchableOpacity style={styles.signInButton} onPress={handleLogin} disabled={isLoading}>
@@ -240,7 +335,7 @@ export default function LoginScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" />
-      {Platform.OS === "web" || width > 768 ? renderLoginPage() : currentPage === 0 ? renderOnboardingPage() : renderLoginPage()}
+      {Platform.OS === "web" || width > 768 ? renderDesktopLayout() : currentPage === 0 ? renderWelcomeScreen() : renderLoginForm()}
     </SafeAreaView>
   );
 }
@@ -250,7 +345,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#FFF",
   },
-  // Left Panel (Login welcome panel)
+  // Desktop layout styles
   leftPanel: {
     flex: Platform.OS === "web" || width > 768 ? 1 : 0,
     justifyContent: "center",
@@ -284,30 +379,6 @@ const styles = StyleSheet.create({
     width: "100%",
     maxWidth: 300,
   },
-  signInButton: {
-    backgroundColor: "rgba(255, 255, 255, 0.2)",
-    borderRadius: 30,
-    paddingVertical: 16,
-    marginBottom: 16,
-    alignItems: "center",
-  },
-  signInButtonText: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  createAccountButton: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 30,
-    paddingVertical: 16,
-    alignItems: "center",
-  },
-  createAccountButtonText: {
-    color: "#6684ED",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  // Right Panel (Form panel)
   rightPanel: {
     flex: Platform.OS === "web" || width > 768 ? 1 : 0,
     backgroundColor: "#FFFFFF",
@@ -320,6 +391,103 @@ const styles = StyleSheet.create({
     padding: 24,
     flexGrow: 1,
   },
+
+  // Mobile welcome screen styles
+  welcomeContainer: {
+    flex: 1,
+    justifyContent: "space-between",
+    paddingVertical: 40,
+  },
+  skipButton: {
+    position: "absolute",
+    top: 20,
+    right: 20,
+    zIndex: 10,
+  },
+  skipText: {
+    fontSize: 16,
+    color: "rgba(255, 255, 255, 0.8)",
+    fontWeight: "500",
+  },
+  welcomeContent: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 30,
+  },
+  welcomeImage: {
+    width: 120,
+    height: 120,
+    borderRadius: 30,
+    marginBottom: 40,
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+  },
+  welcomeTitle: {
+    fontSize: 36,
+    fontWeight: "700",
+    color: "#FFFFFF",
+    marginBottom: 16,
+    textAlign: "center",
+  },
+  welcomeDescription: {
+    fontSize: 18,
+    color: "rgba(255, 255, 255, 0.9)",
+    textAlign: "center",
+    marginBottom: 40,
+    lineHeight: 24,
+  },
+  paginationContainer: {
+    flexDirection: "row",
+    marginBottom: 20,
+  },
+  paginationDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: "rgba(255, 255, 255, 0.3)",
+    marginHorizontal: 4,
+  },
+  activeDot: {
+    width: 24,
+    backgroundColor: "#FFFFFF",
+  },
+  welcomeButtonContainer: {
+    paddingHorizontal: 30,
+    width: "100%",
+  },
+
+  // Mobile login form styles
+  loginFormContainer: {
+    flex: 1,
+    backgroundColor: "#FFFFFF",
+  },
+  loginHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F0F0F0",
+  },
+  backButton: {
+    padding: 10,
+  },
+  loginTitle: {
+    fontSize: 20,
+    fontWeight: "600",
+    color: "#333",
+  },
+  formScrollView: {
+    flex: 1,
+  },
+  formScrollContent: {
+    flexGrow: 1,
+    padding: 24,
+  },
+
+  // Common styles
   formContainer: {
     maxWidth: 400,
     width: "100%",
@@ -367,6 +535,29 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#FFFFFF",
   },
+  signInButton: {
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    borderRadius: 30,
+    paddingVertical: 16,
+    marginBottom: 16,
+    alignItems: "center",
+  },
+  signInButtonText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  createAccountButton: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 30,
+    paddingVertical: 16,
+    alignItems: "center",
+  },
+  createAccountButtonText: {
+    color: "#6684ED",
+    fontSize: 16,
+    fontWeight: "600",
+  },
   orContainer: {
     flexDirection: "row",
     alignItems: "center",
@@ -412,77 +603,5 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#7E6EE8",
     fontWeight: "500",
-  },
-  // Onboarding specific styles
-  onboardingContainer: {
-    flex: 1,
-    backgroundColor: "#FFFFFF",
-    position: "relative",
-  },
-  skipButton: {
-    position: "absolute",
-    top: 20,
-    right: 20,
-    zIndex: 10,
-  },
-  skipText: {
-    fontSize: 16,
-    color: "#666",
-    fontWeight: "500",
-  },
-  onboardingImage: {
-    width: 120,
-    height: 120,
-    alignSelf: "center",
-    marginTop: height * 0.2,
-    marginBottom: 40,
-    borderRadius: 20,
-  },
-  onboardingContent: {
-    padding: 24,
-    flex: 1,
-    alignItems: "center",
-  },
-  onboardingTitle: {
-    fontSize: 28,
-    fontWeight: "bold",
-    color: "#333",
-    marginBottom: 16,
-    textAlign: "center",
-  },
-  onboardingDescription: {
-    fontSize: 16,
-    color: "#666",
-    textAlign: "center",
-    marginBottom: 40,
-    lineHeight: 24,
-    paddingHorizontal: 20,
-  },
-  paginationContainer: {
-    flexDirection: "row",
-    marginBottom: 40,
-  },
-  paginationDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: "#D0D0D0",
-    marginHorizontal: 4,
-  },
-  activeDot: {
-    width: 24,
-    backgroundColor: "#7E6EE8",
-  },
-  nextButton: {
-    backgroundColor: "#7E6EE8",
-    borderRadius: 30,
-    paddingVertical: 16,
-    paddingHorizontal: 80,
-    alignItems: "center",
-  },
-  nextButtonText: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "600",
   },
 });
