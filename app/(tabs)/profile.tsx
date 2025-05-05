@@ -40,12 +40,6 @@ export default function ProfileScreen() {
     return { needs, wants, savings };
   }, [currentMonthExpenses]);
 
-  // GTD (Getting Things Done) stats
-  // In a real app, these would come from a user's task management system
-  const tasksCompleted = 15;
-  const activeProjects = 6;
-  const currentStreak = 8;
-
   // Helper function to format currency
   const formatCurrency = (amount: number) => {
     return "$" + amount.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
