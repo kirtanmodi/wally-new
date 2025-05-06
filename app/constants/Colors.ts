@@ -6,6 +6,8 @@
 // "#7FAFF5", "#4C7ED9"
 // Primary colors (Budget categories)
 // "#7FAFF5", "#4C7ED9"
+const MAIN_COLOR = "#7FAFF5";
+const SECONDARY_COLOR = "#4C7ED9";
 const primaryNeeds = "#3DB26E"; // Green for "Needs" category
 const primarySavings = "#FF9C36"; // Orange for "Savings" category
 const primaryWants = "#605BFF"; // Purple-blue for "Wants" category
@@ -35,6 +37,8 @@ const categoryHealth = "#B980F0"; // Purple for health
 
 export const Colors = {
   light: {
+    main: MAIN_COLOR,
+    secondary: SECONDARY_COLOR,
     text: textLight,
     background: backgroundLight,
     tint: primaryNeeds,
@@ -50,6 +54,8 @@ export const Colors = {
     muted: "#64748B",
   },
   dark: {
+    main: MAIN_COLOR,
+    secondary: SECONDARY_COLOR,
     text: textDark,
     background: backgroundDark,
     tint: primaryNeeds,

@@ -1,3 +1,4 @@
+import { selectIsFirstTimeUser } from "@/redux/slices/expenseSlice";
 import { FontAwesome } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
@@ -16,7 +17,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { login } from "../../redux/slices/userSlice";
 import { scaleFontSize } from "../utils/responsive";
 
@@ -27,6 +28,8 @@ export default function LoginScreen() {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
   const scaleAnim = useRef(new Animated.Value(0.95)).current;
+
+  const isFirstTimeUser = useSelector(selectIsFirstTimeUser);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -74,7 +77,11 @@ export default function LoginScreen() {
           })
         );
 
-        router.replace("/(tabs)");
+        if (isFirstTimeUser) {
+          router.replace("/welcome");
+        } else {
+          router.replace("/(tabs)");
+        }
       } else {
         Alert.alert("Login Failed", "Invalid email or password. For demo, use email: demo@example.com and password: password");
       }

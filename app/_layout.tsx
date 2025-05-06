@@ -3,15 +3,17 @@ import React, { useEffect, useState } from "react";
 import { ActivityIndicator, View } from "react-native";
 import { Provider, useSelector } from "react-redux";
 import { PersistGate } from "redux-persist/integration/react";
+import { selectIsFirstTimeUser } from "../redux/slices/expenseSlice";
 import { selectIsAuthenticated } from "../redux/slices/userSlice";
 import { persistor, store } from "../redux/store";
 import { ThemeProvider } from "./components/ThemeProvider";
+import { Colors } from "./constants/Colors";
 
 function AuthContextProvider({ children }: { children: React.ReactNode }) {
   const segments = useSegments();
   const router = useRouter();
   const [isReady, setIsReady] = useState(false);
-
+  const isFirstTimeUser = useSelector(selectIsFirstTimeUser);
   const isAuthenticated = useSelector(selectIsAuthenticated);
 
   useEffect(() => {
@@ -23,7 +25,11 @@ function AuthContextProvider({ children }: { children: React.ReactNode }) {
       if (!isAuthenticated && !inAuthGroup) {
         router.replace("/(auth)/login");
       } else if (isAuthenticated && inAuthGroup) {
-        router.replace("/(tabs)");
+        if (isFirstTimeUser) {
+          router.replace("/welcome");
+        } else {
+          router.replace("/(tabs)");
+        }
       }
     }, 100);
 
@@ -33,7 +39,7 @@ function AuthContextProvider({ children }: { children: React.ReactNode }) {
   if (!isReady) {
     return (
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-        <ActivityIndicator size="large" color="#32936F" />
+        <ActivityIndicator size="large" color={Colors.light.main} />
       </View>
     );
   }
@@ -47,7 +53,7 @@ export default function RootLayout() {
       <PersistGate
         loading={
           <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-            <ActivityIndicator size="large" color="#32936F" />
+            <ActivityIndicator size="large" color={Colors.light.main} />
           </View>
         }
         persistor={persistor}

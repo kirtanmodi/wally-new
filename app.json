@@ -9,10 +9,14 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": false,
+      "bundleIdentifier": "com.wally.app",
       "splash": {
         "image": "./assets/images/wally_logo.png",
         "resizeMode": "contain",
         "backgroundColor": "#7FAFF5"
+      },
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
@@ -20,6 +24,7 @@
         "foregroundImage": "./assets/images/wally_logo.png",
         "backgroundColor": "#7FAFF5"
       },
+      "package": "com.wally.app",
       "edgeToEdgeEnabled": true
     },
     "web": {
@@ -41,6 +46,12 @@
           "imageWidth": 200,
           "resizeMode": "contain",
           "backgroundColor": "#7FAFF5"
+        }
+      ],
+      [
+        "@react-native-google-signin/google-signin",
+        {
+          "iosUrlScheme": "com.googleusercontent.apps.494457099485-vnsuo8bt7hoatil2nq12a8qm0alro4hc"
         }
       ]
     ],
