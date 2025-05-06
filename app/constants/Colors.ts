@@ -2,8 +2,10 @@
  * Color scheme for a budget/expenses app.
  * These colors are used in both light and dark modes.
  */
-
+// "#4CD080", "#3DB26E",
+// "#7FAFF5", "#4C7ED9"
 // Primary colors (Budget categories)
+// "#7FAFF5", "#4C7ED9"
 const primaryNeeds = "#3DB26E"; // Green for "Needs" category
 const primarySavings = "#FF9C36"; // Orange for "Savings" category
 const primaryWants = "#605BFF"; // Purple-blue for "Wants" category

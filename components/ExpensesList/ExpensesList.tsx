@@ -418,7 +418,7 @@ const ExpensesList: React.FC<ExpensesListProps> = ({
       )}
 
       <TouchableOpacity activeOpacity={0.8} style={styles.addButton} onPress={onAddExpense}>
-        <LinearGradient colors={["#4CD080", "#3DB26E"]} style={styles.addButtonGradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+        <LinearGradient colors={["#7FAFF5", "#4C7ED9"]} style={styles.addButtonGradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
           <Text style={styles.addButtonIcon}>+</Text>
         </LinearGradient>
       </TouchableOpacity>
