@@ -8,6 +8,8 @@ export default function Index() {
   const isFirstTimeUser = useSelector(selectIsFirstTimeUser);
   const dispatch = useDispatch();
 
+  console.log("isFirstTimeUser", isFirstTimeUser);
+
   useEffect(() => {
     dispatch(resetExpenses());
     dispatch(resetBudget());

@@ -7,28 +7,22 @@ import { selectIsAuthenticated } from "../redux/slices/userSlice";
 import { persistor, store } from "../redux/store";
 import { ThemeProvider } from "./components/ThemeProvider";
 
-// Auth context to handle authentication flow
 function AuthContextProvider({ children }: { children: React.ReactNode }) {
   const segments = useSegments();
   const router = useRouter();
   const [isReady, setIsReady] = useState(false);
 
-  // Check if user is authenticated from Redux
   const isAuthenticated = useSelector(selectIsAuthenticated);
 
-  // Handle auth state changes
   useEffect(() => {
     const inAuthGroup = segments[0] === "(auth)";
 
-    // Set a small delay to ensure the store is hydrated
     const prepareAuth = setTimeout(() => {
       setIsReady(true);
 
       if (!isAuthenticated && !inAuthGroup) {
-        // Redirect to the login page if not authenticated and not already in auth group
         router.replace("/(auth)/login");
       } else if (isAuthenticated && inAuthGroup) {
-        // Redirect to main app if authenticated but still in auth group
         router.replace("/(tabs)");
       }
     }, 100);
@@ -36,7 +30,6 @@ function AuthContextProvider({ children }: { children: React.ReactNode }) {
     return () => clearTimeout(prepareAuth);
   }, [isAuthenticated, segments, router]);
 
-  // Show loading indicator while determining auth state
   if (!isReady) {
     return (
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>

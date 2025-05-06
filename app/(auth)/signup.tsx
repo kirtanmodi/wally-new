@@ -24,12 +24,10 @@ export default function SignupScreen() {
   const router = useRouter();
   const dispatch = useDispatch();
 
-  // Animation values
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
   const scaleAnim = useRef(new Animated.Value(0.95)).current;
 
-  // Form state
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -37,7 +35,6 @@ export default function SignupScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Start animations when component mounts
   useEffect(() => {
     Animated.parallel([
       Animated.timing(fadeAnim, {
@@ -58,9 +55,7 @@ export default function SignupScreen() {
     ]).start();
   }, []);
 
-  // Handle signup
   const handleSignup = async () => {
-    // Validate inputs
     if (!fullName || !email || !password || !confirmPassword) {
       Alert.alert("Missing Information", "Please fill in all fields");
       return;
@@ -76,17 +71,11 @@ export default function SignupScreen() {
       return;
     }
 
-    // Start loading
     setIsLoading(true);
 
     try {
-      // Simulate API call with timeout
       await new Promise((resolve) => setTimeout(resolve, 1500));
 
-      // In a real app, this would be an API call to register
-      // For demo purposes, we'll use mock data
-
-      // Dispatch login action to Redux
       dispatch(
         login({
           userId: "user123",
@@ -96,14 +85,12 @@ export default function SignupScreen() {
         })
       );
 
-      // Update profile with full name
       dispatch(
         updateProfile({
           fullName,
         })
       );
 
-      // Navigate to tabs
       router.replace("/(tabs)");
     } catch (error) {
       console.error("Signup error:", error);
@@ -113,7 +100,6 @@ export default function SignupScreen() {
     }
   };
 
-  // Handle Google sign in
   const handleGoogleSignIn = async () => {
     try {
     } catch (error) {
@@ -122,7 +108,6 @@ export default function SignupScreen() {
     }
   };
 
-  // Signup form
   const renderSignupForm = () => (
     <LinearGradient colors={["#7FAFF5", "#7FAFF5"]} style={styles.signupFormContainer}>
       <View style={styles.signupHeader}>
@@ -277,7 +262,6 @@ const styles = StyleSheet.create({
     alignSelf: "center",
   },
 
-  // Signup form styles
   signupFormContainer: {
     flex: 1,
   },
@@ -307,7 +291,6 @@ const styles = StyleSheet.create({
     padding: 24,
   },
 
-  // Common styles
   formContainer: {
     maxWidth: 400,
     width: "100%",

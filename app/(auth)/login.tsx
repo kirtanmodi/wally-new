@@ -24,18 +24,15 @@ export default function LoginScreen() {
   const router = useRouter();
   const dispatch = useDispatch();
 
-  // Animation values
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
   const scaleAnim = useRef(new Animated.Value(0.95)).current;
 
-  // Form state
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Start animations when component mounts
   useEffect(() => {
     Animated.parallel([
       Animated.timing(fadeAnim, {
@@ -56,25 +53,18 @@ export default function LoginScreen() {
     ]).start();
   }, []);
 
-  // Handle login with email/password
   const handleLogin = async () => {
-    // Validate inputs
     if (!email || !password) {
       Alert.alert("Missing Information", "Please enter both email and password");
       return;
     }
 
-    // Start loading
     setIsLoading(true);
 
     try {
-      // Simulate API call with timeout
       await new Promise((resolve) => setTimeout(resolve, 1500));
 
-      // In a real app, this would be an API call to authenticate
-      // For demo purposes, we'll use mock data
       if (email === "demo@example.com" && password === "password") {
-        // Dispatch login action to Redux
         dispatch(
           login({
             userId: "user123",
@@ -84,7 +74,6 @@ export default function LoginScreen() {
           })
         );
 
-        // Navigate to tabs
         router.replace("/(tabs)");
       } else {
         Alert.alert("Login Failed", "Invalid email or password. For demo, use email: demo@example.com and password: password");
@@ -97,7 +86,6 @@ export default function LoginScreen() {
     }
   };
 
-  // Handle Google sign in
   const handleGoogleSignIn = async () => {
     try {
     } catch (error) {
@@ -106,7 +94,6 @@ export default function LoginScreen() {
     }
   };
 
-  // Login form
   const renderLoginForm = () => (
     <LinearGradient colors={["#7FAFF5", "#7FAFF5"]} style={styles.loginFormContainer}>
       <View style={styles.loginHeader}>
@@ -226,7 +213,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     alignSelf: "center",
   },
-  // Desktop layout styles
+
   desktopContainer: {
     flex: 1,
     justifyContent: "center",
@@ -244,7 +231,6 @@ const styles = StyleSheet.create({
     marginTop: 40,
   },
 
-  // Mobile welcome screen styles
   welcomeContainer: {
     flex: 1,
     justifyContent: "space-between",
@@ -279,7 +265,6 @@ const styles = StyleSheet.create({
     marginBottom: 50,
   },
 
-  // Mobile login form styles
   loginFormContainer: {
     flex: 1,
   },
@@ -309,7 +294,6 @@ const styles = StyleSheet.create({
     padding: 24,
   },
 
-  // Common styles
   formContainer: {
     maxWidth: 400,
     width: "100%",

@@ -2,48 +2,22 @@ import { createSelector, createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { Expense } from "../../app/types/budget";
 import { RootState } from "../types";
 
-// Sample expenses for new users
-// const sampleExpenses: Expense[] = [
-//   {
-//     id: "sample-1",
-//     title: "Rent",
-//     amount: 1200,
-//     category: "Needs",
-//     subcategory: "Housing",
-//     icon: "🏠",
-//     date: new Date(),
-//   },
-//   {
-//     id: "sample-2",
-//     title: "Grocery Shopping",
-//     amount: 185.5,
-//     category: "Needs",
-//     subcategory: "Food",
-//     icon: "🛒",
-//     date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2 days ago
-//   },
-// ];
-
-// Define a serialized expense type where date is always a string
 interface SerializedExpense extends Omit<Expense, "date"> {
   date: string;
 }
 
-// Define expenses state
 interface ExpenseState {
   expenses: SerializedExpense[];
   isFirstTimeUser: boolean;
   onboarded: boolean;
 }
 
-// Define initial state
 const initialState: ExpenseState = {
   expenses: [],
   isFirstTimeUser: true,
   onboarded: false,
 };
 
-// Create slice
 export const expenseSlice = createSlice({
   name: "expenses",
   initialState,
@@ -54,8 +28,6 @@ export const expenseSlice = createSlice({
       state.isFirstTimeUser = true;
     },
     addExpense: (state, action: PayloadAction<Expense>) => {
-      // The date may already be a string from BudgetScreen.tsx
-      // But ensure it's a string in case it's a Date object
       const serializedExpense: SerializedExpense = {
         ...action.payload,
         date:
@@ -76,16 +48,13 @@ export const expenseSlice = createSlice({
     ) => {
       const index = state.expenses.findIndex((exp) => exp.id === action.payload.id);
       if (index !== -1) {
-        // Create updates object with everything except date
         const { date, ...otherUpdates } = action.payload.updates;
 
-        // Update the expense
         state.expenses[index] = {
           ...state.expenses[index],
           ...otherUpdates,
         };
 
-        // Handle date separately if it exists
         if (date !== undefined) {
           state.expenses[index].date = typeof date === "string" ? date : date instanceof Date ? date.toISOString() : String(date);
         }
@@ -107,13 +76,10 @@ export const expenseSlice = createSlice({
   },
 });
 
-// Export actions
 export const { addExpense, updateExpense, deleteExpense, clearSampleExpenses, setUserOnboarded, resetExpenses } = expenseSlice.actions;
 
-// Base selector for expenses state
 const selectExpensesState = (state: RootState) => state.expenses.expenses;
 
-// Export memoized selectors
 export const selectExpenses = createSelector([selectExpensesState], (expenses) =>
   expenses.map((expense) => ({
     ...expense,
@@ -133,5 +99,4 @@ export const selectExpensesByCategory = createSelector([selectExpensesState, (_,
 export const selectIsFirstTimeUser = (state: RootState) => state.expenses.isFirstTimeUser;
 export const selectOnboarded = (state: RootState) => state.expenses.onboarded;
 
-// Export reducer
 export default expenseSlice.reducer;

@@ -1,7 +1,6 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { RootState } from "../store";
 
-// Define a type for the user state
 interface UserState {
   isAuthenticated: boolean;
   userId: string | null;
@@ -16,7 +15,6 @@ interface UserState {
   };
 }
 
-// Define the initial state
 const initialState: UserState = {
   isAuthenticated: false,
   userId: null,
@@ -31,7 +29,6 @@ const initialState: UserState = {
   },
 };
 
-// Create slice
 export const userSlice = createSlice({
   name: "user",
   initialState,
@@ -51,11 +48,11 @@ export const userSlice = createSlice({
       state.email = action.payload.email;
       state.token = action.payload.token;
       state.authProvider = "email";
-      // Ensure profile is properly initialized
+
       state.profile = {
         ...state.profile,
-        fullName: state.profile.fullName || null, // Preserve existing name if any
-        avatar: state.profile.avatar || null, // Preserve existing avatar if any
+        fullName: state.profile.fullName || null,
+        avatar: state.profile.avatar || null,
         preferences: state.profile.preferences || {},
       };
     },
@@ -77,7 +74,7 @@ export const userSlice = createSlice({
       state.authProvider = "google";
       state.profile.fullName = action.payload.fullName;
       state.profile.avatar = action.payload.avatar;
-      // Ensure preferences is initialized
+
       state.profile.preferences = state.profile.preferences || {};
     },
     logout: (state) => {
@@ -91,7 +88,6 @@ export const userSlice = createSlice({
         preferences?: Record<string, any>;
       }>
     ) => {
-      // Ensure profile object exists before updating
       if (!state.profile) {
         state.profile = {
           fullName: null,
@@ -116,19 +112,16 @@ export const userSlice = createSlice({
   },
 });
 
-// Export actions
 export const { login, googleLogin, logout, updateProfile } = userSlice.actions;
 
-// Selectors
 export const selectUser = (state: RootState) => state.user;
 export const selectIsAuthenticated = (state: RootState) => state.user.isAuthenticated;
 export const selectUsername = (state: RootState) => state.user.username;
 export const selectUserEmail = (state: RootState) => state.user.email;
 export const selectUserProfile = (state: RootState) => state.user.profile;
-export const selectUserFullName = (state: RootState) => state.user.profile?.fullName; // Add optional chaining
-export const selectUserAvatar = (state: RootState) => state.user.profile?.avatar; // Add optional chaining
-export const selectUserPreferences = (state: RootState) => state.user.profile?.preferences; // Add optional chaining
+export const selectUserFullName = (state: RootState) => state.user.profile?.fullName;
+export const selectUserAvatar = (state: RootState) => state.user.profile?.avatar;
+export const selectUserPreferences = (state: RootState) => state.user.profile?.preferences;
 export const selectAuthProvider = (state: RootState) => state.user.authProvider;
 
-// Export reducer
 export default userSlice.reducer;
