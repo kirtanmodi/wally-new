@@ -28,14 +28,12 @@ export default function LoginScreen() {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
   const scaleAnim = useRef(new Animated.Value(0.95)).current;
-  const formFadeAnim = useRef(new Animated.Value(0)).current;
 
   // Form state
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [currentPage, setCurrentPage] = useState(0);
 
   // Start animations when component mounts
   useEffect(() => {
@@ -57,19 +55,6 @@ export default function LoginScreen() {
       }),
     ]).start();
   }, []);
-
-  // Handle form page animation
-  useEffect(() => {
-    if (currentPage === 1) {
-      Animated.timing(formFadeAnim, {
-        toValue: 1,
-        duration: 400,
-        useNativeDriver: true,
-      }).start();
-    } else {
-      formFadeAnim.setValue(0);
-    }
-  }, [currentPage]);
 
   // Handle login with email/password
   const handleLogin = async () => {
@@ -121,90 +106,24 @@ export default function LoginScreen() {
     }
   };
 
-  // Handle page change
-  const handleNextPage = () => {
-    setCurrentPage(1);
-  };
-
-  // Mobile welcome screen
-  const renderWelcomeScreen = () => (
-    <LinearGradient colors={["#7FAFF5", "#7FAFF5"]} style={styles.welcomeContainer}>
-      <Animated.View
-        style={[
-          styles.welcomeContent,
-          {
-            opacity: fadeAnim,
-            transform: [{ translateY: slideAnim }, { scale: scaleAnim }],
-          },
-        ]}
-      >
-        <Image source={require("../../assets/images/wally_logo.png")} style={styles.logoImage} />
-        <Text style={styles.welcomeTitle}>Welcome to Wally</Text>
-        <Text style={styles.welcomeDescription}>Your AI assistant for expense tracking</Text>
-      </Animated.View>
-
-      <Animated.View
-        style={[
-          styles.welcomeButtonContainer,
-          {
-            opacity: fadeAnim,
-            transform: [
-              {
-                translateY: fadeAnim.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [20, 0],
-                }),
-              },
-            ],
-          },
-        ]}
-      >
-        <TouchableOpacity style={styles.signInButton} onPress={handleNextPage} activeOpacity={0.9}>
-          <Text style={styles.signInButtonText}>Sign In</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.createAccountButton} onPress={() => router.push("/(auth)/signup")} activeOpacity={0.7}>
-          <Text style={styles.createAccountButtonText}>Create Account</Text>
-        </TouchableOpacity>
-      </Animated.View>
-    </LinearGradient>
-  );
-
-  // Mobile login form screen
+  // Login form
   const renderLoginForm = () => (
     <LinearGradient colors={["#7FAFF5", "#7FAFF5"]} style={styles.loginFormContainer}>
-      <Animated.View
-        style={[
-          styles.loginHeader,
-          {
-            opacity: formFadeAnim,
-            transform: [
-              {
-                translateY: formFadeAnim.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [20, 0],
-                }),
-              },
-            ],
-          },
-        ]}
-      >
-        <TouchableOpacity onPress={() => setCurrentPage(0)} style={styles.backButton}>
-          <FontAwesome name="arrow-left" size={20} color="#FFFFFF" />
-        </TouchableOpacity>
+      <View style={styles.loginHeader}>
+        <View style={{ width: 20 }} />
         <Text style={styles.loginTitle}>Sign In</Text>
         <View style={{ width: 20 }} />
-      </Animated.View>
+      </View>
 
       <ScrollView style={styles.formScrollView} contentContainerStyle={styles.formScrollContent} showsVerticalScrollIndicator={false}>
         <Animated.View
           style={[
             styles.formContainer,
             {
-              opacity: formFadeAnim,
+              opacity: fadeAnim,
               transform: [
                 {
-                  translateY: formFadeAnim.interpolate({
+                  translateY: fadeAnim.interpolate({
                     inputRange: [0, 1],
                     outputRange: [20, 0],
                   }),
@@ -275,6 +194,13 @@ export default function LoginScreen() {
           >
             <Text style={styles.demoButtonText}>Use Demo Account</Text>
           </TouchableOpacity>
+
+          <View style={styles.signupLinkContainer}>
+            <Text style={styles.noAccountText}>Don&apos;t have an account? </Text>
+            <TouchableOpacity onPress={() => router.push("/(auth)/signup")}>
+              <Text style={styles.signupLink}>Create Account</Text>
+            </TouchableOpacity>
+          </View>
         </Animated.View>
       </ScrollView>
     </LinearGradient>
@@ -283,7 +209,7 @@ export default function LoginScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" />
-      {currentPage === 0 ? renderWelcomeScreen() : renderLoginForm()}
+      {renderLoginForm()}
     </SafeAreaView>
   );
 }
@@ -487,5 +413,21 @@ const styles = StyleSheet.create({
     fontSize: scaleFontSize(14),
     color: "#FFFFFF",
     fontWeight: "500",
+  },
+  signupLinkContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 16,
+  },
+  noAccountText: {
+    color: "#FFFFFF",
+    fontSize: scaleFontSize(14),
+  },
+  signupLink: {
+    color: "#FFFFFF",
+    fontSize: scaleFontSize(14),
+    fontWeight: "500",
+    marginLeft: 4,
   },
 });

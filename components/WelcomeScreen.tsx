@@ -1,12 +1,13 @@
 import { LinearGradient } from "expo-linear-gradient";
-import React, { useEffect, useRef } from "react";
-import { Animated, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { BudgetColors } from "../app/constants/Colors";
-import { responsiveMargin, responsivePadding, scaleFontSize, wp } from "../app/utils/responsive";
+import React, { useEffect, useRef, useState } from "react";
+import { Animated, Dimensions, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { scaleFontSize } from "../app/utils/responsive";
 
 interface WelcomeScreenProps {
   onGetStarted: () => void;
 }
+
+const { width } = Dimensions.get("window");
 
 const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onGetStarted }) => {
   // Animation values
@@ -14,10 +15,9 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onGetStarted }) => {
   const slideAnim = useRef(new Animated.Value(30)).current;
   const scaleAnim = useRef(new Animated.Value(0.95)).current;
 
-  // Rule item animations
-  const rule1Anim = useRef(new Animated.Value(0)).current;
-  const rule2Anim = useRef(new Animated.Value(0)).current;
-  const rule3Anim = useRef(new Animated.Value(0)).current;
+  // Carousel state
+  const [activeSlide, setActiveSlide] = useState(0);
+  const scrollViewRef = useRef<ScrollView>(null);
 
   useEffect(() => {
     // Main content animation
@@ -38,153 +38,98 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onGetStarted }) => {
         useNativeDriver: true,
       }),
     ]).start();
-
-    // Staggered rule items animation
-    Animated.stagger(200, [
-      Animated.timing(rule1Anim, {
-        toValue: 1,
-        duration: 400,
-        useNativeDriver: true,
-      }),
-      Animated.timing(rule2Anim, {
-        toValue: 1,
-        duration: 400,
-        useNativeDriver: true,
-      }),
-      Animated.timing(rule3Anim, {
-        toValue: 1,
-        duration: 400,
-        useNativeDriver: true,
-      }),
-    ]).start();
   }, []);
 
+  const handleScroll = (event: any) => {
+    const contentOffsetX = event.nativeEvent.contentOffset.x;
+    const currentIndex = Math.round(contentOffsetX / width);
+    setActiveSlide(currentIndex);
+  };
+
+  const goToSlide = (index: number) => {
+    if (scrollViewRef.current) {
+      scrollViewRef.current.scrollTo({ x: index * width, animated: true });
+    }
+  };
+
+  const carouselSlides = [
+    {
+      title: "Track Your Expenses",
+      description: "Easily record and categorize your daily spending to understand where your money goes.",
+      image: require("../assets/images/wally_logo.png"),
+    },
+    {
+      title: "Set Your Income",
+      description: "Enter your monthly income and let Wally help you allocate funds following the 50-30-20 rule.",
+      image: require("../assets/images/wally_logo.png"),
+    },
+    {
+      title: "Achieve Savings Goals",
+      description: "Create and track your savings goals for important purchases or future security.",
+      image: require("../assets/images/wally_logo.png"),
+    },
+  ];
+
+  const renderDots = () => {
+    return (
+      <View style={styles.paginationContainer}>
+        {carouselSlides.map((_, index) => (
+          <TouchableOpacity
+            key={index}
+            style={[styles.paginationDot, activeSlide === index && styles.paginationDotActive]}
+            onPress={() => goToSlide(index)}
+          />
+        ))}
+      </View>
+    );
+  };
+
   return (
-    <View style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+    <LinearGradient colors={["#7FAFF5", "#7FAFF5"]} style={styles.container}>
+      <View style={styles.header}>
         <Animated.View
           style={[
-            styles.headerSection,
+            styles.headerContent,
             {
               opacity: fadeAnim,
               transform: [{ translateY: slideAnim }, { scale: scaleAnim }],
             },
           ]}
         >
+          <Image source={require("../assets/images/wally_logo.png")} style={styles.logoImage} />
           <Text style={styles.appTitle}>Wally</Text>
-          <Text style={styles.appTagline}>Smart budgeting made simple</Text>
+          <Text style={styles.appTagline}>Your AI assistant for expense tracking</Text>
         </Animated.View>
+      </View>
 
-        <Animated.View
-          style={[
-            styles.illustrationContainer,
-            {
-              opacity: fadeAnim,
-              transform: [{ scale: scaleAnim }],
-            },
-          ]}
+      <Animated.View
+        style={[
+          styles.carouselContainer,
+          {
+            opacity: fadeAnim,
+          },
+        ]}
+      >
+        <ScrollView
+          ref={scrollViewRef}
+          horizontal
+          pagingEnabled
+          showsHorizontalScrollIndicator={false}
+          onScroll={handleScroll}
+          scrollEventThrottle={16}
         >
-          <LinearGradient colors={["#F8F9FA", "#E8F5FF"]} style={styles.illustrationBackground}>
-            <Image source={require("../assets/images/wally_logo.png")} style={styles.illustrationIcon} />
-          </LinearGradient>
-        </Animated.View>
-
-        <Animated.View
-          style={[
-            styles.contentSection,
-            {
-              opacity: fadeAnim,
-              transform: [{ translateY: slideAnim }],
-            },
-          ]}
-        >
-          <Text style={styles.welcomeTitle}>Welcome to the 50-30-20 Budget Rule</Text>
-
-          <Text style={styles.description}>The 50-30-20 rule is a simple budgeting method that helps you manage your money effectively:</Text>
-
-          <View style={styles.ruleSection}>
-            <Animated.View
-              style={[
-                styles.ruleItem,
-                {
-                  backgroundColor: BudgetColors.needs + "15",
-                  opacity: rule1Anim,
-                  transform: [
-                    {
-                      translateX: rule1Anim.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: [-20, 0],
-                      }),
-                    },
-                  ],
-                },
-              ]}
-            >
-              <LinearGradient colors={["#5BD990", "#3DB26E"]} style={styles.ruleIconContainer}>
-                <Text style={styles.ruleIcon}>50%</Text>
-              </LinearGradient>
-              <View style={styles.ruleContent}>
-                <Text style={styles.ruleTitle}>Needs</Text>
-                <Text style={styles.ruleDescription}>Essential expenses like housing, groceries, utilities, transportation, and insurance.</Text>
+          {carouselSlides.map((slide, index) => (
+            <View key={index} style={styles.slide}>
+              <View style={styles.slideImageContainer}>
+                <Image source={slide.image} style={styles.slideImage} />
               </View>
-            </Animated.View>
-
-            <Animated.View
-              style={[
-                styles.ruleItem,
-                {
-                  backgroundColor: BudgetColors.savings + "15",
-                  opacity: rule2Anim,
-                  transform: [
-                    {
-                      translateX: rule2Anim.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: [-20, 0],
-                      }),
-                    },
-                  ],
-                },
-              ]}
-            >
-              <LinearGradient colors={["#FFBA6E", "#FF9C36"]} style={styles.ruleIconContainer}>
-                <Text style={styles.ruleIcon}>30%</Text>
-              </LinearGradient>
-              <View style={styles.ruleContent}>
-                <Text style={styles.ruleTitle}>Savings</Text>
-                <Text style={styles.ruleDescription}>Money for your future: emergency fund, retirement, debt payments, and investments.</Text>
-              </View>
-            </Animated.View>
-
-            <Animated.View
-              style={[
-                styles.ruleItem,
-                {
-                  backgroundColor: BudgetColors.wants + "15",
-                  opacity: rule3Anim,
-                  transform: [
-                    {
-                      translateX: rule3Anim.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: [-20, 0],
-                      }),
-                    },
-                  ],
-                },
-              ]}
-            >
-              <LinearGradient colors={["#837BFF", "#605BFF"]} style={styles.ruleIconContainer}>
-                <Text style={styles.ruleIcon}>20%</Text>
-              </LinearGradient>
-              <View style={styles.ruleContent}>
-                <Text style={styles.ruleTitle}>Wants</Text>
-                <Text style={styles.ruleDescription}>Non-essentials that improve your life: dining out, entertainment, travel, and hobbies.</Text>
-              </View>
-            </Animated.View>
-          </View>
-
-          <Text style={styles.customizeText}>Don&apos;t worry! You can customize these percentages and categories to fit your needs.</Text>
-        </Animated.View>
-      </ScrollView>
+              <Text style={styles.slideTitle}>{slide.title}</Text>
+              <Text style={styles.slideDescription}>{slide.description}</Text>
+            </View>
+          ))}
+        </ScrollView>
+        {renderDots()}
+      </Animated.View>
 
       <Animated.View
         style={[
@@ -203,146 +148,119 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onGetStarted }) => {
         ]}
       >
         <TouchableOpacity style={styles.getStartedButton} onPress={onGetStarted} activeOpacity={0.85}>
-          <LinearGradient colors={["#5BD990", "#3DB26E"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.gradientButton}>
-            <Text style={styles.getStartedText}>Get Started</Text>
-          </LinearGradient>
+          <Text style={styles.getStartedText}>Get Started</Text>
         </TouchableOpacity>
       </Animated.View>
-    </View>
+    </LinearGradient>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F8F9FA",
   },
-  scrollContent: {
-    flexGrow: 1,
-    padding: responsivePadding(24),
-  },
-  headerSection: {
+  header: {
     alignItems: "center",
-    marginTop: responsiveMargin(40),
-    marginBottom: responsiveMargin(20),
+    paddingTop: 60,
+    paddingBottom: 20,
+  },
+  headerContent: {
+    alignItems: "center",
+  },
+  logoImage: {
+    width: 80,
+    height: 80,
+    resizeMode: "contain",
+    marginBottom: 16,
   },
   appTitle: {
     fontSize: scaleFontSize(32),
     fontWeight: "bold",
-    color: "#333",
-    marginBottom: responsiveMargin(8),
+    color: "#FFFFFF",
+    marginBottom: 8,
     letterSpacing: 0.5,
   },
   appTagline: {
     fontSize: scaleFontSize(16),
-    color: "#666",
+    color: "#FFFFFF",
     letterSpacing: 0.2,
+    marginBottom: 20,
   },
-  illustrationContainer: {
-    alignItems: "center",
-    marginBottom: responsiveMargin(40),
-  },
-  illustrationBackground: {
-    width: wp(60),
-    height: wp(60),
-    borderRadius: wp(30),
-    justifyContent: "center",
-    alignItems: "center",
-    elevation: 2,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-  },
-  illustrationIcon: {
-    width: wp(60),
-    height: wp(60),
-  },
-  contentSection: {
-    marginBottom: responsiveMargin(30),
-  },
-  welcomeTitle: {
-    fontSize: scaleFontSize(24),
-    fontWeight: "bold",
-    color: "#333",
-    marginBottom: responsiveMargin(16),
-    textAlign: "center",
-    letterSpacing: 0.3,
-  },
-  description: {
-    fontSize: scaleFontSize(16),
-    color: "#555",
-    marginBottom: responsiveMargin(24),
-    lineHeight: 24,
-  },
-  ruleSection: {
-    marginBottom: responsiveMargin(24),
-  },
-  ruleItem: {
-    flexDirection: "row",
-    borderRadius: 16,
-    padding: responsivePadding(16),
-    marginBottom: responsiveMargin(16),
-    elevation: 1,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-  },
-  ruleIconContainer: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: responsiveMargin(16),
-  },
-  ruleIcon: {
-    color: "white",
-    fontSize: scaleFontSize(16),
-    fontWeight: "bold",
-  },
-  ruleContent: {
+  carouselContainer: {
     flex: 1,
   },
-  ruleTitle: {
-    fontSize: scaleFontSize(18),
-    fontWeight: "600",
-    marginBottom: responsiveMargin(4),
-    color: "#333",
+  slide: {
+    width,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 40,
   },
-  ruleDescription: {
-    fontSize: scaleFontSize(14),
-    color: "#555",
-    lineHeight: 20,
+  slideImageContainer: {
+    width: 120,
+    height: 120,
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    borderRadius: 60,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 30,
+    borderWidth: 2,
+    borderColor: "rgba(255, 255, 255, 0.3)",
   },
-  customizeText: {
-    fontSize: scaleFontSize(14),
-    color: "#666",
+  slideImage: {
+    width: 60,
+    height: 60,
+    resizeMode: "contain",
+  },
+  slideTitle: {
+    fontSize: scaleFontSize(24),
+    fontWeight: "bold",
+    color: "#FFFFFF",
+    marginBottom: 16,
     textAlign: "center",
-    fontStyle: "italic",
-    lineHeight: 20,
+  },
+  slideDescription: {
+    fontSize: scaleFontSize(16),
+    color: "#FFFFFF",
+    textAlign: "center",
+    lineHeight: 24,
+    marginBottom: 20,
+  },
+  paginationContainer: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 30,
+  },
+  paginationDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: "rgba(255, 255, 255, 0.4)",
+    marginHorizontal: 6,
+  },
+  paginationDotActive: {
+    backgroundColor: "#FFFFFF",
+    width: 12,
+    height: 12,
+    borderRadius: 6,
   },
   buttonContainer: {
-    padding: responsivePadding(24),
-    paddingBottom: responsivePadding(30),
+    padding: 24,
+    paddingBottom: 40,
   },
   getStartedButton: {
-    borderRadius: 16,
-    overflow: "hidden",
+    backgroundColor: "#FFFFFF",
+    borderRadius: 30,
+    paddingVertical: 16,
+    alignItems: "center",
     elevation: 4,
-    shadowColor: BudgetColors.needs,
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
     shadowRadius: 8,
   },
-  gradientButton: {
-    paddingVertical: responsivePadding(16),
-    alignItems: "center",
-    borderRadius: 16,
-  },
   getStartedText: {
-    color: "white",
+    color: "#5B6EF5",
     fontSize: scaleFontSize(18),
     fontWeight: "600",
     letterSpacing: 0.5,
