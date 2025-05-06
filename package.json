@@ -24,8 +24,10 @@
     "@react-navigation/native": "^7.1.6",
     "@reduxjs/toolkit": "^2.7.0",
     "expo": "~53.0.7",
+    "expo-auth-session": "~6.1.5",
     "expo-blur": "~14.1.4",
     "expo-constants": "~17.1.5",
+    "expo-crypto": "~14.1.4",
     "expo-font": "~13.3.1",
     "expo-haptics": "~14.1.4",
     "expo-image": "~2.1.6",
@@ -39,6 +41,7 @@
     "expo-system-ui": "~5.0.7",
     "expo-updates": "~0.28.12",
     "expo-web-browser": "~14.1.6",
+    "firebase": "^11.6.1",
     "react": "19.0.0",
     "react-dom": "19.0.0",
     "react-native": "0.79.2",
@@ -50,9 +53,7 @@
     "react-native-web": "~0.20.0",
     "react-native-webview": "13.13.5",
     "react-redux": "^9.2.0",
-    "redux-persist": "^6.0.0",
-    "expo-auth-session": "~6.1.5",
-    "expo-crypto": "~14.1.4"
+    "redux-persist": "^6.0.0"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
