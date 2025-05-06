@@ -2,7 +2,6 @@ import { createSelector, createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { BudgetCategory } from "../../app/types/budget";
 import { RootState } from "../types";
 
-// Define currency type
 export type CurrencyCode = "USD" | "EUR" | "GBP" | "JPY" | "CAD" | "AUD" | "INR" | "CNY";
 
 export interface CurrencyInfo {
@@ -22,7 +21,6 @@ export const AVAILABLE_CURRENCIES: CurrencyInfo[] = [
   { code: "CNY", symbol: "¥", name: "Chinese Yuan" },
 ];
 
-// Define custom category types
 export interface CategoryItem {
   id: string;
   name: string;
@@ -30,19 +28,16 @@ export interface CategoryItem {
   type: BudgetCategory;
 }
 
-// Define savings goal interface
 export interface SavingsGoal {
   amount: number;
   targetDate?: string;
   note?: string;
 }
 
-// Define savings goals by category
 export interface SavingsGoals {
   [categoryId: string]: SavingsGoal;
 }
 
-// Define budget settings state
 interface BudgetState {
   monthlyIncome: number;
   budgetRule: {
@@ -55,7 +50,6 @@ interface BudgetState {
   savingsGoals: SavingsGoals;
 }
 
-// Define initial state
 const initialState: BudgetState = {
   monthlyIncome: 0,
   budgetRule: {
@@ -75,11 +69,10 @@ const initialState: BudgetState = {
     { id: "entertainment", name: "Entertainment", icon: "🎬", type: "Wants" },
     { id: "other", name: "Other", icon: "💡", type: "Wants" },
   ],
-  currency: AVAILABLE_CURRENCIES[0], // Default to USD
-  savingsGoals: {}, // Empty savings goals initially
+  currency: AVAILABLE_CURRENCIES[0],
+  savingsGoals: {},
 };
 
-// Create slice
 export const budgetSlice = createSlice({
   name: "budget",
   initialState,
@@ -175,7 +168,6 @@ export const budgetSlice = createSlice({
   },
 });
 
-// Export actions
 export const {
   setMonthlyIncome,
   updateBudgetRule,
@@ -189,12 +181,10 @@ export const {
   deleteSavingsGoal,
 } = budgetSlice.actions;
 
-// Base selectors
 const selectBudgetState = (state: RootState) => state.budget;
 const selectCategoriesState = (state: RootState) => state.budget.categories;
 const selectSavingsGoalsState = (state: RootState) => state.budget.savingsGoals;
 
-// Export selectors
 export const selectBudget = (state: RootState) => state.budget;
 export const selectMonthlyIncome = (state: RootState) => state.budget.monthlyIncome;
 export const selectBudgetRule = (state: RootState) => state.budget.budgetRule;
@@ -202,16 +192,13 @@ export const selectCategories = (state: RootState) => state.budget.categories;
 export const selectCurrency = (state: RootState) => state.budget.currency;
 export const selectSavingsGoals = (state: RootState) => state.budget.savingsGoals;
 
-// Memoized selector for categories by type
 export const selectCategoriesByType = createSelector([selectCategoriesState, (_, type: BudgetCategory) => type], (categories, type) =>
   categories.filter((cat) => cat.type === type)
 );
 
-// Memoized selector for a specific savings goal
 export const selectSavingsGoalByCategory = createSelector(
   [selectSavingsGoalsState, (_, categoryId: string) => categoryId],
   (savingsGoals, categoryId) => savingsGoals[categoryId] || null
 );
 
-// Export reducer
 export default budgetSlice.reducer;

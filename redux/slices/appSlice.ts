@@ -30,6 +30,12 @@ export const appSlice = createSlice({
   name: "app",
   initialState,
   reducers: {
+    resetApp: (state) => {
+      state.theme = initialState.theme;
+      state.language = initialState.language;
+      state.counter = initialState.counter;
+      state.appSettings = initialState.appSettings;
+    },
     setTheme: (state, action: PayloadAction<"light" | "dark" | "system">) => {
       state.theme = action.payload;
     },
@@ -65,7 +71,7 @@ export const appSlice = createSlice({
 });
 
 // Export actions
-export const { setTheme, setLanguage, incrementCounter, decrementCounter, resetCounter, setCounter, updateAppSettings } = appSlice.actions;
+export const { setTheme, setLanguage, incrementCounter, decrementCounter, resetCounter, setCounter, updateAppSettings, resetApp } = appSlice.actions;
 
 // Export reducer
 export default appSlice.reducer;

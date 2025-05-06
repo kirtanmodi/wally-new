@@ -86,20 +86,6 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onGetStarted }) => {
 
   return (
     <LinearGradient colors={["#7FAFF5", "#7FAFF5"]} style={styles.container}>
-      {/* <View style={styles.header}>
-        <Animated.View
-          style={[
-            styles.headerContent,
-            {
-              opacity: fadeAnim,
-              transform: [{ translateY: slideAnim }, { scale: scaleAnim }],
-            },
-          ]}
-        >
-          <Image source={require("../assets/images/wally_logo.png")} style={styles.logoImage} />
-        </Animated.View>
-      </View> */}
-
       <Animated.View
         style={[
           styles.carouselContainer,
