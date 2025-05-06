@@ -86,7 +86,7 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onGetStarted }) => {
 
   return (
     <LinearGradient colors={["#7FAFF5", "#7FAFF5"]} style={styles.container}>
-      <View style={styles.header}>
+      {/* <View style={styles.header}>
         <Animated.View
           style={[
             styles.headerContent,
@@ -97,10 +97,8 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onGetStarted }) => {
           ]}
         >
           <Image source={require("../assets/images/wally_logo.png")} style={styles.logoImage} />
-          <Text style={styles.appTitle}>Wally</Text>
-          <Text style={styles.appTagline}>Your AI assistant for expense tracking</Text>
         </Animated.View>
-      </View>
+      </View> */}
 
       <Animated.View
         style={[

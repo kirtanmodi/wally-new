@@ -8,19 +8,29 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": false
+      "supportsTablet": false,
+      "splash": {
+        "image": "./assets/images/wally_logo.png",
+        "resizeMode": "contain",
+        "backgroundColor": "#7FAFF5"
+      }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/wally_logo.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#7FAFF5"
       },
       "edgeToEdgeEnabled": true
     },
     "web": {
       "bundler": "metro",
       "output": "static",
-      "favicon": "./assets/images/wally_logo.png"
+      "favicon": "./assets/images/wally_logo.png",
+      "splash": {
+        "image": "./assets/images/wally_logo.png",
+        "resizeMode": "contain",
+        "backgroundColor": "#7FAFF5"
+      }
     },
     "plugins": [
       "expo-router",
@@ -30,7 +40,7 @@
           "image": "./assets/images/wally_logo.png",
           "imageWidth": 200,
           "resizeMode": "contain",
-          "backgroundColor": "#ffffff"
+          "backgroundColor": "#7FAFF5"
         }
       ]
     ],
