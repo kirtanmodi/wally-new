@@ -91,7 +91,17 @@ export const userSlice = createSlice({
       state.profile.preferences = state.profile.preferences || {};
     },
     logout: (state) => {
-      return initialState;
+      state.isAuthenticated = false;
+      state.userId = null;
+      state.username = null;
+      state.email = null;
+      state.token = null;
+      state.authProvider = null;
+      state.profile = {
+        fullName: null,
+        avatar: null,
+        preferences: {},
+      };
     },
     updateProfile: (
       state,
