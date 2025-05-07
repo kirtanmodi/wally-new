@@ -212,12 +212,12 @@ export default function LoginScreen() {
             <Text style={styles.socialButtonText}>Continue with Apple</Text>
           </TouchableOpacity>
 
-          <View style={styles.signupLinkContainer}>
+          {/* <View style={styles.signupLinkContainer}>
             <Text style={styles.noAccountText}>Don&apos;t have an account? </Text>
             <TouchableOpacity onPress={() => router.push("/(auth)/signup")}>
               <Text style={styles.signupLink}>Create Account</Text>
             </TouchableOpacity>
-          </View>
+          </View> */}
         </Animated.View>
       </ScrollView>
     </LinearGradient>
