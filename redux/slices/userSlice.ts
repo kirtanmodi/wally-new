@@ -7,7 +7,7 @@ interface UserState {
   username: string | null;
   email: string | null;
   token: string | null;
-  authProvider: "email" | "google" | null;
+  authProvider: "email" | "google" | "apple" | null;
   profile: {
     fullName: string | null;
     avatar: string | null;
@@ -72,25 +72,26 @@ export const userSlice = createSlice({
         preferences: state.profile.preferences || {},
       };
     },
-    googleLogin: (
+    oauthLogin: (
       state,
       action: PayloadAction<{
         userId: string;
         email: string;
+        username?: string;
         fullName: string;
         avatar: string;
         token: string;
+        provider: "google" | "apple";
       }>
     ) => {
       state.isAuthenticated = true;
       state.userId = action.payload.userId;
-      state.username = action.payload.email.split("@")[0];
+      state.username = action.payload.username || action.payload.email.split("@")[0];
       state.email = action.payload.email;
       state.token = action.payload.token;
-      state.authProvider = "google";
+      state.authProvider = action.payload.provider;
       state.profile.fullName = action.payload.fullName;
       state.profile.avatar = action.payload.avatar;
-
       state.profile.preferences = state.profile.preferences || {};
     },
     logout: (state) => {
@@ -138,10 +139,14 @@ export const userSlice = createSlice({
   },
 });
 
-export const { login, googleLogin, logout, updateProfile, resetUser, setIsAuthenticated } = userSlice.actions;
+export const { login, oauthLogin, logout, updateProfile, resetUser, setIsAuthenticated } = userSlice.actions;
+
+// Keep the googleLogin action for backward compatibility
+export const googleLogin = oauthLogin;
 
 export const selectUser = (state: RootState) => state.user;
 export const selectIsAuthenticated = (state: RootState) => state.user.isAuthenticated;
+export const selectUserId = (state: RootState) => state.user.userId;
 export const selectUsername = (state: RootState) => state.user.username;
 export const selectUserEmail = (state: RootState) => state.user.email;
 export const selectUserProfile = (state: RootState) => state.user.profile;

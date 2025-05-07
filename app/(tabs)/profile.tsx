@@ -1,8 +1,8 @@
-import { useClerk } from "@clerk/clerk-expo";
+import { useClerk, useUser } from "@clerk/clerk-expo";
 import { FontAwesome } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
-import React, { useCallback, useMemo } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Alert, Image, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import Animated, { FadeIn } from "react-native-reanimated";
 import { useDispatch, useSelector } from "react-redux";
@@ -13,6 +13,7 @@ import {
   selectUserAvatar,
   selectUserEmail,
   selectUserFullName,
+  selectUserId,
   selectUserPreferences,
   selectUsername,
   setIsAuthenticated,
@@ -23,8 +24,11 @@ export default function ProfileScreen() {
   const router = useRouter();
   const dispatch = useDispatch();
   const { signOut } = useClerk();
+  const { user: clerkUser } = useUser();
+  const [syncingProfile, setSyncingProfile] = useState(false);
 
-  // User information
+  // User information from Redux
+  const userId = useSelector(selectUserId);
   const username = useSelector(selectUsername);
   const email = useSelector(selectUserEmail);
   const fullName = useSelector(selectUserFullName);
@@ -40,6 +44,59 @@ export default function ProfileScreen() {
   // Default display names
   const displayName = fullName || username || "Guest User";
   const displayEmail = email || "user@example.com";
+
+  // Get icon for auth provider
+  const getAuthProviderIcon = (provider: string | null) => {
+    switch (provider) {
+      case "google":
+        return "google";
+      case "apple":
+        return "apple";
+      case "email":
+      default:
+        return "envelope";
+    }
+  };
+
+  // Get display name for auth provider
+  const getAuthProviderName = (provider: string | null) => {
+    switch (provider) {
+      case "google":
+        return "Google";
+      case "apple":
+        return "Apple";
+      case "email":
+      default:
+        return "Email";
+    }
+  };
+
+  // Sync profile with Clerk if needed
+  useEffect(() => {
+    const syncClerkProfile = async () => {
+      if (clerkUser && !syncingProfile) {
+        setSyncingProfile(true);
+        try {
+          // If Clerk has updated profile info that Redux doesn't have
+          if (clerkUser.firstName && clerkUser.lastName && !fullName) {
+            const clerkFullName = `${clerkUser.firstName} ${clerkUser.lastName}`.trim();
+            dispatch(
+              updateProfile({
+                fullName: clerkFullName,
+                avatar: clerkUser.imageUrl || avatar || undefined,
+              })
+            );
+          }
+        } catch (error) {
+          console.error("Error syncing profile:", error);
+        } finally {
+          setSyncingProfile(false);
+        }
+      }
+    };
+
+    syncClerkProfile();
+  }, [clerkUser, fullName, avatar, dispatch]);
 
   // Determine membership status
   const membershipStatus = useMemo(() => {
@@ -209,8 +266,15 @@ export default function ProfileScreen() {
               {/* Display auth method badge */}
               {authProvider && (
                 <View style={styles.authBadgeContainer}>
-                  <FontAwesome name={authProvider === "google" ? "google" : "envelope"} size={14} color="#fff" style={styles.authBadgeIcon} />
-                  <Text style={styles.authBadgeText}>{authProvider === "google" ? "Google" : "Email"} Login</Text>
+                  <FontAwesome name={getAuthProviderIcon(authProvider)} size={14} color="#fff" style={styles.authBadgeIcon} />
+                  <Text style={styles.authBadgeText}>{getAuthProviderName(authProvider)} Login</Text>
+                </View>
+              )}
+
+              {/* User ID display (hidden by default) */}
+              {userId && process.env.NODE_ENV === "development" && (
+                <View style={styles.userIdContainer}>
+                  <Text style={styles.userIdText}>ID: {typeof userId === "string" ? userId.substring(0, 8) : ""}...</Text>
                 </View>
               )}
             </View>
@@ -716,5 +780,17 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontSize: 12,
     fontWeight: "600",
+  },
+  userIdContainer: {
+    marginTop: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    backgroundColor: "#F0F0F0",
+    borderRadius: 12,
+    marginLeft: 10,
+  },
+  userIdText: {
+    fontSize: 10,
+    color: "#888",
   },
 });

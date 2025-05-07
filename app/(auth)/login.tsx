@@ -1,4 +1,4 @@
-import { useSignIn, useSSO } from "@clerk/clerk-expo";
+import { useSignIn, useSSO, useUser } from "@clerk/clerk-expo";
 import { FontAwesome } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
@@ -17,7 +17,8 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { setIsAuthenticated } from "../../redux/slices/userSlice";
+import { useDispatch } from "react-redux";
+import { login, oauthLogin, setIsAuthenticated } from "../../redux/slices/userSlice";
 import { scaleFontSize } from "../utils/responsive";
 
 export default function LoginScreen() {
@@ -25,6 +26,8 @@ export default function LoginScreen() {
   const { isLoaded, signIn, setActive } = useSignIn();
   const { startSSOFlow: startGoogleOAuthFlow } = useSSO();
   const { startSSOFlow: startAppleOAuthFlow } = useSSO();
+  const { user } = useUser();
+  const dispatch = useDispatch();
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
@@ -55,6 +58,46 @@ export default function LoginScreen() {
     ]).start();
   }, []);
 
+  const saveUserToRedux = async (userId: string, authProvider = "email") => {
+    if (!user || !userId) return;
+
+    try {
+      const emailAddress = user.emailAddresses?.[0]?.emailAddress || "";
+      const username = user.username || emailAddress.split("@")[0] || "";
+
+      // Get token with appropriate fallbacks
+      let token = "";
+      try {
+        // @ts-ignore - getToken exists but type definition may be missing
+        token = await user.getToken();
+      } catch (error) {
+        console.log("Error getting token", error);
+      }
+
+      const userData = {
+        userId,
+        username,
+        email: emailAddress,
+        token,
+      };
+
+      if (authProvider === "email") {
+        dispatch(login(userData));
+      } else if (authProvider === "google" || authProvider === "apple") {
+        dispatch(
+          oauthLogin({
+            ...userData,
+            fullName: `${user.firstName || ""} ${user.lastName || ""}`.trim(),
+            avatar: user.imageUrl || "",
+            provider: authProvider as "google" | "apple",
+          })
+        );
+      }
+    } catch (error) {
+      console.error("Error saving user to Redux:", error);
+    }
+  };
+
   const handleLogin = async () => {
     if (!isLoaded) return;
 
@@ -74,9 +117,15 @@ export default function LoginScreen() {
 
       // If sign-in process is complete, set the created session as active
       if (signInAttempt.status === "complete") {
-        setIsAuthenticated(true);
+        dispatch(setIsAuthenticated(true));
         console.log("signInAttempt.createdSessionId", signInAttempt.createdSessionId);
         await setActive({ session: signInAttempt.createdSessionId });
+
+        // Save user details to Redux
+        // @ts-ignore - userId may exist but type definition is missing
+        const userId = signInAttempt.userId || user?.id || "";
+        await saveUserToRedux(userId);
+
         router.replace("/(tabs)");
       } else {
         // If the status isn't complete, check why. User might need to
@@ -96,12 +145,19 @@ export default function LoginScreen() {
     if (!isLoaded) return;
 
     try {
-      const { createdSessionId } = await startGoogleOAuthFlow({ strategy: "oauth_google" });
+      const result = await startGoogleOAuthFlow({ strategy: "oauth_google" });
+      const { createdSessionId } = result;
 
       if (createdSessionId) {
-        setIsAuthenticated(true);
+        dispatch(setIsAuthenticated(true));
         console.log("createdSessionId google", createdSessionId);
         await setActive({ session: createdSessionId });
+
+        // Save user details to Redux
+        // @ts-ignore - firstFactorVerification may exist but type definition is missing
+        const userId = result.firstFactorVerification?.userId || user?.id || "";
+        await saveUserToRedux(userId, "google");
+
         router.replace("/(tabs)");
       }
     } catch (error) {
@@ -114,12 +170,19 @@ export default function LoginScreen() {
     if (!isLoaded) return;
 
     try {
-      const { createdSessionId } = await startAppleOAuthFlow({ strategy: "oauth_apple" });
+      const result = await startAppleOAuthFlow({ strategy: "oauth_apple" });
+      const { createdSessionId } = result;
 
       if (createdSessionId) {
-        setIsAuthenticated(true);
+        dispatch(setIsAuthenticated(true));
         console.log("createdSessionId apple", createdSessionId);
         await setActive({ session: createdSessionId });
+
+        // Save user details to Redux
+        // @ts-ignore - firstFactorVerification may exist but type definition is missing
+        const userId = result.firstFactorVerification?.userId || user?.id || "";
+        await saveUserToRedux(userId, "apple");
+
         router.replace("/(tabs)");
       }
     } catch (error) {
@@ -211,6 +274,13 @@ export default function LoginScreen() {
             <FontAwesome name="apple" size={20} color="#FFFFFF" style={styles.socialIcon} />
             <Text style={styles.socialButtonText}>Continue with Apple</Text>
           </TouchableOpacity>
+
+          <View style={styles.signupLinkContainer}>
+            <Text style={styles.noAccountText}>Don&apos;t have an account? </Text>
+            <TouchableOpacity onPress={() => router.push("/(auth)/signup")}>
+              <Text style={styles.signupLink}>Create Account</Text>
+            </TouchableOpacity>
+          </View>
         </Animated.View>
       </ScrollView>
     </LinearGradient>
