@@ -211,13 +211,6 @@ export default function LoginScreen() {
             <FontAwesome name="apple" size={20} color="#FFFFFF" style={styles.socialIcon} />
             <Text style={styles.socialButtonText}>Continue with Apple</Text>
           </TouchableOpacity>
-
-          {/* <View style={styles.signupLinkContainer}>
-            <Text style={styles.noAccountText}>Don&apos;t have an account? </Text>
-            <TouchableOpacity onPress={() => router.push("/(auth)/signup")}>
-              <Text style={styles.signupLink}>Create Account</Text>
-            </TouchableOpacity>
-          </View> */}
         </Animated.View>
       </ScrollView>
     </LinearGradient>
