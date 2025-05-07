@@ -1,3 +1,4 @@
+import { useSignUp, useSSO } from "@clerk/clerk-expo";
 import { FontAwesome } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
@@ -16,13 +17,13 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { useDispatch } from "react-redux";
-import { login, updateProfile } from "../../redux/slices/userSlice";
 import { scaleFontSize } from "../utils/responsive";
 
 export default function SignupScreen() {
   const router = useRouter();
-  const dispatch = useDispatch();
+  const { isLoaded, signUp, setActive } = useSignUp();
+  const { startSSOFlow: startGoogleOAuthFlow } = useSSO();
+  const { startSSOFlow: startAppleOAuthFlow } = useSSO();
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
@@ -34,6 +35,8 @@ export default function SignupScreen() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [pendingVerification, setPendingVerification] = useState(false);
+  const [code, setCode] = useState("");
 
   useEffect(() => {
     Animated.parallel([
@@ -56,6 +59,8 @@ export default function SignupScreen() {
   }, []);
 
   const handleSignup = async () => {
+    if (!isLoaded) return;
+
     if (!fullName || !email || !password || !confirmPassword) {
       Alert.alert("Missing Information", "Please fill in all fields");
       return;
@@ -74,39 +79,138 @@ export default function SignupScreen() {
     setIsLoading(true);
 
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      // Start sign-up process using email and password provided
+      await signUp.create({
+        emailAddress: email,
+        password,
+        firstName: fullName.split(" ")[0],
+        lastName: fullName.split(" ").slice(1).join(" "),
+      });
 
-      dispatch(
-        login({
-          userId: "user123",
-          username: email.split("@")[0],
-          email,
-          token: "mock-token-123",
-        })
-      );
+      // Send user an email with verification code
+      await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
 
-      dispatch(
-        updateProfile({
-          fullName,
-        })
-      );
-
-      router.replace("/(tabs)");
-    } catch (error) {
-      console.error("Signup error:", error);
+      // Set 'pendingVerification' to true to display verification form
+      setPendingVerification(true);
+    } catch (err) {
+      console.error("Signup error:", err);
       Alert.alert("Signup Error", "There was a problem creating your account. Please try again.");
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleGoogleSignIn = async () => {
+  const handleVerification = async () => {
+    if (!isLoaded) return;
+
+    setIsLoading(true);
+
     try {
+      // Use the code the user provided to attempt verification
+      const signUpAttempt = await signUp.attemptEmailAddressVerification({
+        code,
+      });
+
+      // If verification was completed, set the session to active
+      if (signUpAttempt.status === "complete") {
+        await setActive({ session: signUpAttempt.createdSessionId });
+        router.replace("/(tabs)");
+      } else {
+        console.error("Verification not complete:", signUpAttempt);
+        Alert.alert("Verification Failed", "Please check your verification code and try again.");
+      }
+    } catch (err) {
+      console.error("Verification error:", err);
+      Alert.alert("Verification Error", "There was a problem verifying your account. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    if (!isLoaded) return;
+
+    try {
+      const { createdSessionId } = await startGoogleOAuthFlow({ strategy: "oauth_google" });
+
+      if (createdSessionId) {
+        await setActive({ session: createdSessionId });
+        router.replace("/(tabs)");
+      }
     } catch (error) {
       console.error("Google sign in error:", error);
       Alert.alert("Google Sign In Error", "There was a problem signing in with Google.");
     }
   };
+
+  const handleAppleSignIn = async () => {
+    if (!isLoaded) return;
+
+    try {
+      const { createdSessionId } = await startAppleOAuthFlow({ strategy: "oauth_apple" });
+
+      if (createdSessionId) {
+        await setActive({ session: createdSessionId });
+        router.replace("/(tabs)");
+      }
+    } catch (error) {
+      console.error("Apple sign in error:", error);
+      Alert.alert("Apple Sign In Error", "There was a problem signing in with Apple.");
+    }
+  };
+
+  const renderVerificationForm = () => (
+    <LinearGradient colors={["#7FAFF5", "#7FAFF5"]} style={styles.signupFormContainer}>
+      <View style={styles.signupHeader}>
+        <TouchableOpacity onPress={() => setPendingVerification(false)} style={styles.backButton}>
+          <FontAwesome name="arrow-left" size={20} color="#FFFFFF" />
+        </TouchableOpacity>
+        <Text style={styles.signupTitle}>Verify Email</Text>
+        <View style={{ width: 20 }} />
+      </View>
+
+      <ScrollView style={styles.formScrollView} contentContainerStyle={styles.formScrollContent} showsVerticalScrollIndicator={false}>
+        <Animated.View
+          style={[
+            styles.formContainer,
+            {
+              opacity: fadeAnim,
+              transform: [
+                {
+                  translateY: fadeAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [20, 0],
+                  }),
+                },
+              ],
+            },
+          ]}
+        >
+          <Image source={require("../../assets/images/wally_logo.png")} style={styles.logoImage} />
+          <Text style={styles.welcomeTitle}>Verify Your Email</Text>
+          <Text style={styles.welcomeDescription}>Enter the verification code sent to your email</Text>
+
+          <View style={styles.inputContainer}>
+            <FontAwesome name="key" size={20} color="#FFFFFF" style={styles.inputIcon} />
+            <TextInput
+              style={styles.input}
+              placeholder="Verification Code"
+              value={code}
+              onChangeText={setCode}
+              autoCapitalize="none"
+              keyboardType="number-pad"
+              autoCorrect={false}
+              placeholderTextColor="rgba(255, 255, 255, 0.7)"
+            />
+          </View>
+
+          <TouchableOpacity style={styles.signInButton} onPress={handleVerification} disabled={isLoading} activeOpacity={0.9}>
+            {isLoading ? <ActivityIndicator color="#4C7ED9" size="small" /> : <Text style={styles.signInButtonText}>Verify Email</Text>}
+          </TouchableOpacity>
+        </Animated.View>
+      </ScrollView>
+    </LinearGradient>
+  );
 
   const renderSignupForm = () => (
     <LinearGradient colors={["#7FAFF5", "#7FAFF5"]} style={styles.signupFormContainer}>
@@ -209,8 +313,14 @@ export default function SignupScreen() {
             <View style={styles.divider} />
           </View>
 
-          <TouchableOpacity style={styles.createAccountButton} onPress={handleGoogleSignIn} activeOpacity={0.7}>
-            <Text style={styles.createAccountButtonText}>Sign in with Google</Text>
+          <TouchableOpacity style={styles.socialButton} onPress={handleGoogleSignIn} activeOpacity={0.7}>
+            <FontAwesome name="google" size={20} color="#FFFFFF" style={styles.socialIcon} />
+            <Text style={styles.socialButtonText}>Continue with Google</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.socialButton} onPress={handleAppleSignIn} activeOpacity={0.7}>
+            <FontAwesome name="apple" size={20} color="#FFFFFF" style={styles.socialIcon} />
+            <Text style={styles.socialButtonText}>Continue with Apple</Text>
           </TouchableOpacity>
 
           <View style={styles.loginLinkContainer}>
@@ -227,7 +337,7 @@ export default function SignupScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" />
-      {renderSignupForm()}
+      {pendingVerification ? renderVerificationForm() : renderSignupForm()}
     </SafeAreaView>
   );
 }
@@ -344,16 +454,21 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     letterSpacing: 0.5,
   },
-  createAccountButton: {
+  socialButton: {
     backgroundColor: "transparent",
     borderWidth: 2,
     borderColor: "#FFFFFF",
     borderRadius: 30,
     paddingVertical: 16,
+    flexDirection: "row",
     alignItems: "center",
+    justifyContent: "center",
     marginBottom: 16,
   },
-  createAccountButtonText: {
+  socialIcon: {
+    marginRight: 12,
+  },
+  socialButtonText: {
     color: "#FFFFFF",
     fontSize: scaleFontSize(16),
     fontWeight: "600",

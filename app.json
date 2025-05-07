@@ -9,33 +9,19 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.wally.app",
-      "splash": {
-        "image": "./assets/images/wally_logo.png",
-        "resizeMode": "contain",
-        "backgroundColor": "#7FAFF5"
-      },
-      "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
-      }
+      "bundleIdentifier": "com.wally.app"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/wally_logo.png",
-        "backgroundColor": "#7FAFF5"
+        "backgroundColor": "#ffffff"
       },
-      "package": "com.wally.app",
       "edgeToEdgeEnabled": true
     },
     "web": {
       "bundler": "metro",
       "output": "static",
-      "favicon": "./assets/images/wally_logo.png",
-      "splash": {
-        "image": "./assets/images/wally_logo.png",
-        "resizeMode": "contain",
-        "backgroundColor": "#7FAFF5"
-      }
+      "favicon": "./assets/images/wally_logo.png"
     },
     "plugins": [
       "expo-router",
@@ -45,13 +31,7 @@
           "image": "./assets/images/wally_logo.png",
           "imageWidth": 200,
           "resizeMode": "contain",
-          "backgroundColor": "#7FAFF5"
-        }
-      ],
-      [
-        "@react-native-google-signin/google-signin",
-        {
-          "iosUrlScheme": "com.googleusercontent.apps.494457099485-vnsuo8bt7hoatil2nq12a8qm0alro4hc"
+          "backgroundColor": "#ffffff"
         }
       ]
     ],

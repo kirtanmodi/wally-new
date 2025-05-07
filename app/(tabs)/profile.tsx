@@ -1,3 +1,4 @@
+import { useClerk } from "@clerk/clerk-expo";
 import { FontAwesome } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
@@ -8,19 +9,20 @@ import { useDispatch, useSelector } from "react-redux";
 import { selectBudgetRule, selectMonthlyIncome } from "../../redux/slices/budgetSlice";
 import { selectExpenses } from "../../redux/slices/expenseSlice";
 import {
-  logout,
   selectAuthProvider,
   selectUserAvatar,
   selectUserEmail,
   selectUserFullName,
   selectUserPreferences,
   selectUsername,
+  setIsAuthenticated,
   updateProfile,
 } from "../../redux/slices/userSlice";
 
 export default function ProfileScreen() {
   const router = useRouter();
   const dispatch = useDispatch();
+  const { signOut } = useClerk();
 
   // User information
   const username = useSelector(selectUsername);
@@ -353,7 +355,9 @@ export default function ProfileScreen() {
                 {
                   text: "Logout",
                   onPress: () => {
-                    dispatch(logout());
+                    signOut();
+                    dispatch(setIsAuthenticated(false));
+                    router.replace("/(auth)/login");
                   },
                   style: "destructive",
                 },

@@ -33,6 +33,9 @@ export const userSlice = createSlice({
   name: "user",
   initialState,
   reducers: {
+    setIsAuthenticated: (state, action: PayloadAction<boolean>) => {
+      state.isAuthenticated = action.payload;
+    },
     resetUser: (state) => {
       state.isAuthenticated = false;
       state.userId = null;
@@ -135,7 +138,7 @@ export const userSlice = createSlice({
   },
 });
 
-export const { login, googleLogin, logout, updateProfile, resetUser } = userSlice.actions;
+export const { login, googleLogin, logout, updateProfile, resetUser, setIsAuthenticated } = userSlice.actions;
 
 export const selectUser = (state: RootState) => state.user;
 export const selectIsAuthenticated = (state: RootState) => state.user.isAuthenticated;

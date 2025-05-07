@@ -1,4 +1,4 @@
-import { selectIsFirstTimeUser } from "@/redux/slices/expenseSlice";
+import { useSignIn, useSSO } from "@clerk/clerk-expo";
 import { FontAwesome } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
@@ -17,19 +17,18 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { useDispatch, useSelector } from "react-redux";
-import { login } from "../../redux/slices/userSlice";
+import { setIsAuthenticated } from "../../redux/slices/userSlice";
 import { scaleFontSize } from "../utils/responsive";
 
 export default function LoginScreen() {
   const router = useRouter();
-  const dispatch = useDispatch();
+  const { isLoaded, signIn, setActive } = useSignIn();
+  const { startSSOFlow: startGoogleOAuthFlow } = useSSO();
+  const { startSSOFlow: startAppleOAuthFlow } = useSSO();
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
   const scaleAnim = useRef(new Animated.Value(0.95)).current;
-
-  const isFirstTimeUser = useSelector(selectIsFirstTimeUser);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -57,6 +56,8 @@ export default function LoginScreen() {
   }, []);
 
   const handleLogin = async () => {
+    if (!isLoaded) return;
+
     if (!email || !password) {
       Alert.alert("Missing Information", "Please enter both email and password");
       return;
@@ -65,39 +66,65 @@ export default function LoginScreen() {
     setIsLoading(true);
 
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      // Start the sign-in process using the email and password provided
+      const signInAttempt = await signIn.create({
+        identifier: email,
+        password,
+      });
 
-      if (email === "demo@example.com" && password === "password") {
-        dispatch(
-          login({
-            userId: "user123",
-            username: "demo_user",
-            email: "demo@example.com",
-            token: "mock-token-123",
-          })
-        );
-
-        if (isFirstTimeUser) {
-          router.replace("/welcome");
-        } else {
-          router.replace("/(tabs)");
-        }
+      // If sign-in process is complete, set the created session as active
+      if (signInAttempt.status === "complete") {
+        setIsAuthenticated(true);
+        console.log("signInAttempt.createdSessionId", signInAttempt.createdSessionId);
+        await setActive({ session: signInAttempt.createdSessionId });
+        router.replace("/(tabs)");
       } else {
-        Alert.alert("Login Failed", "Invalid email or password. For demo, use email: demo@example.com and password: password");
+        // If the status isn't complete, check why. User might need to
+        // complete further steps.
+        console.error("Sign in not complete:", signInAttempt);
+        Alert.alert("Login Failed", "There was a problem signing in. Please try again.");
       }
-    } catch (error) {
-      console.error("Login error:", error);
-      Alert.alert("Login Error", "There was a problem logging in. Please try again.");
+    } catch (err) {
+      console.error("Login error:", err);
+      Alert.alert("Login Error", "There was a problem logging in. Please check your credentials and try again.");
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleGoogleSignIn = async () => {
+    if (!isLoaded) return;
+
     try {
+      const { createdSessionId } = await startGoogleOAuthFlow({ strategy: "oauth_google" });
+
+      if (createdSessionId) {
+        setIsAuthenticated(true);
+        console.log("createdSessionId google", createdSessionId);
+        await setActive({ session: createdSessionId });
+        router.replace("/(tabs)");
+      }
     } catch (error) {
       console.error("Google sign in error:", error);
       Alert.alert("Google Sign In Error", "There was a problem signing in with Google.");
+    }
+  };
+
+  const handleAppleSignIn = async () => {
+    if (!isLoaded) return;
+
+    try {
+      const { createdSessionId } = await startAppleOAuthFlow({ strategy: "oauth_apple" });
+
+      if (createdSessionId) {
+        setIsAuthenticated(true);
+        console.log("createdSessionId apple", createdSessionId);
+        await setActive({ session: createdSessionId });
+        router.replace("/(tabs)");
+      }
+    } catch (error) {
+      console.error("Apple sign in error:", error);
+      Alert.alert("Apple Sign In Error", "There was a problem signing in with Apple.");
     }
   };
 
@@ -175,18 +202,14 @@ export default function LoginScreen() {
             <View style={styles.divider} />
           </View>
 
-          <TouchableOpacity style={styles.createAccountButton} onPress={handleGoogleSignIn} activeOpacity={0.7}>
-            <Text style={styles.createAccountButtonText}>Sign in with Google</Text>
+          <TouchableOpacity style={styles.socialButton} onPress={handleGoogleSignIn} activeOpacity={0.7}>
+            <FontAwesome name="google" size={20} color="#FFFFFF" style={styles.socialIcon} />
+            <Text style={styles.socialButtonText}>Continue with Google</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity
-            style={styles.demoButton}
-            onPress={() => {
-              setEmail("demo@example.com");
-              setPassword("password");
-            }}
-          >
-            <Text style={styles.demoButtonText}>Use Demo Account</Text>
+          <TouchableOpacity style={styles.socialButton} onPress={handleAppleSignIn} activeOpacity={0.7}>
+            <FontAwesome name="apple" size={20} color="#FFFFFF" style={styles.socialIcon} />
+            <Text style={styles.socialButtonText}>Continue with Apple</Text>
           </TouchableOpacity>
 
           <View style={styles.signupLinkContainer}>
@@ -219,23 +242,6 @@ const styles = StyleSheet.create({
     resizeMode: "contain",
     marginBottom: 20,
     alignSelf: "center",
-  },
-
-  desktopContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  desktopContent: {
-    alignItems: "center",
-    justifyContent: "center",
-    width: "100%",
-    maxWidth: 500,
-    padding: 20,
-  },
-  desktopButtonContainer: {
-    width: "100%",
-    marginTop: 40,
   },
 
   welcomeContainer: {
@@ -338,17 +344,6 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontWeight: "500",
   },
-  loginButton: {
-    borderRadius: 16,
-    overflow: "hidden",
-    marginBottom: 16,
-  },
-  loginButtonText: {
-    fontSize: scaleFontSize(16),
-    fontWeight: "600",
-    color: "#FFFFFF",
-    letterSpacing: 0.5,
-  },
   signInButton: {
     backgroundColor: "#FFFFFF",
     borderRadius: 30,
@@ -367,16 +362,21 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     letterSpacing: 0.5,
   },
-  createAccountButton: {
+  socialButton: {
     backgroundColor: "transparent",
     borderWidth: 2,
     borderColor: "#FFFFFF",
     borderRadius: 30,
     paddingVertical: 16,
+    flexDirection: "row",
     alignItems: "center",
+    justifyContent: "center",
     marginBottom: 16,
   },
-  createAccountButtonText: {
+  socialIcon: {
+    marginRight: 12,
+  },
+  socialButtonText: {
     color: "#FFFFFF",
     fontSize: scaleFontSize(16),
     fontWeight: "600",
@@ -395,15 +395,6 @@ const styles = StyleSheet.create({
     marginHorizontal: 12,
     color: "#FFFFFF",
     fontSize: scaleFontSize(14),
-  },
-  demoButton: {
-    paddingVertical: 12,
-    alignItems: "center",
-  },
-  demoButtonText: {
-    fontSize: scaleFontSize(14),
-    color: "#FFFFFF",
-    fontWeight: "500",
   },
   signupLinkContainer: {
     flexDirection: "row",

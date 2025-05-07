@@ -1,22 +1,19 @@
 import { Redirect } from "expo-router";
-import React, { useEffect } from "react";
-import { useDispatch, useSelector } from "react-redux";
-import { resetApp } from "../redux/slices/appSlice";
-import { resetBudget } from "../redux/slices/budgetSlice";
-import { resetExpenses, selectIsFirstTimeUser } from "../redux/slices/expenseSlice";
-import { resetUser } from "../redux/slices/userSlice";
+import React from "react";
+import { useSelector } from "react-redux";
+import { selectIsFirstTimeUser } from "../redux/slices/expenseSlice";
 export default function Index() {
   const isFirstTimeUser = useSelector(selectIsFirstTimeUser);
-  const dispatch = useDispatch();
+  // const dispatch = useDispatch();
 
   console.log("isFirstTimeUser", isFirstTimeUser);
 
-  useEffect(() => {
-    dispatch(resetExpenses());
-    dispatch(resetBudget());
-    dispatch(resetUser());
-    dispatch(resetApp());
-  }, [dispatch]);
+  // useEffect(() => {
+  //   dispatch(resetExpenses());
+  //   dispatch(resetBudget());
+  //   dispatch(resetUser());
+  //   dispatch(resetApp());
+  // }, [dispatch]);
 
   // return <Redirect href="/welcome" />;
 
