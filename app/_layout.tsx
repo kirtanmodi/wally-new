@@ -48,6 +48,10 @@ function AuthContextProvider({ children }: { children: React.ReactNode }) {
 }
 
 export default function RootLayout() {
+  // if (isSignedIn) {
+  //   return <Redirect href={"/"} />;
+  // }
+
   return (
     <Provider store={store}>
       <PersistGate
