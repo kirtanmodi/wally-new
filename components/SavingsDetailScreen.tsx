@@ -24,7 +24,6 @@ interface SavingsDetailScreenProps {
   selectedMonth?: string;
 }
 
-// Goal Setting Modal Component
 interface GoalSettingModalProps {
   visible: boolean;
   onClose: () => void;
@@ -54,33 +53,29 @@ const GoalSettingModal: React.FC<GoalSettingModalProps> = ({
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
 
-  // Format MM/YYYY to human-readable format
   const formatTargetDateForDisplay = (dateString: string): string => {
     if (!dateString) return "";
 
     const [month, year] = dateString.split("/");
     const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
-    // Convert month string to number (1-12) and subtract 1 for array index (0-11)
     const monthIndex = parseInt(month, 10) - 1;
     if (monthIndex >= 0 && monthIndex < 12) {
       return `${monthNames[monthIndex]} ${year}`;
     }
-    return dateString; // Return original if parsing failed
+    return dateString;
   };
 
-  // Reset form fields when the modal becomes visible or current values change
   useEffect(() => {
     if (visible) {
       setAmount(currentAmount.toString());
       setNote(currentNote);
 
-      // Parse the target date if it exists
       if (currentTargetDate) {
         try {
           const [month, year] = currentTargetDate.split("/").map(Number);
           if (!isNaN(month) && !isNaN(year)) {
-            const date = new Date(year, month - 1); // Month is 0-indexed
+            const date = new Date(year, month - 1);
             setSelectedDate(date);
             setTargetDate(currentTargetDate);
           } else {
@@ -104,8 +99,7 @@ const GoalSettingModal: React.FC<GoalSettingModalProps> = ({
     if (date) {
       setSelectedDate(date);
 
-      // Format date as MM/YYYY
-      const month = date.getMonth() + 1; // getMonth() is 0-indexed
+      const month = date.getMonth() + 1;
       const year = date.getFullYear();
       const formattedDate = `${month < 10 ? "0" + month : month}/${year}`;
       setTargetDate(formattedDate);
@@ -116,10 +110,9 @@ const GoalSettingModal: React.FC<GoalSettingModalProps> = ({
     setShowDatePicker(true);
   };
 
-  // Calculate minimum date (current month)
   const minimumDate = useMemo(() => {
     const now = new Date();
-    // Set to the first day of current month
+
     return new Date(now.getFullYear(), now.getMonth(), 1);
   }, []);
 
@@ -161,14 +154,22 @@ const GoalSettingModal: React.FC<GoalSettingModalProps> = ({
             </TouchableOpacity>
 
             {showDatePicker && (
+              // <DateTimePicker
+              //   value={selectedDate || minimumDate}
+              //   mode="date"
+              //   display={Platform.OS === "ios" ? "spinner" : "default"}
+              //   onChange={onDateChange}
+              //   minimumDate={minimumDate}
+              // />
               <DateTimePicker
                 value={selectedDate || minimumDate}
                 mode="date"
                 display={Platform.OS === "ios" ? "spinner" : "default"}
                 onChange={onDateChange}
+                textColor="#333"
+                themeVariant="light"
+                style={styles.iosDatePicker}
                 minimumDate={minimumDate}
-                // On iOS we use spinner view which can easily show just month and year
-                // For Android, we'll still show day but process only month/year
               />
             )}
           </View>
@@ -212,27 +213,21 @@ const SavingsDetailScreen: React.FC<SavingsDetailScreenProps> = ({ onBackPress, 
   const [selectedCategory, setSelectedCategory] = useState<CategoryItem>({ id: "", name: "", icon: "", type: "Savings" });
   const [selectedCategoryGoal, setSelectedCategoryGoal] = useState<SavingsGoal | null>(null);
 
-  // Filter expenses by the selected month
   const monthlyExpenses = React.useMemo(
     () => filterExpensesByMonth(expenses || [], selectedMonth || getCurrentMonthYearKey()),
     [expenses, selectedMonth]
   );
 
-  // Calculate savings budget amount
   const savingsBudgetAmount = (monthlyIncome || 0) * ((budgetRule?.savings || 30) / 100);
 
-  // Calculate savings spent
   const savingsSpent = useMemo(() => {
     return monthlyExpenses.filter((expense) => expense.category === "Savings").reduce((total, expense) => total + expense.amount, 0);
   }, [monthlyExpenses]);
 
-  // Calculate remaining amount
   const remainingAmount = savingsBudgetAmount - savingsSpent;
 
-  // Calculate percentage used
   const percentageUsed = Math.round((savingsBudgetAmount > 0 ? savingsSpent / savingsBudgetAmount : 0) * 100 * 10) / 10;
 
-  // Add a calculation for total savings across all months
   const calculateTotalSavingsByCategory = useMemo(() => {
     return (savingsCategories || []).reduce((result, category) => {
       const totalSaved = expenses
@@ -244,25 +239,19 @@ const SavingsDetailScreen: React.FC<SavingsDetailScreenProps> = ({ onBackPress, 
     }, {} as Record<string, number>);
   }, [expenses, savingsCategories]);
 
-  // Update the categorySpending calculation to include total amount saved
   const categorySpending = useMemo(() => {
-    // Calculate total spent on savings
-    const totalSavingsSpent = savingsSpent > 0 ? savingsSpent : 1; // Avoid division by zero
+    const totalSavingsSpent = savingsSpent > 0 ? savingsSpent : 1;
 
     return (savingsCategories || []).map((category) => {
-      // Current month spending
       const spent = monthlyExpenses.filter((expense) => expense.subcategory === category.name).reduce((total, expense) => total + expense.amount, 0);
 
-      // Total spending across all months
       const totalSpent = calculateTotalSavingsByCategory[category.id] || 0;
 
-      // Calculate percentage of total savings spent (this should add up to 100%)
       const percentage = totalSavingsSpent > 0 ? Math.round((spent / totalSavingsSpent) * 100 * 10) / 10 : 0;
 
-      // Calculate percentage of budget for progress bar (this shows progress toward budget goal)
       const budgetPercentage = savingsBudgetAmount > 0 ? Math.round((spent / savingsBudgetAmount) * 100 * 10) / 10 : 0;
 
-      const goal = category.id && savingsGoals ? savingsGoals[category.id] : undefined; // Get goal from redux store
+      const goal = category.id && savingsGoals ? savingsGoals[category.id] : undefined;
 
       return {
         ...category,
@@ -275,14 +264,12 @@ const SavingsDetailScreen: React.FC<SavingsDetailScreenProps> = ({ onBackPress, 
     });
   }, [monthlyExpenses, savingsCategories, savingsBudgetAmount, savingsGoals, savingsSpent, selectedMonth, calculateTotalSavingsByCategory]);
 
-  // Function to open goal setting modal
   const openGoalSettingModal = (category: CategoryItem) => {
     setSelectedCategory(category);
     setSelectedCategoryGoal(savingsGoals[category.id] || null);
     setModalVisible(true);
   };
 
-  // Function to save a goal
   const saveGoal = (amount: number, note?: string, targetDate?: string) => {
     if (selectedCategory.id) {
       dispatch(
@@ -298,7 +285,6 @@ const SavingsDetailScreen: React.FC<SavingsDetailScreenProps> = ({ onBackPress, 
     }
   };
 
-  // Get current month and year for header
   const currentDate = new Date();
   const monthName = currentDate.toLocaleString("default", { month: "long" });
   const year = currentDate.getFullYear();
@@ -309,19 +295,17 @@ const SavingsDetailScreen: React.FC<SavingsDetailScreenProps> = ({ onBackPress, 
     }
   }, [selectedCategory, savingsGoals]);
 
-  // Function to format target date for display
   const formatTargetDate = (dateString: string): string => {
     if (!dateString) return "";
 
     const [month, year] = dateString.split("/");
     const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
-    // Convert month string to number (1-12) and subtract 1 for array index (0-11)
     const monthIndex = parseInt(month, 10) - 1;
     if (monthIndex >= 0 && monthIndex < 12) {
       return `${monthNames[monthIndex]} ${year}`;
     }
-    return dateString; // Return original if parsing failed
+    return dateString;
   };
 
   return (
@@ -369,7 +353,6 @@ const SavingsDetailScreen: React.FC<SavingsDetailScreenProps> = ({ onBackPress, 
           {categorySpending.map((category) => {
             const goal = category.goal;
 
-            // Progress towards goal
             const goalProgress = goal ? Math.min(100, (category.spent / goal.amount) * 100) : 0;
             const goalPercentage = goalProgress > 0 ? Math.round(goalProgress * 10) / 10 : 0;
 
@@ -616,7 +599,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "#FFF8F0", // Light orange background for savings category
+    backgroundColor: "#FFF8F0",
     justifyContent: "center",
     alignItems: "center",
     marginRight: responsiveMargin(12),
@@ -658,7 +641,7 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   insightContainer: {
-    backgroundColor: "#FFF8F0", // Light orange background for savings insight
+    backgroundColor: "#FFF8F0",
     borderRadius: 16,
     padding: responsivePadding(16),
     marginBottom: responsiveMargin(20),
@@ -675,7 +658,7 @@ const styles = StyleSheet.create({
   insightTitle: {
     fontSize: scaleFontSize(16),
     fontWeight: "600",
-    color: "#FF9C36", // Orange for savings category
+    color: "#FF9C36",
   },
   insightText: {
     fontSize: scaleFontSize(14),
@@ -766,7 +749,7 @@ const styles = StyleSheet.create({
     color: BudgetColors.savings,
     fontWeight: "600",
   },
-  // Modal styles
+
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0, 0, 0, 0.5)",
@@ -858,7 +841,7 @@ const styles = StyleSheet.create({
     color: "#2E7D32",
     fontWeight: "500",
   },
-  // Date picker styles
+
   datePickerButton: {
     justifyContent: "center",
     height: 48,
@@ -890,6 +873,10 @@ const styles = StyleSheet.create({
   goalContributionText: {
     fontSize: scaleFontSize(14),
     color: "#555",
+  },
+  iosDatePicker: {
+    height: 180,
+    width: "100%",
   },
 });
 
