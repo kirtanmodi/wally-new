@@ -80,7 +80,7 @@ const MonthPickerModal: React.FC<MonthPickerModalProps> = ({
                       setTemporarySelectedDate(newDate);
                     }
                   }}
-                  maximumDate={new Date(2030, 11, 31)}
+                  maximumDate={new Date()}
                   minimumDate={new Date(2020, 0, 1)}
                   textColor="#333"
                   themeVariant="light"

@@ -569,82 +569,14 @@ const SavingsDetailScreen: React.FC<SavingsDetailScreenProps> = ({ onBackPress, 
                             </Text>
                           </View>
 
-                          {/* Monthly contribution recommendation */}
-                          {category.monthlyContribution > 0 && (
-                            <View style={styles.monthlyContributionContainer}>
-                              <View style={styles.monthlyContributionHeader}>
-                                <Text style={styles.monthlyContributionTitle}>Monthly Recommendation</Text>
-                                <View
-                                  style={[
-                                    styles.contributionStatusIndicator,
-                                    {
-                                      backgroundColor:
-                                        category.contributionStatus === "ahead"
-                                          ? "#4CAF50"
-                                          : category.contributionStatus === "on-track"
-                                          ? "#FFB74D"
-                                          : "#F44336",
-                                    },
-                                  ]}
-                                />
-                              </View>
+                          <Text style={styles.monthlyContributionAmount}>
+                            Monthly Contribution: {formatWithDenomination(category.monthlyContribution)}/month
+                          </Text>
 
-                              <Text style={styles.monthlyContributionAmount}>
-                                {formatWithDenomination(category.monthlyContribution)}/month (including current month)
-                              </Text>
-
-                              {category.monthsRemaining > 0 && (
-                                <Text style={styles.monthsRemainingText}>
-                                  {category.monthsRemaining} {category.monthsRemaining === 1 ? "month" : "months"} remaining
-                                </Text>
-                              )}
-
-                              <View style={styles.contributionStatusContainer}>
-                                <Text
-                                  style={[
-                                    styles.contributionStatusText,
-                                    {
-                                      color:
-                                        category.contributionStatus === "ahead"
-                                          ? "#4CAF50"
-                                          : category.contributionStatus === "on-track"
-                                          ? "#FF9800"
-                                          : "#F44336",
-                                    },
-                                  ]}
-                                >
-                                  {category.contributionStatus === "ahead"
-                                    ? "Ahead of schedule"
-                                    : category.contributionStatus === "on-track"
-                                    ? "On track"
-                                    : "Behind schedule"}
-                                </Text>
-                              </View>
-
-                              {/* This month's contribution progress */}
-                              <View style={styles.thisMonthProgressContainer}>
-                                <Text style={styles.thisMonthLabel}>This month&apos;s progress:</Text>
-                                <View style={styles.thisMonthProgressBarContainer}>
-                                  <View
-                                    style={[
-                                      styles.thisMonthProgressBar,
-                                      {
-                                        width: `${Math.min(100, (category.spent / category.monthlyContribution) * 100)}%`,
-                                        backgroundColor:
-                                          category.contributionStatus === "ahead"
-                                            ? "#4CAF50"
-                                            : category.contributionStatus === "on-track"
-                                            ? "#FFB74D"
-                                            : "#F44336",
-                                      },
-                                    ]}
-                                  />
-                                </View>
-                                <Text style={styles.thisMonthProgressText}>
-                                  {Math.round((category.spent / category.monthlyContribution) * 100)}% of monthly target
-                                </Text>
-                              </View>
-                            </View>
+                          {category.monthsRemaining > 0 && (
+                            <Text style={styles.monthsRemainingText}>
+                              {category.monthsRemaining} {category.monthsRemaining === 1 ? "month" : "months"} remaining
+                            </Text>
                           )}
 
                           {goal.note && (
