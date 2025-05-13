@@ -423,9 +423,6 @@ const SavingsDetailScreen: React.FC<SavingsDetailScreenProps> = ({ onBackPress, 
           {categorySpending.map((category) => {
             const goal = category.goal;
 
-            const goalProgress = goal ? Math.min(100, (category.spent / goal.amount) * 100) : 0;
-            const goalPercentage = goalProgress > 0 ? Math.round(goalProgress * 10) / 10 : 0;
-
             return (
               <View key={category.id} style={styles.categoryItem}>
                 <View style={styles.categoryHeader}>
