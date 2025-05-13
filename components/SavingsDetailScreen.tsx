@@ -6,6 +6,7 @@ import { BudgetColors } from "../app/constants/Colors";
 import { formatCurrency } from "../app/utils/currency";
 import { filterExpensesByMonth, getCurrentMonthYearKey } from "../app/utils/dateUtils";
 import { responsiveMargin, responsivePadding, scaleFontSize } from "../app/utils/responsive";
+import { calculateMonthlyContribution, getContributionStatus } from "../app/utils/savingsCalculator";
 import {
   CategoryItem,
   SavingsGoal,
@@ -52,6 +53,24 @@ const GoalSettingModal: React.FC<GoalSettingModalProps> = ({
   const [targetDate, setTargetDate] = useState(currentTargetDate);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
+
+  // Get total amount already saved for this category
+  const totalSavedForCategory = useSelector((state: RootState) => {
+    const expenses = selectExpenses(state) || [];
+    return expenses.filter((expense) => expense.subcategory === categoryName).reduce((total, expense) => total + expense.amount, 0);
+  });
+
+  // Calculate estimated monthly contribution
+  const estimatedMonthlyContribution = useMemo(() => {
+    const numAmount = parseFloat(amount);
+    if (isNaN(numAmount) || numAmount <= 0 || !targetDate) {
+      return null;
+    }
+
+    const { monthlyAmount, monthsRemaining } = calculateMonthlyContribution(numAmount, totalSavedForCategory, targetDate);
+
+    return { monthlyAmount, monthsRemaining };
+  }, [amount, targetDate, totalSavedForCategory]);
 
   const formatTargetDateForDisplay = (dateString: string): string => {
     if (!dateString) return "";
@@ -167,6 +186,21 @@ const GoalSettingModal: React.FC<GoalSettingModalProps> = ({
             )}
           </View>
 
+          {/* Show estimated monthly contribution if both amount and target date are set */}
+          {estimatedMonthlyContribution && (
+            <View style={styles.estimatedContributionContainer}>
+              <Text style={styles.estimatedContributionTitle}>Estimated Monthly Contribution</Text>
+              <Text style={styles.estimatedContributionAmount}>{formatCurrency(estimatedMonthlyContribution.monthlyAmount, currency)}/month</Text>
+              {estimatedMonthlyContribution.monthsRemaining > 0 && (
+                <Text style={styles.estimatedMonthsText}>
+                  Over the next {estimatedMonthlyContribution.monthsRemaining}{" "}
+                  {estimatedMonthlyContribution.monthsRemaining === 1 ? "month" : "months"}
+                </Text>
+              )}
+              <Text style={styles.estimatedHelperText}>This is how much you should save each month to reach your goal on time.</Text>
+            </View>
+          )}
+
           <View style={styles.inputContainer}>
             <Text style={styles.inputLabel}>Note (Optional)</Text>
             <TextInput
@@ -246,6 +280,21 @@ const SavingsDetailScreen: React.FC<SavingsDetailScreenProps> = ({ onBackPress, 
 
       const goal = category.id && savingsGoals ? savingsGoals[category.id] : undefined;
 
+      // Calculate monthly contribution needed to reach the goal
+      let monthlyContribution = 0;
+      let monthsRemaining = 0;
+      let contributionStatus: "ahead" | "on-track" | "behind" = "on-track";
+
+      if (goal && goal.targetDate) {
+        const calculation = calculateMonthlyContribution(goal.amount, totalSpent, goal.targetDate);
+        monthlyContribution = calculation.monthlyAmount;
+        monthsRemaining = calculation.monthsRemaining;
+
+        // Check if this month's contribution is on track
+        const thisMonthContribution = spent; // How much saved this month
+        contributionStatus = getContributionStatus(monthlyContribution, thisMonthContribution);
+      }
+
       return {
         ...category,
         spent,
@@ -253,6 +302,9 @@ const SavingsDetailScreen: React.FC<SavingsDetailScreenProps> = ({ onBackPress, 
         percentage,
         budgetPercentage,
         goal,
+        monthlyContribution,
+        monthsRemaining,
+        contributionStatus,
       };
     });
   }, [monthlyExpenses, savingsCategories, savingsBudgetAmount, savingsGoals, savingsSpent, selectedMonth, calculateTotalSavingsByCategory]);
@@ -265,6 +317,12 @@ const SavingsDetailScreen: React.FC<SavingsDetailScreenProps> = ({ onBackPress, 
 
   const saveGoal = (amount: number, note?: string, targetDate?: string) => {
     if (selectedCategory.id) {
+      // Calculate the total amount already saved for this category
+      const totalSpent = calculateTotalSavingsByCategory[selectedCategory.id] || 0;
+
+      // Calculate monthly contribution needed to reach goal
+      const { monthlyAmount, monthsRemaining } = calculateMonthlyContribution(amount, totalSpent, targetDate);
+
       dispatch(
         setSavingsGoal({
           categoryId: selectedCategory.id,
@@ -272,6 +330,8 @@ const SavingsDetailScreen: React.FC<SavingsDetailScreenProps> = ({ onBackPress, 
             amount,
             note,
             targetDate,
+            monthlyContribution: monthlyAmount,
+            monthsRemaining,
           },
         })
       );
@@ -300,6 +360,16 @@ const SavingsDetailScreen: React.FC<SavingsDetailScreenProps> = ({ onBackPress, 
     }
     return dateString;
   };
+
+  // Initialize with all categories collapsed by default
+  const [collapsedContributions, setCollapsedContributions] = useState<Record<string, boolean>>(() => {
+    const initialState: Record<string, boolean> = {};
+    // Set all categories to collapsed (true) by default
+    savingsCategories.forEach((category) => {
+      initialState[category.id] = true;
+    });
+    return initialState;
+  });
 
   return (
     <View style={styles.container}>
@@ -413,6 +483,97 @@ const SavingsDetailScreen: React.FC<SavingsDetailScreenProps> = ({ onBackPress, 
                           {category.spent > 0 && ` (${formatCurrency(category.spent, currency)} this month)`}
                         </Text>
                       </View>
+
+                      {/* Monthly contribution recommendation */}
+                      {category.monthlyContribution > 0 && (
+                        <View style={styles.monthlyContributionContainer}>
+                          <TouchableOpacity
+                            style={styles.monthlyContributionHeader}
+                            onPress={() => {
+                              // Toggle collapse state for this specific category
+                              const newState = { ...collapsedContributions };
+                              newState[category.id] = !newState[category.id];
+                              setCollapsedContributions(newState);
+                            }}
+                          >
+                            <Text style={styles.monthlyContributionTitle}>Monthly Recommendation</Text>
+                            <View style={{ flexDirection: "row", alignItems: "center" }}>
+                              <View
+                                style={[
+                                  styles.contributionStatusIndicator,
+                                  {
+                                    backgroundColor:
+                                      category.contributionStatus === "ahead"
+                                        ? "#4CAF50"
+                                        : category.contributionStatus === "on-track"
+                                        ? "#FFB74D"
+                                        : "#F44336",
+                                  },
+                                ]}
+                              />
+                              <Text style={styles.collapseIndicator}>{collapsedContributions[category.id] ? "▶" : "▼"}</Text>
+                            </View>
+                          </TouchableOpacity>
+
+                          {!collapsedContributions[category.id] && (
+                            <>
+                              <Text style={styles.monthlyContributionAmount}>{formatCurrency(category.monthlyContribution, currency)}/month</Text>
+
+                              {category.monthsRemaining > 0 && (
+                                <Text style={styles.monthsRemainingText}>
+                                  {category.monthsRemaining} {category.monthsRemaining === 1 ? "month" : "months"} remaining
+                                </Text>
+                              )}
+
+                              <View style={styles.contributionStatusContainer}>
+                                <Text
+                                  style={[
+                                    styles.contributionStatusText,
+                                    {
+                                      color:
+                                        category.contributionStatus === "ahead"
+                                          ? "#4CAF50"
+                                          : category.contributionStatus === "on-track"
+                                          ? "#FF9800"
+                                          : "#F44336",
+                                    },
+                                  ]}
+                                >
+                                  {category.contributionStatus === "ahead"
+                                    ? "Ahead of schedule"
+                                    : category.contributionStatus === "on-track"
+                                    ? "On track"
+                                    : "Behind schedule"}
+                                </Text>
+                              </View>
+
+                              {/* This month's contribution progress */}
+                              <View style={styles.thisMonthProgressContainer}>
+                                <Text style={styles.thisMonthLabel}>This month&apos;s progress:</Text>
+                                <View style={styles.thisMonthProgressBarContainer}>
+                                  <View
+                                    style={[
+                                      styles.thisMonthProgressBar,
+                                      {
+                                        width: `${Math.min(100, (category.spent / category.monthlyContribution) * 100)}%`,
+                                        backgroundColor:
+                                          category.contributionStatus === "ahead"
+                                            ? "#4CAF50"
+                                            : category.contributionStatus === "on-track"
+                                            ? "#FFB74D"
+                                            : "#F44336",
+                                      },
+                                    ]}
+                                  />
+                                </View>
+                                <Text style={styles.thisMonthProgressText}>
+                                  {Math.round((category.spent / category.monthlyContribution) * 100)}% of monthly target
+                                </Text>
+                              </View>
+                            </>
+                          )}
+                        </View>
+                      )}
 
                       {goal.note && (
                         <View style={styles.goalNoteContainer}>
@@ -870,6 +1031,101 @@ const styles = StyleSheet.create({
   iosDatePicker: {
     height: 180,
     width: "100%",
+  },
+  monthlyContributionContainer: {
+    marginTop: responsiveMargin(16),
+    padding: responsivePadding(12),
+    backgroundColor: "#FFF8F0",
+    borderRadius: 8,
+  },
+  monthlyContributionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: responsiveMargin(8),
+  },
+  monthlyContributionTitle: {
+    fontSize: scaleFontSize(16),
+    fontWeight: "600",
+    color: "#333",
+  },
+  contributionStatusIndicator: {
+    width: 20,
+    height: 8,
+    borderRadius: 4,
+    marginHorizontal: responsiveMargin(8),
+  },
+  monthlyContributionAmount: {
+    fontSize: scaleFontSize(14),
+    color: "#666",
+  },
+  monthsRemainingText: {
+    fontSize: scaleFontSize(14),
+    color: "#666",
+  },
+  contributionStatusContainer: {
+    marginTop: responsiveMargin(4),
+  },
+  contributionStatusText: {
+    fontSize: scaleFontSize(14),
+    color: "#666",
+  },
+  thisMonthProgressContainer: {
+    marginTop: responsiveMargin(16),
+    padding: responsivePadding(12),
+    backgroundColor: "#FFF8F0",
+    borderRadius: 8,
+  },
+  thisMonthLabel: {
+    fontSize: scaleFontSize(16),
+    fontWeight: "600",
+    color: "#333",
+  },
+  thisMonthProgressBarContainer: {
+    height: 8,
+    backgroundColor: "#F0F0F0",
+    borderRadius: 4,
+    overflow: "hidden",
+    marginVertical: responsiveMargin(8),
+  },
+  thisMonthProgressBar: {
+    height: "100%",
+    backgroundColor: "#4CAF50",
+    borderRadius: 4,
+  },
+  thisMonthProgressText: {
+    fontSize: scaleFontSize(14),
+    color: "#666",
+  },
+  estimatedContributionContainer: {
+    marginTop: responsiveMargin(16),
+    padding: responsivePadding(12),
+    backgroundColor: "#FFF8F0",
+    borderRadius: 8,
+  },
+  estimatedContributionTitle: {
+    fontSize: scaleFontSize(16),
+    fontWeight: "600",
+    color: "#333",
+    marginBottom: responsiveMargin(8),
+  },
+  estimatedContributionAmount: {
+    fontSize: scaleFontSize(14),
+    color: "#666",
+    fontWeight: "700",
+  },
+  estimatedMonthsText: {
+    fontSize: scaleFontSize(14),
+    color: "#666",
+  },
+  estimatedHelperText: {
+    fontSize: scaleFontSize(12),
+    color: "#666",
+  },
+  collapseIndicator: {
+    fontSize: scaleFontSize(14),
+    color: "#555",
+    marginLeft: responsiveMargin(4),
+    fontWeight: "bold",
   },
 });
 

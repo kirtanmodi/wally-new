@@ -32,6 +32,8 @@ export interface SavingsGoal {
   amount: number;
   targetDate?: string;
   note?: string;
+  monthlyContribution?: number;
+  monthsRemaining?: number;
 }
 
 export interface SavingsGoals {
