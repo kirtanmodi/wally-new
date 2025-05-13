@@ -141,3 +141,32 @@
   - [ ] Verify category management functions work properly in modal
   - [ ] Test performance with a large number of categories
 
+## Phase 7: Add Savings Category Button in SavingsDetailScreen
+- [x] Create "Add Savings Category" button in SavingsDetailScreen
+  - [x] Add button near the "Savings Categories" section header
+  - [x] Style the button to match the app's design system
+  - [x] Use LinearGradient with the savings color theme
+- [x] Implement Add Category Modal functionality
+  - [x] Create reusable modal component or reuse existing from BudgetSettings
+  - [x] Simplify the modal to only allow "Savings" as the category type
+  - [x] Pre-fill the category type as "Savings" and hide the type selector
+  - [x] Ensure new categories are properly added to the Redux store
+- [x] Update Redux integration
+  - [x] Ensure the addCategory action from budgetSlice is properly imported
+  - [x] Dispatch action when a new savings category is added
+  - [x] Update the UI immediately after adding a new category
+- [x] Handle UI feedback
+  - [x] Add success message after category creation
+  - [x] Add validation to prevent empty category names
+  - [ ] Add loading indicator during category creation process
+  - [ ] Show appropriate error messages for validation failures
+- [ ] Optimize performance
+  - [ ] Ensure modal animations are smooth
+  - [ ] Add proper keyboard handling for form inputs
+  - [ ] Make sure modal unmounts properly to prevent memory leaks
+- [ ] Testing
+  - [ ] Test adding new savings categories
+  - [ ] Verify new categories appear in the list immediately
+  - [ ] Test validation logic for edge cases
+  - [ ] Ensure responsive design works on different screen sizes
+

@@ -1,4 +1,5 @@
 import DateTimePicker from "@react-native-community/datetimepicker";
+import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect, useMemo, useState } from "react";
 import { Alert, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
@@ -8,6 +9,7 @@ import { filterExpensesByMonth, getCurrentMonthYearKey } from "../app/utils/date
 import { responsiveMargin, responsivePadding, scaleFontSize } from "../app/utils/responsive";
 import { calculateMonthlyContribution, getContributionStatus } from "../app/utils/savingsCalculator";
 import {
+  addCategory,
   CategoryItem,
   SavingsGoal,
   selectBudgetRule,
@@ -378,6 +380,37 @@ const SavingsDetailScreen: React.FC<SavingsDetailScreenProps> = ({ onBackPress, 
     return formatCurrency(amount, currency, denominationFormat);
   };
 
+  const [showAddCategory, setShowAddCategory] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState("");
+  const [selectedIcon, setSelectedIcon] = useState("💰");
+
+  // Common icons specifically for savings categories
+  const SAVINGS_ICONS = ["💰", "📈", "🏦", "🧰", "🏠", "🎓", "💸", "💼", "🚗", "✈️", "🏥", "👪", "🏆", "💍", "🎁"];
+
+  const handleAddCategory = () => {
+    if (!newCategoryName.trim()) {
+      Alert.alert("Error", "Category name cannot be empty");
+      return;
+    }
+
+    const id = `savings-${newCategoryName.toLowerCase().replace(/\s+/g, "-")}`;
+    dispatch(
+      addCategory({
+        id,
+        name: newCategoryName,
+        icon: selectedIcon,
+        type: "Savings", // Always set to Savings
+      })
+    );
+
+    setNewCategoryName("");
+    setSelectedIcon("💰");
+    setShowAddCategory(false);
+
+    // Show success message
+    Alert.alert("Success", `Savings category "${newCategoryName}" has been added.`, [{ text: "OK" }], { cancelable: true });
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -418,7 +451,14 @@ const SavingsDetailScreen: React.FC<SavingsDetailScreenProps> = ({ onBackPress, 
 
         {/* Categories Section */}
         <View style={styles.categoriesSection}>
-          <Text style={styles.sectionTitle}>Savings Categories</Text>
+          <View style={styles.sectionTitleRow}>
+            <Text style={styles.sectionTitle}>Savings Categories</Text>
+            <TouchableOpacity style={styles.addCategoryButton} onPress={() => setShowAddCategory(true)} activeOpacity={0.7}>
+              <LinearGradient colors={["#FFBA6E", "#FF9C36"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.addCategoryButtonGradient}>
+                <Text style={styles.addCategoryButtonText}>+ Add Category</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
 
           {categorySpending.map((category) => {
             const goal = category.goal;
@@ -440,7 +480,7 @@ const SavingsDetailScreen: React.FC<SavingsDetailScreenProps> = ({ onBackPress, 
                         ? "Saving for home purchase"
                         : category.name === "Education"
                         ? "College funds, continuing education"
-                        : "Long-term financial security"}
+                        : ""}
                     </Text>
                   </View>
                   <View style={styles.categoryAmountContainer}>
@@ -628,6 +668,55 @@ const SavingsDetailScreen: React.FC<SavingsDetailScreenProps> = ({ onBackPress, 
         currentTargetDate={selectedCategoryGoal?.targetDate || ""}
         currency={currency}
       />
+
+      {/* Add Category Modal */}
+      <Modal visible={showAddCategory} animationType="fade" transparent={true} onRequestClose={() => setShowAddCategory(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainerView}>
+            <View style={styles.modalHeaderView}>
+              <Text style={styles.modalTitleText}>Add Savings Category</Text>
+              <TouchableOpacity onPress={() => setShowAddCategory(false)} hitSlop={{ top: 20, right: 20, bottom: 20, left: 20 }}>
+                <Text style={styles.modalCloseText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.modalScrollView} contentContainerStyle={styles.modalScrollContent}>
+              <View style={styles.formGroup}>
+                <Text style={styles.formLabel}>Category Name</Text>
+                <TextInput
+                  style={styles.formInput}
+                  value={newCategoryName}
+                  onChangeText={setNewCategoryName}
+                  placeholder="e.g., Vacation Fund, New Car, etc."
+                  returnKeyType="done"
+                  blurOnSubmit={true}
+                />
+              </View>
+
+              <View style={styles.formGroup}>
+                <Text style={styles.formLabel}>Select Icon</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.iconList}>
+                  {SAVINGS_ICONS.map((icon, index) => (
+                    <TouchableOpacity
+                      key={index}
+                      style={[styles.iconOption, selectedIcon === icon && styles.selectedIcon]}
+                      onPress={() => setSelectedIcon(icon)}
+                    >
+                      <Text style={styles.iconText}>{icon}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+
+              <TouchableOpacity style={styles.saveButtonContainer} onPress={handleAddCategory} activeOpacity={0.8}>
+                <LinearGradient colors={["#FFBA6E", "#FF9C36"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.addCategorySaveButton}>
+                  <Text style={styles.addCategorySaveButtonText}>Save Category</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -727,10 +816,30 @@ const styles = StyleSheet.create({
   categoriesSection: {
     marginBottom: responsiveMargin(20),
   },
+  sectionTitleRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: responsiveMargin(16),
+  },
   sectionTitle: {
     fontSize: scaleFontSize(20),
     fontWeight: "600",
-    marginBottom: responsiveMargin(16),
+  },
+  addCategoryButton: {
+    borderRadius: 14,
+    overflow: "hidden",
+  },
+  addCategoryButtonGradient: {
+    paddingHorizontal: responsivePadding(12),
+    paddingVertical: responsivePadding(8),
+    borderRadius: 14,
+  },
+  addCategoryButtonText: {
+    fontSize: scaleFontSize(14),
+    fontWeight: "600",
+    color: "#FFF",
+    letterSpacing: 0.2,
   },
   categoryItem: {
     backgroundColor: "white",
@@ -1125,6 +1234,98 @@ const styles = StyleSheet.create({
     color: "#555",
     marginLeft: responsiveMargin(4),
     fontWeight: "bold",
+  },
+  modalContainerView: {
+    backgroundColor: "#FFF",
+    borderRadius: 16,
+    width: "90%",
+    maxHeight: "80%",
+    overflow: "hidden",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 8,
+  },
+  modalHeaderView: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F0F0F0",
+  },
+  modalTitleText: {
+    fontSize: scaleFontSize(18),
+    fontWeight: "600",
+    color: "#333",
+  },
+  modalCloseText: {
+    fontSize: scaleFontSize(24),
+    color: "#666",
+    padding: 4,
+  },
+  modalScrollView: {
+    maxHeight: "100%",
+  },
+  modalScrollContent: {
+    padding: 20,
+  },
+  formGroup: {
+    marginBottom: 20,
+  },
+  formLabel: {
+    fontSize: scaleFontSize(16),
+    fontWeight: "500",
+    color: "#333",
+    marginBottom: 8,
+  },
+  formInput: {
+    borderWidth: 1,
+    borderColor: "#E0E0E0",
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: scaleFontSize(16),
+    backgroundColor: "#FCFCFC",
+  },
+  iconList: {
+    flexDirection: "row",
+    marginVertical: 10,
+  },
+  iconOption: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#E6E6E6",
+    marginRight: 10,
+    backgroundColor: "#FCFCFC",
+  },
+  selectedIcon: {
+    borderColor: BudgetColors.savings,
+    backgroundColor: BudgetColors.savings + "10",
+  },
+  iconText: {
+    fontSize: scaleFontSize(20),
+  },
+  saveButtonContainer: {
+    borderRadius: 14,
+    overflow: "hidden",
+    marginTop: 20,
+  },
+  addCategorySaveButton: {
+    padding: 14,
+    borderRadius: 14,
+    alignItems: "center",
+  },
+  addCategorySaveButtonText: {
+    color: "#FFF",
+    fontSize: scaleFontSize(16),
+    fontWeight: "600",
   },
 });
 
