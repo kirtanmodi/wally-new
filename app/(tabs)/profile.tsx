@@ -172,13 +172,13 @@ export default function ProfileScreen() {
   }, [dispatch]);
 
   // Navigation handlers
-  const handleNavigateToSettings = useCallback(() => {
-    router.push("/(tabs)/settings");
-  }, [router]);
+  // const handleNavigateToSettings = useCallback(() => {
+  //   router.push("/(tabs)/settings");
+  // }, [router]);
 
-  const handleNavigateToAnalytics = useCallback(() => {
-    router.push("/(tabs)/analytics");
-  }, [router]);
+  // const handleNavigateToAnalytics = useCallback(() => {
+  //   router.push("/(tabs)/analytics");
+  // }, [router]);
 
   // Menu item handlers
   const handleMenuItemPress = useCallback(

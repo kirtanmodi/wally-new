@@ -114,7 +114,7 @@ export default function SignupScreen() {
       // If verification was completed, set the session to active
       if (signUpAttempt.status === "complete") {
         await setActive({ session: signUpAttempt.createdSessionId });
-        router.replace("/(tabs)");
+        // router.replace("/(tabs)");
       } else {
         console.error("Verification not complete:", signUpAttempt);
         Alert.alert("Verification Failed", "Please check your verification code and try again.");
@@ -135,7 +135,7 @@ export default function SignupScreen() {
 
       if (createdSessionId) {
         await setActive({ session: createdSessionId });
-        router.replace("/(tabs)");
+        // router.replace("/(tabs)");
       }
     } catch (error) {
       console.error("Google sign in error:", error);
@@ -151,7 +151,7 @@ export default function SignupScreen() {
 
       if (createdSessionId) {
         await setActive({ session: createdSessionId });
-        router.replace("/(tabs)");
+        // router.replace("/(tabs)");
       }
     } catch (error) {
       console.error("Apple sign in error:", error);

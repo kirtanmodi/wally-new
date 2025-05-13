@@ -14,7 +14,7 @@ export default function SettingsTab() {
 
   const handleBackPress = () => {
     if (monthlyIncome === 0 && isFirstTimeUser) {
-      router.push("/");
+      router.push("/welcome");
     } else {
       router.push("/(tabs)");
     }
