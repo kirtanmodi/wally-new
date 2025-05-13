@@ -176,3 +176,20 @@ export const getPreviousMonths = (numMonths: number = 6): { key: string; display
 
   return months;
 };
+
+/**
+ * Format a date (string or Date object) to a readable format
+ * @param date Date to format
+ * @returns Human-readable date string
+ */
+export function formatReadableDate(date: string | Date): string {
+  // Convert string to Date if needed
+  const dateObj = typeof date === "string" ? new Date(date) : date;
+
+  // Format the date in a readable format
+  return dateObj.toLocaleDateString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+}

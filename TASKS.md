@@ -62,3 +62,28 @@
   - [ ] Verify calculations are correct across different scenarios
   - [ ] Test edge cases (past dates, already achieved goals)
 
+## Phase 4: Currency Denomination Formatting
+- [x] Create currency utilities
+  - [x] Create app/utils/denominationFormatter.ts
+  - [x] Implement formatWithDenomination function with support for suffixes (k, M, L, Cr)
+  - [x] Add internationalization support for different region-specific denominations
+- [x] Update Redux store
+  - [x] Add denominationFormat preference to budgetSlice.ts or userSlice.ts
+  - [x] Create action to update the denomination format preference
+  - [x] Define denomination format types (none, compact, indian, international)
+- [x] Update Settings screen
+  - [x] Add denomination format selection in settings
+  - [x] Create radio button or dropdown selector for format options
+  - [x] Add preview examples for each format
+- [x] Update components to use denomination formatting
+  - [x] Update formatCurrency utility to use the new formatting
+  - [x] Modify SavingsDetailScreen to use denomination formatting
+  - [x] Modify NeedsDetailScreen to use denomination formatting
+  - [x] Modify WantsDetailScreen to use denomination formatting
+  - [x] Modify ExpensesList components to use denomination formatting
+  - [x] Modify Profile screen to use denomination formatting
+- [ ] Testing
+  - [ ] Test with various currency amounts
+  - [ ] Verify formatting is consistent across the app
+  - [ ] Test edge cases (very large and small amounts)
+

@@ -13,6 +13,7 @@ import {
   selectBudgetRule,
   selectCategoriesByType,
   selectCurrency,
+  selectDenominationFormat,
   selectMonthlyIncome,
   selectSavingsGoals,
   setSavingsGoal,
@@ -233,6 +234,7 @@ const SavingsDetailScreen: React.FC<SavingsDetailScreenProps> = ({ onBackPress, 
   const monthlyIncome = useSelector(selectMonthlyIncome) || 0;
   const budgetRule = useSelector(selectBudgetRule) || { needs: 50, savings: 30, wants: 20 };
   const currency = useSelector(selectCurrency) || { code: "USD", symbol: "$", name: "US Dollar" };
+  const denominationFormat = useSelector(selectDenominationFormat);
   const savingsCategories = useSelector((state: RootState) => selectCategoriesByType(state, "Savings")) || [];
   const savingsGoals = useSelector(selectSavingsGoals) || {};
 
@@ -371,6 +373,11 @@ const SavingsDetailScreen: React.FC<SavingsDetailScreenProps> = ({ onBackPress, 
     return initialState;
   });
 
+  // Update to use denomination format with currency display
+  const formatWithDenomination = (amount: number) => {
+    return formatCurrency(amount, currency, denominationFormat);
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -390,12 +397,12 @@ const SavingsDetailScreen: React.FC<SavingsDetailScreenProps> = ({ onBackPress, 
           <View style={styles.amountContainer}>
             <View style={styles.amountColumn}>
               <Text style={styles.amountLabel}>Saved</Text>
-              <Text style={styles.spentAmount}>{formatCurrency(savingsSpent, currency)}</Text>
+              <Text style={styles.spentAmount}>{formatWithDenomination(savingsSpent)}</Text>
             </View>
 
             <View style={styles.amountColumn}>
               <Text style={styles.amountLabel}>Goal</Text>
-              <Text style={styles.allocatedAmount}>{formatCurrency(savingsBudgetAmount, currency)}</Text>
+              <Text style={styles.allocatedAmount}>{formatWithDenomination(savingsBudgetAmount)}</Text>
             </View>
           </View>
 
@@ -405,7 +412,7 @@ const SavingsDetailScreen: React.FC<SavingsDetailScreenProps> = ({ onBackPress, 
 
           <View style={styles.progressInfoContainer}>
             <Text style={styles.percentageText}>{percentageUsed}% of goal</Text>
-            <Text style={styles.remainingText}>{formatCurrency(remainingAmount, currency)} more to goal</Text>
+            <Text style={styles.remainingText}>{formatWithDenomination(remainingAmount)} more to goal</Text>
           </View>
         </View>
 
@@ -440,15 +447,10 @@ const SavingsDetailScreen: React.FC<SavingsDetailScreenProps> = ({ onBackPress, 
                     </Text>
                   </View>
                   <View style={styles.categoryAmountContainer}>
-                    <Text style={styles.categoryAmount}>{formatCurrency(category.spent, currency)}</Text>
+                    <Text style={styles.categoryAmount}>{formatWithDenomination(category.spent)}</Text>
                     <Text style={styles.categoryPercentage}>{category.percentage}% of savings</Text>
                   </View>
                 </View>
-
-                {/* savings overall progress bar */}
-                {/* <View style={styles.categoryProgressContainer}>
-                  <View style={[styles.categoryProgressBar, { width: `${Math.min(100, category.budgetPercentage)}%` }]} />
-                </View> */}
 
                 {/* Goal Section */}
                 <View style={styles.goalSection}>
@@ -456,7 +458,7 @@ const SavingsDetailScreen: React.FC<SavingsDetailScreenProps> = ({ onBackPress, 
                     <>
                       <View style={styles.goalHeader}>
                         <View>
-                          <Text style={styles.goalTitle}>Goal: {formatCurrency(goal.amount, currency)}</Text>
+                          <Text style={styles.goalTitle}>Goal: {formatWithDenomination(goal.amount)}</Text>
                           {goal.targetDate && <Text style={styles.goalSubtitle}>Target: {formatTargetDate(goal.targetDate)}</Text>}
                         </View>
                         <TouchableOpacity style={styles.editGoalButton} onPress={() => openGoalSettingModal(category)}>
@@ -472,15 +474,15 @@ const SavingsDetailScreen: React.FC<SavingsDetailScreenProps> = ({ onBackPress, 
                       <View style={styles.goalProgressInfo}>
                         <Text style={styles.goalProgressText}>{Math.round((category.totalSpent / goal.amount) * 100 * 10) / 10}% complete</Text>
                         <Text style={styles.goalRemainingText}>
-                          {formatCurrency(Math.max(0, goal.amount - category.totalSpent), currency)} remaining
+                          {formatWithDenomination(Math.max(0, goal.amount - category.totalSpent))} remaining
                         </Text>
                       </View>
 
                       {/* Add info about this month's contribution vs. total */}
                       <View style={styles.goalContributionInfo}>
                         <Text style={styles.goalContributionText}>
-                          Total saved: {formatCurrency(category.totalSpent, currency)}
-                          {category.spent > 0 && ` (${formatCurrency(category.spent, currency)} this month)`}
+                          Total saved: {formatWithDenomination(category.totalSpent)}
+                          {category.spent > 0 && ` (${formatWithDenomination(category.spent)} this month)`}
                         </Text>
                       </View>
 
@@ -517,7 +519,7 @@ const SavingsDetailScreen: React.FC<SavingsDetailScreenProps> = ({ onBackPress, 
 
                           {!collapsedContributions[category.id] && (
                             <>
-                              <Text style={styles.monthlyContributionAmount}>{formatCurrency(category.monthlyContribution, currency)}/month</Text>
+                              <Text style={styles.monthlyContributionAmount}>{formatWithDenomination(category.monthlyContribution)}/month</Text>
 
                               {category.monthsRemaining > 0 && (
                                 <Text style={styles.monthsRemainingText}>

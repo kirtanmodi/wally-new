@@ -1,31 +1,22 @@
 import { AVAILABLE_CURRENCIES, CurrencyInfo } from "../../redux/slices/budgetSlice";
+import { DenominationFormat, formatWithDenomination } from "./denominationFormatter";
 
 /**
- * Format a number with the given currency
+ * Formats a number as currency with the given currency info
  *
  * @param amount The amount to format
- * @param currency The currency information (or undefined)
- * @param options Formatting options
- * @returns Formatted currency string with symbol
+ * @param currency The currency information
+ * @param denominationFormat Optional denomination format to use
+ * @returns Formatted currency string
  */
-export const formatCurrency = (
-  amount: number,
-  currency?: CurrencyInfo,
-  options: Partial<{
-    minimumFractionDigits: number;
-    maximumFractionDigits: number;
-  }> = {}
-): string => {
-  // Use default USD if currency is undefined
-  const currencyToUse = currency || AVAILABLE_CURRENCIES[0];
-
-  const formatted = amount.toLocaleString(undefined, {
-    minimumFractionDigits: options.minimumFractionDigits ?? 2,
-    maximumFractionDigits: options.maximumFractionDigits ?? 2,
+export function formatCurrency(amount: number, currency: CurrencyInfo, denominationFormat: DenominationFormat = "none"): string {
+  return formatWithDenomination(amount, {
+    format: denominationFormat,
+    currencySymbol: currency.symbol,
+    decimalPlaces: 1,
+    showZeroDecimals: false,
   });
-
-  return `${currencyToUse.symbol}${formatted}`;
-};
+}
 
 /**
  * Get just the currency symbol

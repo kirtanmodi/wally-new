@@ -5,6 +5,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { AdditionalColors, BudgetColors } from "../app/constants/Colors";
 import { BudgetCategory } from "../app/types/budget";
 import { getCurrencySymbol } from "../app/utils/currency";
+import { DenominationFormat, getFormatPreviews } from "../app/utils/denominationFormatter";
 import { KeyboardAwareView } from "../app/utils/keyboard";
 import { responsiveMargin, responsivePadding, scaleFontSize } from "../app/utils/responsive";
 import {
@@ -16,8 +17,10 @@ import {
   selectBudgetRule,
   selectCategories,
   selectCurrency,
+  selectDenominationFormat,
   selectMonthlyIncome,
   setCurrency,
+  setDenominationFormat,
   setMonthlyIncome,
   updateBudgetRule,
 } from "../redux/slices/budgetSlice";
@@ -49,6 +52,14 @@ const COMMON_ICONS = [
   "📝",
 ];
 
+// Add denomination format options
+const DENOMINATION_FORMATS: { value: DenominationFormat; label: string }[] = [
+  { value: "none", label: "None (1,234,567)" },
+  { value: "compact", label: "Compact (1.2M)" },
+  { value: "indian", label: "Indian (12.3L, 1.2Cr)" },
+  { value: "international", label: "International (1.2K, 1.2M)" },
+];
+
 interface BudgetSettingsProps {
   onBackPress?: () => void;
 }
@@ -59,6 +70,7 @@ const BudgetSettings: React.FC<BudgetSettingsProps> = ({ onBackPress }) => {
   const budgetRule = useSelector(selectBudgetRule);
   const categories = useSelector(selectCategories);
   const currency = useSelector(selectCurrency);
+  const denominationFormat = useSelector(selectDenominationFormat);
 
   // Local state
   const [incomeInput, setIncomeInput] = useState(monthlyIncome.toString());
@@ -82,6 +94,10 @@ const BudgetSettings: React.FC<BudgetSettingsProps> = ({ onBackPress }) => {
 
   // Add animation values for micro-interactions
   const [pulseAnim] = useState(new Animated.Value(1));
+
+  // Add preview amount for demonstration
+  const previewAmount = 1234567;
+  const formatPreviews = getFormatPreviews(previewAmount, currency.symbol);
 
   useEffect(() => {
     validatePercentages();
@@ -183,6 +199,10 @@ const BudgetSettings: React.FC<BudgetSettingsProps> = ({ onBackPress }) => {
   const handleSelectCurrency = (selectedCurrency: CurrencyInfo) => {
     dispatch(setCurrency(selectedCurrency));
     setShowCurrencyModal(false);
+  };
+
+  const handleChangeDenominationFormat = (format: DenominationFormat) => {
+    dispatch(setDenominationFormat(format));
   };
 
   const renderCategoryItem = ({ item, index }: { item: CategoryItem; index: number }) => {
@@ -423,6 +443,40 @@ const BudgetSettings: React.FC<BudgetSettingsProps> = ({ onBackPress }) => {
               })}
             </View>
           )}
+        </View>
+
+        {/* Currency Section */}
+        <View style={styles.section}>
+          <View style={styles.sectionTitleRow}>
+            <Text style={styles.sectionTitle}>Currency</Text>
+            <TouchableOpacity style={styles.currencyButton} onPress={() => setShowCurrencyModal(true)}>
+              <Text style={styles.currencyButtonText}>{currency.code}</Text>
+            </TouchableOpacity>
+          </View>
+          <Text style={styles.sectionDescription}>Set your preferred currency for the app.</Text>
+        </View>
+
+        {/* Add Denomination Format Section */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Number Format</Text>
+          <Text style={styles.sectionDescription}>Choose how large numbers are displayed throughout the app.</Text>
+
+          <View style={styles.denominationContainer}>
+            {DENOMINATION_FORMATS.map((format) => (
+              <TouchableOpacity
+                key={format.value}
+                style={[styles.denominationOption, denominationFormat === format.value && styles.selectedDenominationOption]}
+                onPress={() => handleChangeDenominationFormat(format.value)}
+              >
+                <Text style={[styles.denominationLabel, denominationFormat === format.value && styles.selectedDenominationLabel]}>
+                  {format.label}
+                </Text>
+                <Text style={[styles.denominationPreview, denominationFormat === format.value && styles.selectedDenominationPreview]}>
+                  {formatPreviews[format.value]}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
         </View>
       </KeyboardAwareView>
 
@@ -936,6 +990,39 @@ const styles = StyleSheet.create({
   currencyList: {
     width: "100%",
     maxHeight: 350,
+  },
+  denominationContainer: {
+    marginTop: responsiveMargin(12),
+  },
+  denominationOption: {
+    padding: responsivePadding(14),
+    borderRadius: 14,
+    backgroundColor: "#F6F6F6",
+    marginBottom: responsiveMargin(10),
+    borderWidth: 1,
+    borderColor: "#ECECEC",
+  },
+  selectedDenominationOption: {
+    backgroundColor: `${BudgetColors.needs}15`,
+    borderColor: BudgetColors.needs,
+  },
+  denominationLabel: {
+    fontSize: scaleFontSize(15),
+    color: "#333",
+    fontWeight: "500",
+    marginBottom: responsiveMargin(6),
+  },
+  selectedDenominationLabel: {
+    color: "#000",
+    fontWeight: "600",
+  },
+  denominationPreview: {
+    fontSize: scaleFontSize(14),
+    color: "#666",
+  },
+  selectedDenominationPreview: {
+    color: "#333",
+    fontWeight: "500",
   },
 });
 

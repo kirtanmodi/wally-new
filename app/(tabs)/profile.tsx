@@ -6,7 +6,8 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Alert, Image, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import Animated, { FadeIn } from "react-native-reanimated";
 import { useDispatch, useSelector } from "react-redux";
-import { selectBudgetRule, selectCurrency, selectMonthlyIncome } from "../../redux/slices/budgetSlice";
+import { formatCurrency } from "../../app/utils/currency";
+import { selectBudgetRule, selectCurrency, selectDenominationFormat, selectMonthlyIncome } from "../../redux/slices/budgetSlice";
 import { selectExpenses } from "../../redux/slices/expenseSlice";
 import {
   selectAuthProvider,
@@ -27,6 +28,7 @@ export default function ProfileScreen() {
   const { user: clerkUser } = useUser();
   const [syncingProfile, setSyncingProfile] = useState(false);
   const currency = useSelector(selectCurrency);
+  const denominationFormat = useSelector(selectDenominationFormat);
 
   // User information from Redux
   const userId = useSelector(selectUserId);
@@ -134,9 +136,9 @@ export default function ProfileScreen() {
     return { needs, wants, savings };
   }, [currentMonthExpenses]);
 
-  // Helper function to format currency
-  const formatCurrency = (amount: number) => {
-    return currency.symbol + amount.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  // Update helper function to format currency with denomination format
+  const formatBudgetAmount = (amount: number) => {
+    return formatCurrency(amount, currency, denominationFormat);
   };
 
   // Handle avatar selection
@@ -294,7 +296,7 @@ export default function ProfileScreen() {
             <View style={styles.budgetOverview}>
               <View style={styles.budgetCircleContainer}>
                 <View style={styles.budgetCircle}>
-                  <Text style={styles.budgetCircleAmount}>{formatCurrency(remainingBudget)}</Text>
+                  <Text style={styles.budgetCircleAmount}>{formatBudgetAmount(remainingBudget)}</Text>
                   <Text style={styles.budgetCircleLabel}>Remaining</Text>
                 </View>
                 {/* Overlay spending indicator */}
@@ -312,15 +314,17 @@ export default function ProfileScreen() {
               <View style={styles.budgetDetails}>
                 <View style={styles.budgetItem}>
                   <Text style={styles.budgetLabel}>Monthly Income</Text>
-                  <Text style={styles.budgetAmount}>{formatCurrency(monthlyIncome)}</Text>
+                  <Text style={styles.budgetAmount}>{formatBudgetAmount(monthlyIncome)}</Text>
                 </View>
                 <View style={styles.budgetItem}>
                   <Text style={styles.budgetLabel}>Current Spending</Text>
-                  <Text style={styles.budgetAmount}>{formatCurrency(totalSpent)}</Text>
+                  <Text style={styles.budgetAmount}>{formatBudgetAmount(totalSpent)}</Text>
                 </View>
                 <View style={styles.budgetItem}>
                   <Text style={styles.budgetLabel}>Remaining Budget</Text>
-                  <Text style={[styles.budgetAmount, { color: remainingBudget > 0 ? "#4cd964" : "#ff3b30" }]}>{formatCurrency(remainingBudget)}</Text>
+                  <Text style={[styles.budgetAmount, { color: remainingBudget > 0 ? "#4cd964" : "#ff3b30" }]}>
+                    {formatBudgetAmount(remainingBudget)}
+                  </Text>
                 </View>
               </View>
             </View>
@@ -335,7 +339,7 @@ export default function ProfileScreen() {
                   <View style={[styles.categoryDot, { backgroundColor: "#4cd964" }]} />
                   <Text style={styles.categoryLabel}>Needs ({budgetRules.needs}%)</Text>
                 </View>
-                <Text style={styles.categoryAmount}>{formatCurrency(categorySpending.needs)}</Text>
+                <Text style={styles.categoryAmount}>{formatBudgetAmount(categorySpending.needs)}</Text>
               </View>
 
               {/* Wants */}
@@ -344,7 +348,7 @@ export default function ProfileScreen() {
                   <View style={[styles.categoryDot, { backgroundColor: "#5e5ce6" }]} />
                   <Text style={styles.categoryLabel}>Wants ({budgetRules.wants}%)</Text>
                 </View>
-                <Text style={styles.categoryAmount}>{formatCurrency(categorySpending.wants)}</Text>
+                <Text style={styles.categoryAmount}>{formatBudgetAmount(categorySpending.wants)}</Text>
               </View>
 
               {/* Savings */}
@@ -353,7 +357,7 @@ export default function ProfileScreen() {
                   <View style={[styles.categoryDot, { backgroundColor: "#ff9500" }]} />
                   <Text style={styles.categoryLabel}>Savings ({budgetRules.savings}%)</Text>
                 </View>
-                <Text style={styles.categoryAmount}>{formatCurrency(categorySpending.savings)}</Text>
+                <Text style={styles.categoryAmount}>{formatBudgetAmount(categorySpending.savings)}</Text>
               </View>
             </View>
 

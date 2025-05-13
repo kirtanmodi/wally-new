@@ -1,5 +1,6 @@
 import { createSelector, createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { BudgetCategory } from "../../app/types/budget";
+import { DenominationFormat } from "../../app/utils/denominationFormatter";
 import { RootState } from "../types";
 
 export type CurrencyCode = "USD" | "EUR" | "GBP" | "JPY" | "CAD" | "AUD" | "INR" | "CNY";
@@ -50,6 +51,7 @@ interface BudgetState {
   categories: CategoryItem[];
   currency: CurrencyInfo;
   savingsGoals: SavingsGoals;
+  denominationFormat: DenominationFormat;
 }
 
 const initialState: BudgetState = {
@@ -73,6 +75,7 @@ const initialState: BudgetState = {
   ],
   currency: AVAILABLE_CURRENCIES[0],
   savingsGoals: {},
+  denominationFormat: "none",
 };
 
 export const budgetSlice = createSlice({
@@ -167,6 +170,9 @@ export const budgetSlice = createSlice({
     deleteSavingsGoal: (state, action: PayloadAction<string>) => {
       delete state.savingsGoals[action.payload];
     },
+    setDenominationFormat: (state, action: PayloadAction<DenominationFormat>) => {
+      state.denominationFormat = action.payload;
+    },
   },
 });
 
@@ -181,6 +187,7 @@ export const {
   setSavingsGoal,
   updateSavingsGoal,
   deleteSavingsGoal,
+  setDenominationFormat,
 } = budgetSlice.actions;
 
 const selectBudgetState = (state: RootState) => state.budget;
@@ -193,6 +200,7 @@ export const selectBudgetRule = (state: RootState) => state.budget.budgetRule;
 export const selectCategories = (state: RootState) => state.budget.categories;
 export const selectCurrency = (state: RootState) => state.budget.currency;
 export const selectSavingsGoals = (state: RootState) => state.budget.savingsGoals;
+export const selectDenominationFormat = (state: RootState) => state.budget.denominationFormat;
 
 export const selectCategoriesByType = createSelector([selectCategoriesState, (_, type: BudgetCategory) => type], (categories, type) =>
   categories.filter((cat) => cat.type === type)

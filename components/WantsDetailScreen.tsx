@@ -5,7 +5,7 @@ import { BudgetColors } from "../app/constants/Colors";
 import { formatCurrency } from "../app/utils/currency";
 import { filterExpensesByMonth, getCurrentMonthYearKey } from "../app/utils/dateUtils";
 import { responsiveMargin, responsivePadding, scaleFontSize } from "../app/utils/responsive";
-import { selectBudgetRule, selectCategoriesByType, selectCurrency, selectMonthlyIncome } from "../redux/slices/budgetSlice";
+import { selectBudgetRule, selectCategoriesByType, selectCurrency, selectDenominationFormat, selectMonthlyIncome } from "../redux/slices/budgetSlice";
 import { selectExpenses } from "../redux/slices/expenseSlice";
 import { RootState } from "../redux/types";
 
@@ -19,6 +19,7 @@ const WantsDetailScreen: React.FC<WantsDetailScreenProps> = ({ onBackPress, sele
   const monthlyIncome = useSelector(selectMonthlyIncome) || 0;
   const budgetRule = useSelector(selectBudgetRule) || { needs: 50, savings: 30, wants: 20 };
   const currency = useSelector(selectCurrency) || { code: "USD", symbol: "$", name: "US Dollar" };
+  const denominationFormat = useSelector(selectDenominationFormat);
   const wantsCategories = useSelector((state: RootState) => selectCategoriesByType(state, "Wants")) || [];
 
   // Filter expenses by month
@@ -51,9 +52,9 @@ const WantsDetailScreen: React.FC<WantsDetailScreenProps> = ({ onBackPress, sele
     };
   }, [monthlyIncome, budgetRule, monthlyExpenses, wantsCategories, selectedMonth]);
 
-  // Format currency amount
+  // Format currency amount using denomination format
   const formatBudgetAmount = (amount: number) => {
-    return formatCurrency(amount, currency);
+    return formatCurrency(amount, currency, denominationFormat);
   };
 
   // Calculate and format percentage of total wants spending
