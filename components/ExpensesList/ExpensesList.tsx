@@ -6,7 +6,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { BudgetColors } from "../../app/constants/Colors";
 import { BudgetCategory, CategorySummary, Expense } from "../../app/types/budget";
 import { filterExpensesByMonth, getAvailableMonths, getCurrentMonthYearKey } from "../../app/utils/dateUtils";
-import { selectBudgetRule, selectCurrency, selectMonthlyIncome } from "../../redux/slices/budgetSlice";
+import { selectBudgetRule, selectMonthlyIncome } from "../../redux/slices/budgetSlice";
 import { deleteExpense } from "../../redux/slices/expenseSlice";
 import { AnimatedCategoryCircle, AnimatedExpenseItem, MonthPickerModal, ScrollableTab } from "./index";
 import styles from "./styles";
@@ -37,40 +37,31 @@ const ExpensesList: React.FC<ExpensesListProps> = ({
   onMonthChange = () => {},
 }) => {
   const [activeTab, setActiveTab] = useState<"All" | BudgetCategory>("All");
-  const [showMenu, setShowMenu] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showMonthModal, setShowMonthModal] = useState(false);
   const [temporarySelectedDate, setTemporarySelectedDate] = useState<Date>(new Date());
   const dispatch = useDispatch();
 
-  // Animation values
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const translateY = useRef(new Animated.Value(30)).current;
   const monthModalAnim = useRef(new Animated.Value(0)).current;
 
-  // Get budget data from Redux
   const monthlyIncome = useSelector(selectMonthlyIncome);
   const budgetRule = useSelector(selectBudgetRule);
-  const currency = useSelector(selectCurrency);
 
-  // Get selected date from the selected month string
   const selectedDate = useMemo(() => {
     const [year, month] = selectedMonth.split("-").map(Number);
     return new Date(year, month - 1, 1);
   }, [selectedMonth]);
 
-  // Get available months from expenses
   const availableMonths = useMemo(() => {
-    // Get months from actual expenses
     const months = getAvailableMonths(expenses);
 
-    // For testing - ensure we have at least a few months regardless of expense data
     const now = new Date();
     const currentYear = now.getFullYear();
     const currentMonth = now.getMonth() + 1;
 
-    // Add the current month if it doesn't exist
     const currentMonthKey = `${currentYear}-${currentMonth}`;
     if (!months.some((m) => m.key === currentMonthKey)) {
       months.push({
@@ -79,7 +70,6 @@ const ExpensesList: React.FC<ExpensesListProps> = ({
       });
     }
 
-    // Add previous months
     for (let i = 1; i <= 5; i++) {
       let prevMonth = currentMonth - i;
       let prevYear = currentYear;
@@ -99,7 +89,6 @@ const ExpensesList: React.FC<ExpensesListProps> = ({
       }
     }
 
-    // Add future months
     for (let i = 1; i <= 2; i++) {
       let nextMonth = currentMonth + i;
       let nextYear = currentYear;
@@ -119,7 +108,6 @@ const ExpensesList: React.FC<ExpensesListProps> = ({
       }
     }
 
-    // Resort the months
     return months.sort((a, b) => {
       const [yearA, monthA] = a.key.split("-").map(Number);
       const [yearB, monthB] = b.key.split("-").map(Number);
@@ -129,7 +117,6 @@ const ExpensesList: React.FC<ExpensesListProps> = ({
     });
   }, [expenses]);
 
-  // Handle date change from the date picker
   const handleDateChange = (event: any, date?: Date) => {
     setShowDatePicker(false);
 
@@ -142,9 +129,7 @@ const ExpensesList: React.FC<ExpensesListProps> = ({
     }
   };
 
-  // Handle month selection from the month modal
   const handleMonthSelect = (monthKey: string) => {
-    // Close the modal with animation
     Animated.timing(monthModalAnim, {
       toValue: 0,
       duration: 300,
@@ -156,12 +141,10 @@ const ExpensesList: React.FC<ExpensesListProps> = ({
     onMonthChange(monthKey);
   };
 
-  // Open month modal with animation
   const openMonthModal = () => {
     setShowMonthModal(true);
-    setTemporarySelectedDate(selectedDate); // Initialize with current selection
+    setTemporarySelectedDate(selectedDate);
 
-    // Reset animation value to 0 before starting the animation
     monthModalAnim.setValue(0);
 
     Animated.timing(monthModalAnim, {
@@ -171,7 +154,6 @@ const ExpensesList: React.FC<ExpensesListProps> = ({
     }).start();
   };
 
-  // Close month modal with animation
   const closeMonthModal = () => {
     Animated.timing(monthModalAnim, {
       toValue: 0,
@@ -183,7 +165,6 @@ const ExpensesList: React.FC<ExpensesListProps> = ({
   };
 
   useEffect(() => {
-    // Entrance animation
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
@@ -198,17 +179,13 @@ const ExpensesList: React.FC<ExpensesListProps> = ({
     ]).start();
   }, []);
 
-  // Filter expenses by the selected month
   const monthlyExpenses = useMemo(() => filterExpensesByMonth(expenses, selectedMonth), [expenses, selectedMonth]);
 
-  // Calculate category summaries based on monthly expenses
   const categorySummaries: CategorySummary[] = useMemo(() => {
-    // Calculate budget amounts based on user's income and budget rule percentages
     const needsBudget = monthlyIncome * (budgetRule.needs / 100);
     const savingsBudget = monthlyIncome * (budgetRule.savings / 100);
     const wantsBudget = monthlyIncome * (budgetRule.wants / 100);
 
-    // Calculate spent amounts in each category for the selected month
     const needsSpent = monthlyExpenses.filter((exp) => exp.category === "Needs").reduce((sum, exp) => sum + exp.amount, 0);
     const savingsSpent = monthlyExpenses.filter((exp) => exp.category === "Savings").reduce((sum, exp) => sum + exp.amount, 0);
     const wantsSpent = monthlyExpenses.filter((exp) => exp.category === "Wants").reduce((sum, exp) => sum + exp.amount, 0);
@@ -238,11 +215,9 @@ const ExpensesList: React.FC<ExpensesListProps> = ({
     ];
   }, [monthlyExpenses, monthlyIncome, budgetRule]);
 
-  // Filter expenses based on active tab and search query
   const filteredExpenses = useMemo(() => {
     let filtered = activeTab === "All" ? monthlyExpenses : monthlyExpenses.filter((expense) => expense.category === activeTab);
 
-    // Apply search filter if query exists
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter((expense) => expense.title.toLowerCase().includes(query) || expense.subcategory.toLowerCase().includes(query));
@@ -264,7 +239,6 @@ const ExpensesList: React.FC<ExpensesListProps> = ({
     }
   };
 
-  // Functions to handle expense actions
   const handleEditExpense = (expense: Expense) => {
     if (onEditExpense) {
       onEditExpense(expense);
@@ -315,7 +289,6 @@ const ExpensesList: React.FC<ExpensesListProps> = ({
             <TouchableOpacity
               onPress={() => {
                 setShowDatePicker(false);
-                // The date is already selected in the picker
               }}
               style={styles.datePickerButton}
             >

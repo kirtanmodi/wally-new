@@ -28,7 +28,7 @@ export default function ExpensesTab() {
           onOpenNeedsDetail={() => router.push("/(details)/needs")}
           onOpenWantsDetail={() => router.push("/(details)/wants")}
           onOpenSavingsDetail={() => router.push("/(details)/savings")}
-          onAddExpense={() => router.push("/(modals)/theme-demo")}
+          onAddExpense={() => router.push("/(modals)/add-expense")}
           onOpenBudget={() => router.push("/(tabs)/overview")}
           onOpenSettings={() => router.push("/(tabs)/settings")}
           onEditExpense={handleEditExpense}
