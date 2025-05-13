@@ -103,6 +103,7 @@ export const budgetSlice = createSlice({
       ];
       state.savingsGoals = {};
       state.currency = AVAILABLE_CURRENCIES[0];
+      state.denominationFormat = "none";
     },
     setMonthlyIncome: (state, action: PayloadAction<number>) => {
       state.monthlyIncome = action.payload;
