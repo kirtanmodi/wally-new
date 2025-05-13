@@ -87,3 +87,27 @@
   - [ ] Verify formatting is consistent across the app
   - [ ] Test edge cases (very large and small amounts)
 
+## Phase 5: Income-Based Budget Recommendations
+- [x] Add "Recommended Split" button to Budget Settings
+  - [x] Create UI for the recommendation button
+  - [x] Position button in the Budget Allocation section header
+- [x] Implement recommendation logic based on income levels
+  - [x] For high income (>=10000): Adjust to 40% needs, 40% savings, 20% wants
+  - [x] For low income (<2000): Adjust to 60% needs, 20% savings, 20% wants
+  - [x] For medium income: Keep standard 50% needs, 20% savings, 30% wants
+- [x] Enhance recommendation functionality
+  - [x] Add animation when transitioning between allocation percentages
+  - [x] Implement more granular income brackets for better recommendations
+  - [x] Adjust recommendations based on currency
+  - [ ] Consider user's financial goals and existing debts in recommendations
+- [x] User education
+  - [x] Add tooltip explaining income-based recommendations
+  - [x] Create brief guidance text about why recommendations change based on income
+  - [x] Add option to learn more about budgeting strategies
+  - [x] Add currency adjustment explanation to learn more section
+- [ ] Testing
+  - [ ] Test recommendation logic with various income levels
+  - [ ] Test recommendation logic with different currencies
+  - [ ] Ensure UI updates correctly when recommendation is applied
+  - [ ] Verify budget rule is properly persisted after recommendation
+

@@ -1,5 +1,5 @@
 import { LinearGradient } from "expo-linear-gradient";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Alert, Animated, FlatList, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
 import { AdditionalColors, BudgetColors } from "../app/constants/Colors";
@@ -52,7 +52,6 @@ const COMMON_ICONS = [
   "📝",
 ];
 
-// Add denomination format options
 const DENOMINATION_FORMATS: { value: DenominationFormat; label: string }[] = [
   { value: "none", label: "None (1,234,567)" },
   { value: "compact", label: "Compact (1.2M)" },
@@ -72,7 +71,6 @@ const BudgetSettings: React.FC<BudgetSettingsProps> = ({ onBackPress }) => {
   const currency = useSelector(selectCurrency);
   const denominationFormat = useSelector(selectDenominationFormat);
 
-  // Local state
   const [incomeInput, setIncomeInput] = useState(monthlyIncome.toString());
   const [needsInput, setNeedsInput] = useState(budgetRule.needs.toString());
   const [savingsInput, setSavingsInput] = useState(budgetRule.savings.toString());
@@ -80,29 +78,29 @@ const BudgetSettings: React.FC<BudgetSettingsProps> = ({ onBackPress }) => {
   const [showAddCategory, setShowAddCategory] = useState(false);
   const [showCurrencyModal, setShowCurrencyModal] = useState(false);
 
-  // Animation values
   const [fadeAnim] = useState(new Animated.Value(0));
   const [slideAnim] = useState(new Animated.Value(50));
 
-  // Category modal state
   const [newCategoryName, setNewCategoryName] = useState("");
   const [selectedIcon, setSelectedIcon] = useState(COMMON_ICONS[0]);
   const [selectedType, setSelectedType] = useState<BudgetCategory>("Needs");
 
-  // Error state
   const [percentageError, setPercentageError] = useState(false);
 
-  // Add animation values for micro-interactions
   const [pulseAnim] = useState(new Animated.Value(1));
 
-  // Add preview amount for demonstration
   const previewAmount = 1234567;
-  const formatPreviews = getFormatPreviews(previewAmount, currency.symbol);
+  const formatPreviews = getFormatPreviews(previewAmount, currency?.symbol || "$");
+
+  const animatedNeeds = useRef(new Animated.Value(parseInt(needsInput) || 0)).current;
+  const animatedSavings = useRef(new Animated.Value(parseInt(savingsInput) || 0)).current;
+  const animatedWants = useRef(new Animated.Value(parseInt(wantsInput) || 0)).current;
+
+  const [showLearnMoreModal, setShowLearnMoreModal] = useState(false);
 
   useEffect(() => {
     validatePercentages();
 
-    // Enhanced entrance animation with sequence
     Animated.sequence([
       Animated.timing(fadeAnim, {
         toValue: 1,
@@ -120,6 +118,30 @@ const BudgetSettings: React.FC<BudgetSettingsProps> = ({ onBackPress }) => {
   useEffect(() => {
     validatePercentages();
   }, [needsInput, savingsInput, wantsInput]);
+
+  useEffect(() => {
+    Animated.timing(animatedNeeds, {
+      toValue: parseInt(needsInput) || 0,
+      duration: 500,
+      useNativeDriver: false,
+    }).start();
+  }, [needsInput]);
+
+  useEffect(() => {
+    Animated.timing(animatedSavings, {
+      toValue: parseInt(savingsInput) || 0,
+      duration: 500,
+      useNativeDriver: false,
+    }).start();
+  }, [savingsInput]);
+
+  useEffect(() => {
+    Animated.timing(animatedWants, {
+      toValue: parseInt(wantsInput) || 0,
+      duration: 500,
+      useNativeDriver: false,
+    }).start();
+  }, [wantsInput]);
 
   const validatePercentages = () => {
     const needs = parseInt(needsInput) || 0;
@@ -140,7 +162,6 @@ const BudgetSettings: React.FC<BudgetSettingsProps> = ({ onBackPress }) => {
 
   const handleSaveBudgetRule = () => {
     if (!validatePercentages()) {
-      // Alert.alert("Error", "Percentages must add up to 100%");
       return;
     }
 
@@ -169,7 +190,6 @@ const BudgetSettings: React.FC<BudgetSettingsProps> = ({ onBackPress }) => {
       })
     );
 
-    // Reset form
     setNewCategoryName("");
     setSelectedIcon(COMMON_ICONS[0]);
     setSelectedType("Needs");
@@ -209,7 +229,6 @@ const BudgetSettings: React.FC<BudgetSettingsProps> = ({ onBackPress }) => {
     const itemFade = new Animated.Value(0);
     const itemSlide = new Animated.Value(20);
 
-    // Staggered animation for list items
     Animated.parallel([
       Animated.timing(itemFade, {
         toValue: 1,
@@ -253,7 +272,6 @@ const BudgetSettings: React.FC<BudgetSettingsProps> = ({ onBackPress }) => {
     );
   };
 
-  // Create a pulsing animation function for buttons
   const animatePulse = () => {
     Animated.sequence([
       Animated.timing(pulseAnim, {
@@ -277,6 +295,79 @@ const BudgetSettings: React.FC<BudgetSettingsProps> = ({ onBackPress }) => {
   const handleShowCurrencyWithAnimation = () => {
     animatePulse();
     setShowCurrencyModal(true);
+  };
+
+  const animateBudgetPercentages = (newNeeds: number, newSavings: number, newWants: number) => {
+    setNeedsInput(newNeeds.toString());
+    setSavingsInput(newSavings.toString());
+    setWantsInput(newWants.toString());
+
+    Animated.parallel([
+      Animated.timing(animatedNeeds, {
+        toValue: newNeeds,
+        duration: 600,
+        useNativeDriver: false,
+      }),
+      Animated.timing(animatedSavings, {
+        toValue: newSavings,
+        duration: 600,
+        useNativeDriver: false,
+      }),
+      Animated.timing(animatedWants, {
+        toValue: newWants,
+        duration: 600,
+        useNativeDriver: false,
+      }),
+    ]).start();
+
+    dispatch(
+      updateBudgetRule({
+        needs: newNeeds,
+        savings: newSavings,
+        wants: newWants,
+      })
+    );
+  };
+  const CURRENCY_MULTIPLIERS: Record<string, number> = {
+    USD: 1,
+    EUR: 0.85,
+    GBP: 0.75,
+    JPY: 110,
+    INR: 86,
+    CNY: 6.5,
+    CAD: 1.25,
+    AUD: 1.35,
+  };
+
+  const getCurrencyMultiplier = (currencyCode: string): number => {
+    return CURRENCY_MULTIPLIERS[currencyCode] ?? 1;
+  };
+
+  const BUDGET_SPLITS = [
+    { threshold: 15000, split: { needs: 10, savings: 85, wants: 5 } }, // Ultra high income
+    { threshold: 10000, split: { needs: 12, savings: 80, wants: 8 } }, // Very high income
+    { threshold: 5000, split: { needs: 15, savings: 75, wants: 10 } }, // High income
+    { threshold: 3000, split: { needs: 20, savings: 70, wants: 10 } }, // Upper middle
+    { threshold: 2000, split: { needs: 25, savings: 65, wants: 10 } }, // Middle
+    { threshold: 1500, split: { needs: 30, savings: 60, wants: 10 } }, // Lower middle
+    { threshold: 0, split: { needs: 40, savings: 50, wants: 10 } }, // Low income
+  ];
+
+  const getRecommendedBudgetSplit = (income: number, currency: { code: string }) => {
+    if (income <= 0) {
+      return { needs: 50, savings: 20, wants: 30 };
+    }
+
+    const multiplier = getCurrencyMultiplier(currency.code);
+    const normalizedIncome = income / multiplier;
+
+    for (const { threshold, split } of BUDGET_SPLITS) {
+      if (normalizedIncome >= threshold) {
+        return split;
+      }
+    }
+
+    return { needs: 50, savings: 20, wants: 30 };
   };
 
   return (
@@ -325,49 +416,124 @@ const BudgetSettings: React.FC<BudgetSettingsProps> = ({ onBackPress }) => {
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Budget Allocation</Text>
+          <View style={styles.sectionTitleRow}>
+            <Text style={styles.sectionTitle}>Budget Allocation</Text>
+            <TouchableOpacity
+              style={styles.recommendButton}
+              onPress={() => {
+                const income = parseFloat(incomeInput);
+
+                const {
+                  needs: newNeeds,
+                  savings: newSavings,
+                  wants: newWants,
+                } = getRecommendedBudgetSplit(income, currency || { code: "USD", name: "US Dollar", symbol: "$" });
+
+                animateBudgetPercentages(newNeeds, newSavings, newWants);
+
+                animatePulse();
+              }}
+              activeOpacity={0.7}
+            >
+              <LinearGradient colors={["#FFBA6E", "#FF9C36"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.recommendButtonGradient}>
+                <Text style={styles.recommendButtonText}>Auto Split</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
           <Text style={styles.sectionDescription}>Adjust your budget percentages based on the 50-30-20 rule.</Text>
+          <Text style={styles.recommendationInfo}>
+            <Text style={styles.infoIcon}>ℹ️ </Text>
+            <Text>
+              Recommendations adapt based on your income level, with 7 different brackets from very low to very high income. Higher incomes allow for
+              more savings, while lower incomes prioritize essential needs.{" "}
+            </Text>
+            <TouchableOpacity onPress={() => setShowLearnMoreModal(true)}>
+              <Text style={styles.learnMoreText}>Learn More</Text>
+            </TouchableOpacity>
+          </Text>
 
           <View style={styles.budgetRuleContainer}>
             <View style={styles.budgetItemContainer}>
               <LinearGradient colors={["#5BD990", "#3DB26E"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.budgetColorIndicator} />
               <Text style={styles.budgetItemLabel}>Needs</Text>
-              <TextInput
-                style={[styles.percentageInput, percentageError && styles.errorInput]}
-                value={needsInput}
-                onChangeText={setNeedsInput}
-                keyboardType="numeric"
-                returnKeyType="done"
-                onBlur={handleSaveBudgetRule}
-              />
+              <View style={styles.percentageInputContainer}>
+                <Animated.View
+                  style={[
+                    styles.percentageFill,
+                    {
+                      width: animatedNeeds.interpolate({
+                        inputRange: [0, 100],
+                        outputRange: ["0%", "100%"],
+                      }),
+                      backgroundColor: BudgetColors.needs + "50",
+                    },
+                  ]}
+                />
+                <TextInput
+                  style={[styles.percentageInput, percentageError && styles.errorInput]}
+                  value={needsInput}
+                  onChangeText={setNeedsInput}
+                  keyboardType="numeric"
+                  returnKeyType="done"
+                  onBlur={handleSaveBudgetRule}
+                />
+              </View>
               <Text style={styles.percentSign}>%</Text>
             </View>
 
             <View style={styles.budgetItemContainer}>
               <LinearGradient colors={["#FFBA6E", "#FF9C36"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.budgetColorIndicator} />
               <Text style={styles.budgetItemLabel}>Savings</Text>
-              <TextInput
-                style={[styles.percentageInput, percentageError && styles.errorInput]}
-                value={savingsInput}
-                onChangeText={setSavingsInput}
-                keyboardType="numeric"
-                returnKeyType="done"
-                onBlur={handleSaveBudgetRule}
-              />
+              <View style={styles.percentageInputContainer}>
+                <Animated.View
+                  style={[
+                    styles.percentageFill,
+                    {
+                      width: animatedSavings.interpolate({
+                        inputRange: [0, 100],
+                        outputRange: ["0%", "100%"],
+                      }),
+                      backgroundColor: BudgetColors.savings + "50",
+                    },
+                  ]}
+                />
+                <TextInput
+                  style={[styles.percentageInput, percentageError && styles.errorInput]}
+                  value={savingsInput}
+                  onChangeText={setSavingsInput}
+                  keyboardType="numeric"
+                  returnKeyType="done"
+                  onBlur={handleSaveBudgetRule}
+                />
+              </View>
               <Text style={styles.percentSign}>%</Text>
             </View>
 
             <View style={styles.budgetItemContainer}>
               <LinearGradient colors={["#837BFF", "#605BFF"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.budgetColorIndicator} />
               <Text style={styles.budgetItemLabel}>Wants</Text>
-              <TextInput
-                style={[styles.percentageInput, percentageError && styles.errorInput]}
-                value={wantsInput}
-                onChangeText={setWantsInput}
-                keyboardType="numeric"
-                returnKeyType="done"
-                onBlur={handleSaveBudgetRule}
-              />
+              <View style={styles.percentageInputContainer}>
+                <Animated.View
+                  style={[
+                    styles.percentageFill,
+                    {
+                      width: animatedWants.interpolate({
+                        inputRange: [0, 100],
+                        outputRange: ["0%", "100%"],
+                      }),
+                      backgroundColor: BudgetColors.wants + "50",
+                    },
+                  ]}
+                />
+                <TextInput
+                  style={[styles.percentageInput, percentageError && styles.errorInput]}
+                  value={wantsInput}
+                  onChangeText={setWantsInput}
+                  keyboardType="numeric"
+                  returnKeyType="done"
+                  onBlur={handleSaveBudgetRule}
+                />
+              </View>
               <Text style={styles.percentSign}>%</Text>
             </View>
           </View>
@@ -395,7 +561,6 @@ const BudgetSettings: React.FC<BudgetSettingsProps> = ({ onBackPress }) => {
                 const itemFade = new Animated.Value(0);
                 const itemSlide = new Animated.Value(20);
 
-                // Staggered animation for list items
                 Animated.parallel([
                   Animated.timing(itemFade, {
                     toValue: 1,
@@ -593,6 +758,116 @@ const BudgetSettings: React.FC<BudgetSettingsProps> = ({ onBackPress }) => {
           </View>
         </View>
       </Modal>
+
+      {/* Learn More Modal */}
+      <Modal visible={showLearnMoreModal} animationType="fade" transparent onRequestClose={() => setShowLearnMoreModal(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainerView}>
+            {/* Header */}
+            <View style={styles.modalHeaderView}>
+              <Text style={styles.modalTitleText}>Budget Allocation Guide</Text>
+              <TouchableOpacity onPress={() => setShowLearnMoreModal(false)} hitSlop={{ top: 20, right: 20, bottom: 20, left: 20 }}>
+                <Text style={styles.modalCloseText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Content */}
+            <ScrollView style={styles.modalScrollView} contentContainerStyle={styles.modalScrollContent}>
+              <Text style={styles.learnMoreTitle}>Aggressive Savings Rule</Text>
+              <Text style={styles.learnMoreParagraph}>
+                For disciplined wealth building, allocate the highest possible percentage to savings, especially as your income increases. Needs and
+                wants are kept minimal.
+              </Text>
+
+              <Text style={styles.learnMoreTitle}>Why Recommendations Change Based on Income</Text>
+              <Text style={styles.learnMoreParagraph}>
+                • <Text style={styles.bold}>Higher incomes</Text>: Essential needs don&apos;t scale with income, so you can (and should) save much
+                more.
+              </Text>
+              <Text style={styles.learnMoreParagraph}>
+                • <Text style={styles.bold}>Lower incomes</Text>: Prioritize needs, but always save something, even if it&apos;s a small percentage.
+              </Text>
+
+              <Text style={styles.learnMoreTitle}>Income-Based Recommendations</Text>
+              <Text style={styles.learnMoreParagraph}>
+                Recommendations adjust for your income and currency. Thresholds are scaled for your local purchasing power.
+              </Text>
+              <View style={styles.tableContainer}>
+                <View style={styles.tableRow}>
+                  <Text style={[styles.tableCell, styles.tableHeader]}>Income Level (USD Base)</Text>
+                  <Text style={[styles.tableCell, styles.tableHeader]}>Needs</Text>
+                  <Text style={[styles.tableCell, styles.tableHeader]}>Savings</Text>
+                  <Text style={[styles.tableCell, styles.tableHeader]}>Wants</Text>
+                </View>
+                <View style={styles.tableRow}>
+                  <Text style={styles.tableCell}>Ultra High (≥$15,000)</Text>
+                  <Text style={styles.tableCell}>10%</Text>
+                  <Text style={styles.tableCell}>85%</Text>
+                  <Text style={styles.tableCell}>5%</Text>
+                </View>
+                <View style={styles.tableRow}>
+                  <Text style={styles.tableCell}>Very High ($10,000-$14,999)</Text>
+                  <Text style={styles.tableCell}>12%</Text>
+                  <Text style={styles.tableCell}>80%</Text>
+                  <Text style={styles.tableCell}>8%</Text>
+                </View>
+                <View style={styles.tableRow}>
+                  <Text style={styles.tableCell}>High ($5,000-$9,999)</Text>
+                  <Text style={styles.tableCell}>15%</Text>
+                  <Text style={styles.tableCell}>75%</Text>
+                  <Text style={styles.tableCell}>10%</Text>
+                </View>
+                <View style={styles.tableRow}>
+                  <Text style={styles.tableCell}>Upper Middle ($3,000-$4,999)</Text>
+                  <Text style={styles.tableCell}>20%</Text>
+                  <Text style={styles.tableCell}>70%</Text>
+                  <Text style={styles.tableCell}>10%</Text>
+                </View>
+                <View style={styles.tableRow}>
+                  <Text style={styles.tableCell}>Middle ($2,000-$2,999)</Text>
+                  <Text style={styles.tableCell}>25%</Text>
+                  <Text style={styles.tableCell}>65%</Text>
+                  <Text style={styles.tableCell}>10%</Text>
+                </View>
+                <View style={styles.tableRow}>
+                  <Text style={styles.tableCell}>Lower Middle ($1,500-$1,999)</Text>
+                  <Text style={styles.tableCell}>30%</Text>
+                  <Text style={styles.tableCell}>60%</Text>
+                  <Text style={styles.tableCell}>10%</Text>
+                </View>
+                <View style={styles.tableRow}>
+                  <Text style={styles.tableCell}>Low (&lt;$1,500)</Text>
+                  <Text style={styles.tableCell}>40%</Text>
+                  <Text style={styles.tableCell}>50%</Text>
+                  <Text style={styles.tableCell}>10%</Text>
+                </View>
+              </View>
+
+              <Text style={styles.learnMoreTitle}>Currency Adjustments</Text>
+              <Text style={styles.learnMoreParagraph}>
+                Income thresholds are adjusted for your currency&apos;s value. Stronger currencies lower the thresholds, weaker ones raise them.
+              </Text>
+
+              <Text style={styles.learnMoreTitle}>Tips for Successful Budgeting</Text>
+              <Text style={styles.learnMoreParagraph}>
+                1. <Text style={styles.bold}>Track all expenses</Text>: Know where your money goes.
+              </Text>
+              <Text style={styles.learnMoreParagraph}>
+                2. <Text style={styles.bold}>Emergency fund</Text>: Save 3-6 months of expenses first.
+              </Text>
+              <Text style={styles.learnMoreParagraph}>
+                3. <Text style={styles.bold}>Automate savings</Text>: Set up automatic transfers.
+              </Text>
+              <Text style={styles.learnMoreParagraph}>
+                4. <Text style={styles.bold}>Review regularly</Text>: Adjust your budget monthly.
+              </Text>
+              <Text style={styles.learnMoreParagraph}>
+                5. <Text style={styles.bold}>Be flexible</Text>: Update your allocations as life changes.
+              </Text>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </Animated.View>
   );
 };
@@ -714,17 +989,32 @@ const styles = StyleSheet.create({
     color: "#333",
     letterSpacing: 0.2,
   },
-  percentageInput: {
+  percentageInputContainer: {
+    position: "relative",
     width: 70,
     height: 48,
     borderWidth: 1,
     borderColor: "#E6E6E6",
     borderRadius: 14,
+    overflow: "hidden",
+    marginRight: responsiveMargin(4),
+    backgroundColor: "#FCFCFC",
+  },
+  percentageFill: {
+    position: "absolute",
+    left: 0,
+    top: 0,
+    bottom: 0,
+    zIndex: 1,
+  },
+  percentageInput: {
+    width: "100%",
+    height: "100%",
     paddingHorizontal: responsivePadding(10),
     textAlign: "center",
     fontSize: scaleFontSize(18),
-    marginRight: responsiveMargin(4),
-    backgroundColor: "#FCFCFC",
+    backgroundColor: "transparent",
+    zIndex: 2,
   },
   percentSign: {
     fontSize: scaleFontSize(18),
@@ -1023,6 +1313,80 @@ const styles = StyleSheet.create({
   selectedDenominationPreview: {
     color: "#333",
     fontWeight: "500",
+  },
+  recommendButton: {
+    borderRadius: 14,
+    overflow: "hidden",
+  },
+  recommendButtonGradient: {
+    paddingHorizontal: responsivePadding(12),
+    paddingVertical: responsivePadding(8),
+    borderRadius: 14,
+  },
+  recommendButtonText: {
+    fontSize: scaleFontSize(14),
+    fontWeight: "600",
+    color: "#FFF",
+    letterSpacing: 0.2,
+  },
+  recommendationInfo: {
+    fontSize: scaleFontSize(13),
+    color: "#666",
+    marginBottom: responsiveMargin(16),
+    lineHeight: 18,
+    backgroundColor: "#F8F8F8",
+    padding: responsivePadding(10),
+    borderRadius: 10,
+    borderLeftWidth: 4,
+    borderLeftColor: "#FFBA6E",
+  },
+  infoIcon: {
+    fontSize: scaleFontSize(13),
+  },
+  learnMoreText: {
+    color: BudgetColors.savings,
+    fontWeight: "600",
+    textDecorationLine: "underline",
+    alignSelf: "flex-end",
+  },
+  learnMoreTitle: {
+    fontSize: scaleFontSize(18),
+    fontWeight: "600",
+    color: "#333",
+    marginTop: responsiveMargin(20),
+    marginBottom: responsiveMargin(10),
+  },
+  learnMoreParagraph: {
+    fontSize: scaleFontSize(15),
+    color: "#444",
+    marginBottom: responsiveMargin(12),
+    lineHeight: 22,
+  },
+  bold: {
+    fontWeight: "600",
+  },
+  tableContainer: {
+    marginVertical: responsiveMargin(12),
+    borderWidth: 1,
+    borderColor: "#E0E0E0",
+    borderRadius: 8,
+    overflow: "hidden",
+  },
+  tableRow: {
+    flexDirection: "row",
+    borderBottomWidth: 1,
+    borderBottomColor: "#E0E0E0",
+  },
+  tableHeader: {
+    backgroundColor: "#F6F6F6",
+    fontWeight: "600",
+  },
+  tableCell: {
+    flex: 1,
+    padding: responsivePadding(10),
+    fontSize: scaleFontSize(14),
+    color: "#333",
+    textAlign: "center",
   },
 });
 

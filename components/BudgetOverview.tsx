@@ -6,7 +6,7 @@ import { BudgetData } from "../app/types/budget";
 import { formatCurrency } from "../app/utils/currency";
 import { filterExpensesByMonth, getCurrentMonthYearKey } from "../app/utils/dateUtils";
 import { responsiveMargin, responsivePadding, scaleFontSize } from "../app/utils/responsive";
-import { selectBudgetRule, selectCategoriesByType, selectCurrency, selectSavingsGoals } from "../redux/slices/budgetSlice";
+import { selectBudgetRule, selectCategoriesByType, selectCurrency, selectDenominationFormat, selectSavingsGoals } from "../redux/slices/budgetSlice";
 import { selectExpenses } from "../redux/slices/expenseSlice";
 import { RootState } from "../redux/types";
 
@@ -54,6 +54,7 @@ const BudgetOverview: React.FC<BudgetOverviewProps> = ({
   const needsCategories = useSelector((state: RootState) => selectCategoriesByType(state, "Needs")) || [];
   const wantsCategories = useSelector((state: RootState) => selectCategoriesByType(state, "Wants")) || [];
   const savingsCategories = useSelector((state: RootState) => selectCategoriesByType(state, "Savings")) || [];
+  const denominationFormat = useSelector(selectDenominationFormat) || "none";
   const savingsGoals = useSelector(selectSavingsGoals) || {};
 
   // Log selected month to verify it's changing
@@ -162,7 +163,7 @@ const BudgetOverview: React.FC<BudgetOverviewProps> = ({
       <ScrollView style={styles.scrollView}>
         <View style={styles.incomeSection}>
           <Text style={styles.incomeLabel}>Monthly Income</Text>
-          <Text style={styles.incomeAmount}>{formatCurrency(monthlyIncome, currency, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</Text>
+          <Text style={styles.incomeAmount}>{formatCurrency(monthlyIncome, currency, denominationFormat)}</Text>
         </View>
 
         <View style={styles.ruleSection}>
@@ -184,12 +185,8 @@ const BudgetOverview: React.FC<BudgetOverviewProps> = ({
               </View>
             </View>
             <View style={styles.budgetItemRight}>
-              <Text style={styles.budgetItemAmount}>
-                {formatCurrency(budgetData.needs.spent, currency, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-              </Text>
-              <Text style={styles.budgetItemTotal}>
-                of {formatCurrency(budgetData.needs.amount, currency, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
-              </Text>
+              <Text style={styles.budgetItemAmount}>{formatCurrency(budgetData.needs.spent, currency, denominationFormat)}</Text>
+              <Text style={styles.budgetItemTotal}>of {formatCurrency(budgetData.needs.amount, currency, denominationFormat)}</Text>
             </View>
           </TouchableOpacity>
 
@@ -209,12 +206,8 @@ const BudgetOverview: React.FC<BudgetOverviewProps> = ({
               </View>
             </View>
             <View style={styles.budgetItemRight}>
-              <Text style={styles.budgetItemAmount}>
-                {formatCurrency(budgetData.savings.spent, currency, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-              </Text>
-              <Text style={styles.budgetItemTotal}>
-                of {formatCurrency(budgetData.savings.amount, currency, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
-              </Text>
+              <Text style={styles.budgetItemAmount}>{formatCurrency(budgetData.savings.spent, currency, denominationFormat)}</Text>
+              <Text style={styles.budgetItemTotal}>of {formatCurrency(budgetData.savings.amount, currency, denominationFormat)}</Text>
             </View>
           </TouchableOpacity>
 
@@ -234,12 +227,8 @@ const BudgetOverview: React.FC<BudgetOverviewProps> = ({
               </View>
             </View>
             <View style={styles.budgetItemRight}>
-              <Text style={styles.budgetItemAmount}>
-                {formatCurrency(budgetData.wants.spent, currency, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-              </Text>
-              <Text style={styles.budgetItemTotal}>
-                of {formatCurrency(budgetData.wants.amount, currency, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
-              </Text>
+              <Text style={styles.budgetItemAmount}>{formatCurrency(budgetData.wants.spent, currency, denominationFormat)}</Text>
+              <Text style={styles.budgetItemTotal}>of {formatCurrency(budgetData.wants.amount, currency, denominationFormat)}</Text>
             </View>
           </TouchableOpacity>
         </View>
@@ -261,9 +250,7 @@ const BudgetOverview: React.FC<BudgetOverviewProps> = ({
                       <Text style={styles.categoryIcon}>{category.icon}</Text>
                     </View>
                     <Text style={styles.categoryName}>{category.name}</Text>
-                    <Text style={styles.categoryAmount}>
-                      {formatCurrency(spent, currency, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </Text>
+                    <Text style={styles.categoryAmount}>{formatCurrency(spent, currency, denominationFormat)}</Text>
                   </View>
                 );
               })}
@@ -295,21 +282,18 @@ const BudgetOverview: React.FC<BudgetOverviewProps> = ({
                       {goal && (
                         <>
                           <Text style={styles.categoryGoal}>
-                            Goal: {formatCurrency(goal.amount, currency, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                            Goal: {formatCurrency(goal.amount, currency, denominationFormat)}
                             {goal.targetDate ? ` by ${goal.targetDate}` : ""}
                           </Text>
                           {totalSaved > 0 && (
                             <Text style={styles.categoryTotalSaved}>
-                              Total saved: {formatCurrency(totalSaved, currency, { minimumFractionDigits: 0, maximumFractionDigits: 0 })} (
-                              {Math.round(goalProgress)}%)
+                              Total saved: {formatCurrency(totalSaved, currency, denominationFormat)} ({Math.round(goalProgress)}%)
                             </Text>
                           )}
                         </>
                       )}
                     </View>
-                    <Text style={styles.categoryAmount}>
-                      {formatCurrency(spent, currency, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </Text>
+                    <Text style={styles.categoryAmount}>{formatCurrency(spent, currency, denominationFormat)}</Text>
                   </View>
                 );
               })}
@@ -330,9 +314,7 @@ const BudgetOverview: React.FC<BudgetOverviewProps> = ({
                       <Text style={styles.categoryIcon}>{category.icon}</Text>
                     </View>
                     <Text style={styles.categoryName}>{category.name}</Text>
-                    <Text style={styles.categoryAmount}>
-                      {formatCurrency(spent, currency, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </Text>
+                    <Text style={styles.categoryAmount}>{formatCurrency(spent, currency, denominationFormat)}</Text>
                   </View>
                 );
               })}
