@@ -6,7 +6,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Alert, Image, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import Animated, { FadeIn } from "react-native-reanimated";
 import { useDispatch, useSelector } from "react-redux";
-import { selectBudgetRule, selectMonthlyIncome } from "../../redux/slices/budgetSlice";
+import { selectBudgetRule, selectCurrency, selectMonthlyIncome } from "../../redux/slices/budgetSlice";
 import { selectExpenses } from "../../redux/slices/expenseSlice";
 import {
   selectAuthProvider,
@@ -26,6 +26,7 @@ export default function ProfileScreen() {
   const { signOut } = useClerk();
   const { user: clerkUser } = useUser();
   const [syncingProfile, setSyncingProfile] = useState(false);
+  const currency = useSelector(selectCurrency);
 
   // User information from Redux
   const userId = useSelector(selectUserId);
@@ -135,7 +136,7 @@ export default function ProfileScreen() {
 
   // Helper function to format currency
   const formatCurrency = (amount: number) => {
-    return "$" + amount.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    return currency.symbol + amount.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
   };
 
   // Handle avatar selection
