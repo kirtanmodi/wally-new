@@ -111,3 +111,33 @@
   - [ ] Ensure UI updates correctly when recommendation is applied
   - [ ] Verify budget rule is properly persisted after recommendation
 
+## Phase 6: Categories Modal & Sorting
+- [x] Create Category List Modal
+  - [x] Design a new modal component to display all categories
+  - [x] Add "View Categories" button in the Expense Categories section
+  - [x] Replace inline category list with modal trigger button
+  - [x] Move existing category list UI to the new modal
+  - [x] Add close button and header to the modal
+- [x] Implement Category Sorting
+  - [x] Add sort options in modal header (by name, by type, by recently added)
+  - [x] Create sort functionality in component state
+  - [x] Add visual indicators for current sort method
+  - [x] Persist sort preference between sessions
+  - [x] Add animations for sort transitions
+- [x] Enhance Category Management in Modal
+  - [x] Improve category card design in the modal view
+  - [x] Add category search/filter functionality
+  - [ ] Add multi-select option for batch delete
+  - [ ] Add drag and drop for manual reordering
+  - [ ] Add statistics about category distribution
+- [x] Performance Optimization
+  - [x] Implement virtualized list for better performance with many categories
+  - [ ] Add pagination if category list grows too large
+  - [x] Optimize animations for smooth scrolling experience
+  - [x] Ensure modals unmount properly to prevent memory leaks
+- [ ] Testing
+  - [ ] Test modal with various screen sizes
+  - [ ] Test sort functionality with different category sets
+  - [ ] Verify category management functions work properly in modal
+  - [ ] Test performance with a large number of categories
+

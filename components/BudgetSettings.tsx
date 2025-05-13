@@ -15,9 +15,11 @@ import {
   deleteCategory,
   selectBudgetRule,
   selectCategories,
+  selectCategorySortOption,
   selectCurrency,
   selectDenominationFormat,
   selectMonthlyIncome,
+  setCategorySortOption,
   setCurrency,
   setDenominationFormat,
   setMonthlyIncome,
@@ -58,6 +60,12 @@ const DENOMINATION_FORMATS: { value: DenominationFormat; label: string }[] = [
   { value: "international", label: "International (1.2K, 1.2M)" },
 ];
 
+const SORT_OPTIONS = [
+  { id: "type", label: "Category Type", key: "type", direction: "asc" },
+  { id: "name_asc", label: "Name (A-Z)", key: "name", direction: "asc" },
+  { id: "name_desc", label: "Name (Z-A)", key: "name", direction: "desc" },
+];
+
 interface BudgetSettingsProps {
   onBackPress?: () => void;
 }
@@ -69,6 +77,7 @@ const BudgetSettings: React.FC<BudgetSettingsProps> = ({ onBackPress }) => {
   const categories = useSelector(selectCategories);
   const currency = useSelector(selectCurrency);
   const denominationFormat = useSelector(selectDenominationFormat);
+  const categorySortOption = useSelector(selectCategorySortOption);
 
   const [incomeInput, setIncomeInput] = useState(monthlyIncome.toString());
   const [needsInput, setNeedsInput] = useState(budgetRule.needs.toString());
@@ -76,6 +85,13 @@ const BudgetSettings: React.FC<BudgetSettingsProps> = ({ onBackPress }) => {
   const [wantsInput, setWantsInput] = useState(budgetRule.wants.toString());
   const [showAddCategory, setShowAddCategory] = useState(false);
   const [showCurrencyModal, setShowCurrencyModal] = useState(false);
+  const [showCategoriesModal, setShowCategoriesModal] = useState(false);
+  const [activeSortOption, setActiveSortOption] = useState(SORT_OPTIONS.find((option) => option.id === categorySortOption) || SORT_OPTIONS[0]);
+  const [sortedCategories, setSortedCategories] = useState<any[]>([]);
+
+  // Add search filter state
+  const [categorySearchQuery, setCategorySearchQuery] = useState("");
+  const [filteredCategories, setFilteredCategories] = useState<any[]>([]);
 
   const [fadeAnim] = useState(new Animated.Value(0));
   const [slideAnim] = useState(new Animated.Value(50));
@@ -140,6 +156,25 @@ const BudgetSettings: React.FC<BudgetSettingsProps> = ({ onBackPress }) => {
     }).start();
   }, [wantsInput]);
 
+  useEffect(() => {
+    applySorting();
+  }, [categories, activeSortOption]);
+
+  // Add effect to filter categories based on search
+  useEffect(() => {
+    if (!categorySearchQuery.trim()) {
+      setFilteredCategories(sortedCategories);
+      return;
+    }
+
+    const query = categorySearchQuery.toLowerCase().trim();
+    const filtered = sortedCategories.filter(
+      (category) => category.name.toLowerCase().includes(query) || category.type.toLowerCase().includes(query)
+    );
+
+    setFilteredCategories(filtered);
+  }, [sortedCategories, categorySearchQuery]);
+
   const validatePercentages = () => {
     const needs = parseInt(needsInput) || 0;
     const savings = parseInt(savingsInput) || 0;
@@ -191,6 +226,9 @@ const BudgetSettings: React.FC<BudgetSettingsProps> = ({ onBackPress }) => {
     setSelectedIcon(COMMON_ICONS[0]);
     setSelectedType("Needs");
     setShowAddCategory(false);
+
+    // Show success message
+    Alert.alert("Success", `Category "${newCategoryName}" has been added.`, [{ text: "OK" }], { cancelable: true });
   };
 
   const handleDeleteCategory = (id: string) => {
@@ -299,8 +337,8 @@ const BudgetSettings: React.FC<BudgetSettingsProps> = ({ onBackPress }) => {
     { threshold: 5000, split: { needs: 15, savings: 75, wants: 10 } }, // High income
     { threshold: 3000, split: { needs: 20, savings: 70, wants: 10 } }, // Upper middle
     { threshold: 2000, split: { needs: 25, savings: 65, wants: 10 } }, // Middle
-    { threshold: 1500, split: { needs: 50, savings: 30, wants: 20 } }, // Lower middle
-    { threshold: 0, split: { needs: 60, savings: 30, wants: 10 } }, // Low income
+    { threshold: 1500, split: { needs: 30, savings: 60, wants: 10 } }, // Lower middle
+    { threshold: 0, split: { needs: 50, savings: 30, wants: 20 } }, // Low income
   ];
 
   const getRecommendedBudgetSplit = (income: number, currency: { code: string }) => {
@@ -318,6 +356,38 @@ const BudgetSettings: React.FC<BudgetSettingsProps> = ({ onBackPress }) => {
     }
 
     return { needs: 50, savings: 20, wants: 30 };
+  };
+
+  const applySorting = () => {
+    const { key, direction } = activeSortOption;
+
+    const sorted = [...categories].sort((a, b) => {
+      if (key === "name") {
+        return direction === "asc" ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name);
+      } else if (key === "type") {
+        return a.type.localeCompare(b.type);
+      } else if (key === "id") {
+        // Sort by most recently added first (assuming IDs are somewhat chronological)
+        return direction === "asc" ? a.id.localeCompare(b.id) : b.id.localeCompare(a.id);
+      }
+      return 0;
+    });
+
+    setSortedCategories(sorted);
+  };
+
+  const handleSortChange = (option: (typeof SORT_OPTIONS)[0]) => {
+    setActiveSortOption(option);
+    dispatch(setCategorySortOption(option.id));
+  };
+
+  // Add function to handle adding category from the modal
+  const handleAddCategoryFromModal = () => {
+    setShowCategoriesModal(false);
+    // Small delay to allow modal to close before opening another
+    setTimeout(() => {
+      setShowAddCategory(true);
+    }, 300);
   };
 
   return (
@@ -480,68 +550,56 @@ const BudgetSettings: React.FC<BudgetSettingsProps> = ({ onBackPress }) => {
         <View style={styles.section}>
           <View style={styles.sectionTitleRow}>
             <Text style={styles.sectionTitle}>Expense Categories</Text>
-            <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
-              <TouchableOpacity style={styles.addButton} onPress={handleAddCategoryWithAnimation} activeOpacity={0.7}>
-                <LinearGradient colors={["#5BD990", "#3DB26E"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.addButtonGradient}>
-                  <Text style={styles.addButtonText}>+ Add New</Text>
-                </LinearGradient>
-              </TouchableOpacity>
-            </Animated.View>
+            {/* <View style={styles.categoryButtonsContainer}>
+              <Animated.View style={{ transform: [{ scale: pulseAnim }], marginRight: 10 }}>
+                <TouchableOpacity style={styles.viewCategoriesButton} onPress={() => setShowCategoriesModal(true)} activeOpacity={0.7}>
+                  <LinearGradient colors={["#837BFF", "#605BFF"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.viewButtonGradient}>
+                    <Text style={styles.viewButtonText}>View All</Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+              </Animated.View>
+              <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
+                <TouchableOpacity style={styles.addButton} onPress={handleAddCategoryWithAnimation} activeOpacity={0.7}>
+                  <LinearGradient colors={["#5BD990", "#3DB26E"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.addButtonGradient}>
+                    <Text style={styles.addButtonText}>+ Add New</Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+              </Animated.View>
+            </View> */}
           </View>
 
           {categories.length === 0 ? (
             <Text style={styles.emptyText}>No categories yet. Add your first one!</Text>
           ) : (
-            <View>
-              {categories.map((item, index) => {
-                const itemFade = new Animated.Value(0);
-                const itemSlide = new Animated.Value(20);
-
-                Animated.parallel([
-                  Animated.timing(itemFade, {
-                    toValue: 1,
-                    duration: 300,
-                    delay: index * 50,
-                    useNativeDriver: true,
-                  }),
-                  Animated.timing(itemSlide, {
-                    toValue: 0,
-                    duration: 300,
-                    delay: index * 50,
-                    useNativeDriver: true,
-                  }),
-                ]).start();
-
-                return (
-                  <React.Fragment key={item.id}>
-                    {index > 0 && <View style={styles.separator} />}
-                    <Animated.View
+            <View style={styles.categorySummary}>
+              <Text style={styles.categoryCount}>
+                {categories.length} {categories.length === 1 ? "category" : "categories"} configured
+              </Text>
+              <TouchableOpacity onPress={() => setShowCategoriesModal(true)} style={styles.categoryPreview}>
+                <View style={styles.categoryIconRow}>
+                  {categories.slice(0, Math.min(categories.length, 5)).map((item, index) => (
+                    <View
+                      key={item.id}
                       style={[
-                        styles.categoryItem,
+                        styles.previewIconContainer,
                         {
-                          opacity: itemFade,
-                          transform: [{ translateY: itemSlide }],
+                          zIndex: 5 - index,
+                          marginLeft: index > 0 ? -10 : 0,
+                          backgroundColor: getCategoryColor(item.type) + "20",
                         },
                       ]}
                     >
-                      <View style={styles.categoryLeft}>
-                        <View style={styles.iconContainer}>
-                          <Text style={styles.categoryIcon}>{item.icon}</Text>
-                        </View>
-                        <Text style={styles.categoryName}>{item.name}</Text>
-                      </View>
-                      <View style={styles.categoryRight}>
-                        <View style={[styles.categoryTypeBadge, { backgroundColor: getCategoryColor(item.type) + "20" }]}>
-                          <Text style={[styles.categoryType, { color: getCategoryColor(item.type) }]}>{item.type}</Text>
-                        </View>
-                        <TouchableOpacity style={styles.deleteButton} onPress={() => handleDeleteCategory(item.id)}>
-                          <Text style={styles.deleteIcon}>🗑️</Text>
-                        </TouchableOpacity>
-                      </View>
-                    </Animated.View>
-                  </React.Fragment>
-                );
-              })}
+                      <Text style={styles.previewCategoryIcon}>{item.icon}</Text>
+                    </View>
+                  ))}
+                  {categories.length > 5 && (
+                    <View style={[styles.previewIconContainer, { marginLeft: -10, zIndex: 0 }]}>
+                      <Text style={styles.moreIconText}>+{categories.length - 5}</Text>
+                    </View>
+                  )}
+                </View>
+                <Text style={styles.tapToViewText}>Tap to view all</Text>
+              </TouchableOpacity>
             </View>
           )}
         </View>
@@ -679,6 +737,98 @@ const BudgetSettings: React.FC<BudgetSettingsProps> = ({ onBackPress }) => {
                 </TouchableOpacity>
               )}
               ItemSeparatorComponent={() => <View style={styles.separator} />}
+            />
+          </View>
+        </View>
+      </Modal>
+
+      {/* Categories Modal */}
+      <Modal visible={showCategoriesModal} animationType="slide" transparent={true} onRequestClose={() => setShowCategoriesModal(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.categoriesModalContainer}>
+            <View style={styles.modalHeaderView}>
+              <Text style={styles.modalTitleText}>Expense Categories</Text>
+              <TouchableOpacity onPress={() => setShowCategoriesModal(false)} hitSlop={{ top: 20, right: 20, bottom: 20, left: 20 }}>
+                <Text style={styles.modalCloseText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Add search input */}
+            <View style={styles.searchContainer}>
+              <View style={styles.searchInputContainer}>
+                <Text style={styles.searchIcon}>🔍</Text>
+                <TextInput
+                  style={styles.searchInput}
+                  placeholder="Search categories..."
+                  value={categorySearchQuery}
+                  onChangeText={setCategorySearchQuery}
+                  returnKeyType="search"
+                />
+                {categorySearchQuery ? (
+                  <TouchableOpacity style={styles.clearSearchButton} onPress={() => setCategorySearchQuery("")}>
+                    <Text style={styles.clearSearchIcon}>✕</Text>
+                  </TouchableOpacity>
+                ) : null}
+              </View>
+
+              <TouchableOpacity style={styles.modalAddButton} onPress={handleAddCategoryFromModal}>
+                <LinearGradient colors={["#5BD990", "#3DB26E"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.modalAddButtonGradient}>
+                  <Text style={styles.modalAddButtonText}>+</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.sortOptionsContainer}>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                {SORT_OPTIONS.map((option) => (
+                  <TouchableOpacity
+                    key={option.id}
+                    style={[styles.sortOption, activeSortOption.id === option.id && styles.activeSortOption]}
+                    onPress={() => handleSortChange(option)}
+                  >
+                    <Text style={[styles.sortOptionText, activeSortOption.id === option.id && styles.activeSortOptionText]}>{option.label}</Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+
+            <FlatList
+              data={filteredCategories}
+              keyExtractor={(item) => item.id}
+              style={styles.categoriesList}
+              contentContainerStyle={[styles.categoriesListContent, filteredCategories.length === 0 && styles.emptyListContent]}
+              ItemSeparatorComponent={() => <View style={styles.separator} />}
+              renderItem={({ item }) => (
+                <Animated.View style={styles.categoryListItem}>
+                  <View style={styles.categoryLeft}>
+                    <View style={[styles.categoryIconContainerLarge, { backgroundColor: getCategoryColor(item.type) + "20" }]}>
+                      <Text style={styles.categoryIconLarge}>{item.icon}</Text>
+                    </View>
+                    <View style={styles.categoryInfo}>
+                      <Text style={styles.categoryNameLarge}>{item.name}</Text>
+                      <View style={[styles.categoryTypeBadge, { backgroundColor: getCategoryColor(item.type) + "20" }]}>
+                        <Text style={[styles.categoryType, { color: getCategoryColor(item.type) }]}>{item.type}</Text>
+                      </View>
+                    </View>
+                  </View>
+                  <TouchableOpacity style={styles.deleteButtonLarge} onPress={() => handleDeleteCategory(item.id)}>
+                    <Text style={styles.deleteIcon}>🗑️</Text>
+                  </TouchableOpacity>
+                </Animated.View>
+              )}
+              ListEmptyComponent={
+                <View style={styles.emptyContainer}>
+                  <Text style={styles.emptyIconText}>📋</Text>
+                  <Text style={styles.emptyText}>
+                    {categorySearchQuery ? `No categories found matching "${categorySearchQuery}"` : "No categories yet. Add your first one!"}
+                  </Text>
+                  <TouchableOpacity style={styles.emptyAddButton} onPress={handleAddCategoryFromModal}>
+                    <LinearGradient colors={["#5BD990", "#3DB26E"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.emptyAddButtonGradient}>
+                      <Text style={styles.emptyAddButtonText}>Add New Category</Text>
+                    </LinearGradient>
+                  </TouchableOpacity>
+                </View>
+              }
             />
           </View>
         </View>
@@ -1202,6 +1352,232 @@ const styles = StyleSheet.create({
     fontSize: scaleFontSize(14),
     color: "#333",
     textAlign: "center",
+  },
+  categoryButtonsContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  viewCategoriesButton: {
+    borderRadius: 20,
+    overflow: "hidden",
+  },
+  viewButtonGradient: {
+    paddingHorizontal: responsivePadding(16),
+    paddingVertical: responsivePadding(8),
+    borderRadius: 20,
+  },
+  viewButtonText: {
+    color: "#FFF",
+    fontSize: scaleFontSize(14),
+    fontWeight: "600",
+    letterSpacing: 0.2,
+  },
+  categorySummary: {
+    padding: responsivePadding(16),
+    borderRadius: 14,
+    backgroundColor: "#FCFCFC",
+    borderWidth: 1,
+    borderColor: "#E6E6E6",
+  },
+  categoryCount: {
+    fontSize: scaleFontSize(15),
+    fontWeight: "500",
+    color: "#444",
+    marginBottom: responsiveMargin(10),
+  },
+  categoryPreview: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  categoryIconRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  previewIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 2,
+    borderColor: "#FFF",
+  },
+  previewCategoryIcon: {
+    fontSize: scaleFontSize(16),
+  },
+  moreIconText: {
+    fontSize: scaleFontSize(12),
+    fontWeight: "600",
+    color: "#666",
+  },
+  tapToViewText: {
+    fontSize: scaleFontSize(14),
+    color: "#666",
+    textDecorationLine: "underline",
+  },
+  categoriesModalContainer: {
+    backgroundColor: "#FFF",
+    borderRadius: 16,
+    width: "100%",
+    height: "90%",
+    marginTop: "auto",
+    overflow: "hidden",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 10,
+  },
+  sortOptionsContainer: {
+    paddingVertical: responsivePadding(10),
+    paddingHorizontal: responsivePadding(16),
+    borderBottomWidth: 1,
+    borderBottomColor: "#F0F0F0",
+  },
+  sortOption: {
+    paddingHorizontal: responsivePadding(14),
+    paddingVertical: responsivePadding(8),
+    marginRight: responsiveMargin(8),
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "#E6E6E6",
+    backgroundColor: "#FCFCFC",
+  },
+  activeSortOption: {
+    backgroundColor: "#5BD990" + "20",
+    borderColor: "#5BD990",
+  },
+  sortOptionText: {
+    fontSize: scaleFontSize(14),
+    color: "#666",
+  },
+  activeSortOptionText: {
+    color: "#3DB26E",
+    fontWeight: "600",
+  },
+  categoriesList: {
+    flex: 1,
+  },
+  categoriesListContent: {
+    padding: responsivePadding(16),
+  },
+  categoryListItem: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: responsivePadding(12),
+  },
+  categoryIconContainerLarge: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: responsiveMargin(16),
+  },
+  categoryIconLarge: {
+    fontSize: scaleFontSize(24),
+  },
+  categoryInfo: {
+    flex: 1,
+  },
+  categoryNameLarge: {
+    fontSize: scaleFontSize(16),
+    fontWeight: "500",
+    color: "#333",
+    marginBottom: responsiveMargin(6),
+  },
+  deleteButtonLarge: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#F8F8F8",
+  },
+  searchContainer: {
+    flexDirection: "row",
+    paddingHorizontal: responsivePadding(16),
+    paddingVertical: responsivePadding(12),
+    borderBottomWidth: 1,
+    borderBottomColor: "#F0F0F0",
+    alignItems: "center",
+  },
+  searchInputContainer: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F6F6F6",
+    borderRadius: 12,
+    paddingHorizontal: responsivePadding(12),
+    marginRight: responsiveMargin(12),
+    height: 46,
+  },
+  searchIcon: {
+    fontSize: scaleFontSize(16),
+    marginRight: responsiveMargin(8),
+    color: "#666",
+  },
+  searchInput: {
+    flex: 1,
+    height: "100%",
+    fontSize: scaleFontSize(15),
+    color: "#333",
+  },
+  clearSearchButton: {
+    padding: responsivePadding(4),
+  },
+  clearSearchIcon: {
+    fontSize: scaleFontSize(14),
+    color: "#999",
+  },
+  modalAddButton: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    overflow: "hidden",
+  },
+  modalAddButtonGradient: {
+    width: "100%",
+    height: "100%",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalAddButtonText: {
+    fontSize: scaleFontSize(26),
+    color: "#FFF",
+    fontWeight: "300",
+  },
+  emptyContainer: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: responsivePadding(40),
+  },
+  emptyIconText: {
+    fontSize: scaleFontSize(50),
+    marginBottom: responsiveMargin(16),
+    opacity: 0.5,
+  },
+  emptyAddButton: {
+    marginTop: responsiveMargin(20),
+    borderRadius: 14,
+    overflow: "hidden",
+  },
+  emptyAddButtonGradient: {
+    paddingHorizontal: responsivePadding(20),
+    paddingVertical: responsivePadding(12),
+    borderRadius: 14,
+  },
+  emptyAddButtonText: {
+    color: "#FFF",
+    fontSize: scaleFontSize(15),
+    fontWeight: "600",
+    letterSpacing: 0.2,
+  },
+  emptyListContent: {
+    flexGrow: 1,
   },
 });
 

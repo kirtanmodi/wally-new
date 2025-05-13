@@ -1,4 +1,4 @@
-import { ClerkProvider } from "@clerk/clerk-expo";
+import { ClerkProvider, useClerk } from "@clerk/clerk-expo";
 import { tokenCache } from "@clerk/clerk-expo/token-cache";
 import { Stack, useRouter } from "expo-router";
 import React, { useEffect } from "react";
@@ -15,8 +15,8 @@ import { Colors } from "./constants/Colors";
 function AuthContextProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
 
-  // const { signOut } = useClerk();
-  // signOut();
+  const { signOut } = useClerk();
+  signOut();
 
   const isFirstTimeUser = useSelector(selectIsFirstTimeUser);
   const isAuthenticated = useSelector(selectIsAuthenticated);

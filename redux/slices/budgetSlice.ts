@@ -52,10 +52,11 @@ interface BudgetState {
   currency: CurrencyInfo;
   savingsGoals: SavingsGoals;
   denominationFormat: DenominationFormat;
+  categorySortOption: string;
 }
 
 const initialState: BudgetState = {
-  monthlyIncome: 0,
+  monthlyIncome: 40000,
   budgetRule: {
     needs: 50,
     savings: 30,
@@ -73,9 +74,10 @@ const initialState: BudgetState = {
     { id: "entertainment", name: "Entertainment", icon: "🎬", type: "Wants" },
     { id: "other", name: "Other", icon: "💡", type: "Wants" },
   ],
-  currency: AVAILABLE_CURRENCIES[0],
+  currency: AVAILABLE_CURRENCIES[6],
   savingsGoals: {},
-  denominationFormat: "none",
+  denominationFormat: "indian",
+  categorySortOption: "name_asc",
 };
 
 export const budgetSlice = createSlice({
@@ -83,7 +85,7 @@ export const budgetSlice = createSlice({
   initialState,
   reducers: {
     resetBudget: (state) => {
-      state.monthlyIncome = 0;
+      state.monthlyIncome = 40000;
       state.budgetRule = {
         needs: 50,
         savings: 30,
@@ -102,8 +104,9 @@ export const budgetSlice = createSlice({
         { id: "other", name: "Other", icon: "💡", type: "Wants" },
       ];
       state.savingsGoals = {};
-      state.currency = AVAILABLE_CURRENCIES[0];
-      state.denominationFormat = "none";
+      state.currency = AVAILABLE_CURRENCIES[6];
+      state.denominationFormat = "indian";
+      state.categorySortOption = "name_asc";
     },
     setMonthlyIncome: (state, action: PayloadAction<number>) => {
       state.monthlyIncome = action.payload;
@@ -174,6 +177,9 @@ export const budgetSlice = createSlice({
     setDenominationFormat: (state, action: PayloadAction<DenominationFormat>) => {
       state.denominationFormat = action.payload;
     },
+    setCategorySortOption: (state, action: PayloadAction<string>) => {
+      state.categorySortOption = action.payload;
+    },
   },
 });
 
@@ -189,6 +195,7 @@ export const {
   updateSavingsGoal,
   deleteSavingsGoal,
   setDenominationFormat,
+  setCategorySortOption,
 } = budgetSlice.actions;
 
 const selectBudgetState = (state: RootState) => state.budget;
@@ -202,6 +209,7 @@ export const selectCategories = (state: RootState) => state.budget.categories;
 export const selectCurrency = (state: RootState) => state.budget.currency;
 export const selectSavingsGoals = (state: RootState) => state.budget.savingsGoals;
 export const selectDenominationFormat = (state: RootState) => state.budget.denominationFormat;
+export const selectCategorySortOption = (state: RootState) => state.budget.categorySortOption;
 
 export const selectCategoriesByType = createSelector([selectCategoriesState, (_, type: BudgetCategory) => type], (categories, type) =>
   categories.filter((cat) => cat.type === type)
