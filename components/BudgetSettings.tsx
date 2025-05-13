@@ -10,7 +10,6 @@ import { KeyboardAwareView } from "../app/utils/keyboard";
 import { responsiveMargin, responsivePadding, scaleFontSize } from "../app/utils/responsive";
 import {
   AVAILABLE_CURRENCIES,
-  CategoryItem,
   CurrencyInfo,
   addCategory,
   deleteCategory,
@@ -95,8 +94,6 @@ const BudgetSettings: React.FC<BudgetSettingsProps> = ({ onBackPress }) => {
   const animatedNeeds = useRef(new Animated.Value(parseInt(needsInput) || 0)).current;
   const animatedSavings = useRef(new Animated.Value(parseInt(savingsInput) || 0)).current;
   const animatedWants = useRef(new Animated.Value(parseInt(wantsInput) || 0)).current;
-
-  const [showLearnMoreModal, setShowLearnMoreModal] = useState(false);
 
   useEffect(() => {
     validatePercentages();
@@ -225,53 +222,6 @@ const BudgetSettings: React.FC<BudgetSettingsProps> = ({ onBackPress }) => {
     dispatch(setDenominationFormat(format));
   };
 
-  const renderCategoryItem = ({ item, index }: { item: CategoryItem; index: number }) => {
-    const itemFade = new Animated.Value(0);
-    const itemSlide = new Animated.Value(20);
-
-    Animated.parallel([
-      Animated.timing(itemFade, {
-        toValue: 1,
-        duration: 300,
-        delay: index * 50,
-        useNativeDriver: true,
-      }),
-      Animated.timing(itemSlide, {
-        toValue: 0,
-        duration: 300,
-        delay: index * 50,
-        useNativeDriver: true,
-      }),
-    ]).start();
-
-    return (
-      <Animated.View
-        style={[
-          styles.categoryItem,
-          {
-            opacity: itemFade,
-            transform: [{ translateY: itemSlide }],
-          },
-        ]}
-      >
-        <View style={styles.categoryLeft}>
-          <View style={styles.iconContainer}>
-            <Text style={styles.categoryIcon}>{item.icon}</Text>
-          </View>
-          <Text style={styles.categoryName}>{item.name}</Text>
-        </View>
-        <View style={styles.categoryRight}>
-          <View style={[styles.categoryTypeBadge, { backgroundColor: getCategoryColor(item.type) + "20" }]}>
-            <Text style={[styles.categoryType, { color: getCategoryColor(item.type) }]}>{item.type}</Text>
-          </View>
-          <TouchableOpacity style={styles.deleteButton} onPress={() => handleDeleteCategory(item.id)}>
-            <Text style={styles.deleteIcon}>🗑️</Text>
-          </TouchableOpacity>
-        </View>
-      </Animated.View>
-    );
-  };
-
   const animatePulse = () => {
     Animated.sequence([
       Animated.timing(pulseAnim, {
@@ -349,8 +299,8 @@ const BudgetSettings: React.FC<BudgetSettingsProps> = ({ onBackPress }) => {
     { threshold: 5000, split: { needs: 15, savings: 75, wants: 10 } }, // High income
     { threshold: 3000, split: { needs: 20, savings: 70, wants: 10 } }, // Upper middle
     { threshold: 2000, split: { needs: 25, savings: 65, wants: 10 } }, // Middle
-    { threshold: 1500, split: { needs: 30, savings: 60, wants: 10 } }, // Lower middle
-    { threshold: 0, split: { needs: 40, savings: 50, wants: 10 } }, // Low income
+    { threshold: 1500, split: { needs: 50, savings: 30, wants: 20 } }, // Lower middle
+    { threshold: 0, split: { needs: 60, savings: 30, wants: 10 } }, // Low income
   ];
 
   const getRecommendedBudgetSplit = (income: number, currency: { code: string }) => {
@@ -381,9 +331,6 @@ const BudgetSettings: React.FC<BudgetSettingsProps> = ({ onBackPress }) => {
       ]}
     >
       <LinearGradient colors={["#FFFFFF", "#F8F9FA"]} style={styles.header}>
-        {/* <TouchableOpacity style={styles.backButtonContainer} onPress={onBackPress} activeOpacity={0.7}>
-          <Text style={styles.backButton}>←</Text>
-        </TouchableOpacity> */}
         <Text style={styles.headerTitle}>Budget Settings</Text>
       </LinearGradient>
 
@@ -397,7 +344,7 @@ const BudgetSettings: React.FC<BudgetSettingsProps> = ({ onBackPress }) => {
             <Text style={styles.sectionTitle}>Monthly Income</Text>
             <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
               <TouchableOpacity style={styles.currencyButton} onPress={handleShowCurrencyWithAnimation} activeOpacity={0.7}>
-                <Text style={styles.currencyButtonText}>{currency?.code || "USD"}</Text>
+                <Text style={styles.currencyButtonText}>currency: {currency?.code || "USD"}</Text>
               </TouchableOpacity>
             </Animated.View>
           </View>
@@ -441,17 +388,6 @@ const BudgetSettings: React.FC<BudgetSettingsProps> = ({ onBackPress }) => {
             </TouchableOpacity>
           </View>
           <Text style={styles.sectionDescription}>Adjust your budget percentages based on the 50-30-20 rule.</Text>
-          <Text style={styles.recommendationInfo}>
-            <Text style={styles.infoIcon}>ℹ️ </Text>
-            <Text>
-              Recommendations adapt based on your income level, with 7 different brackets from very low to very high income. Higher incomes allow for
-              more savings, while lower incomes prioritize essential needs.{" "}
-            </Text>
-            <TouchableOpacity onPress={() => setShowLearnMoreModal(true)}>
-              <Text style={styles.learnMoreText}>Learn More</Text>
-            </TouchableOpacity>
-          </Text>
-
           <View style={styles.budgetRuleContainer}>
             <View style={styles.budgetItemContainer}>
               <LinearGradient colors={["#5BD990", "#3DB26E"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.budgetColorIndicator} />
@@ -610,17 +546,6 @@ const BudgetSettings: React.FC<BudgetSettingsProps> = ({ onBackPress }) => {
           )}
         </View>
 
-        {/* Currency Section */}
-        <View style={styles.section}>
-          <View style={styles.sectionTitleRow}>
-            <Text style={styles.sectionTitle}>Currency</Text>
-            <TouchableOpacity style={styles.currencyButton} onPress={() => setShowCurrencyModal(true)}>
-              <Text style={styles.currencyButtonText}>{currency.code}</Text>
-            </TouchableOpacity>
-          </View>
-          <Text style={styles.sectionDescription}>Set your preferred currency for the app.</Text>
-        </View>
-
         {/* Add Denomination Format Section */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Number Format</Text>
@@ -755,116 +680,6 @@ const BudgetSettings: React.FC<BudgetSettingsProps> = ({ onBackPress }) => {
               )}
               ItemSeparatorComponent={() => <View style={styles.separator} />}
             />
-          </View>
-        </View>
-      </Modal>
-
-      {/* Learn More Modal */}
-      <Modal visible={showLearnMoreModal} animationType="fade" transparent onRequestClose={() => setShowLearnMoreModal(false)}>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContainerView}>
-            {/* Header */}
-            <View style={styles.modalHeaderView}>
-              <Text style={styles.modalTitleText}>Budget Allocation Guide</Text>
-              <TouchableOpacity onPress={() => setShowLearnMoreModal(false)} hitSlop={{ top: 20, right: 20, bottom: 20, left: 20 }}>
-                <Text style={styles.modalCloseText}>✕</Text>
-              </TouchableOpacity>
-            </View>
-
-            {/* Content */}
-            <ScrollView style={styles.modalScrollView} contentContainerStyle={styles.modalScrollContent}>
-              <Text style={styles.learnMoreTitle}>Aggressive Savings Rule</Text>
-              <Text style={styles.learnMoreParagraph}>
-                For disciplined wealth building, allocate the highest possible percentage to savings, especially as your income increases. Needs and
-                wants are kept minimal.
-              </Text>
-
-              <Text style={styles.learnMoreTitle}>Why Recommendations Change Based on Income</Text>
-              <Text style={styles.learnMoreParagraph}>
-                • <Text style={styles.bold}>Higher incomes</Text>: Essential needs don&apos;t scale with income, so you can (and should) save much
-                more.
-              </Text>
-              <Text style={styles.learnMoreParagraph}>
-                • <Text style={styles.bold}>Lower incomes</Text>: Prioritize needs, but always save something, even if it&apos;s a small percentage.
-              </Text>
-
-              <Text style={styles.learnMoreTitle}>Income-Based Recommendations</Text>
-              <Text style={styles.learnMoreParagraph}>
-                Recommendations adjust for your income and currency. Thresholds are scaled for your local purchasing power.
-              </Text>
-              <View style={styles.tableContainer}>
-                <View style={styles.tableRow}>
-                  <Text style={[styles.tableCell, styles.tableHeader]}>Income Level (USD Base)</Text>
-                  <Text style={[styles.tableCell, styles.tableHeader]}>Needs</Text>
-                  <Text style={[styles.tableCell, styles.tableHeader]}>Savings</Text>
-                  <Text style={[styles.tableCell, styles.tableHeader]}>Wants</Text>
-                </View>
-                <View style={styles.tableRow}>
-                  <Text style={styles.tableCell}>Ultra High (≥$15,000)</Text>
-                  <Text style={styles.tableCell}>10%</Text>
-                  <Text style={styles.tableCell}>85%</Text>
-                  <Text style={styles.tableCell}>5%</Text>
-                </View>
-                <View style={styles.tableRow}>
-                  <Text style={styles.tableCell}>Very High ($10,000-$14,999)</Text>
-                  <Text style={styles.tableCell}>12%</Text>
-                  <Text style={styles.tableCell}>80%</Text>
-                  <Text style={styles.tableCell}>8%</Text>
-                </View>
-                <View style={styles.tableRow}>
-                  <Text style={styles.tableCell}>High ($5,000-$9,999)</Text>
-                  <Text style={styles.tableCell}>15%</Text>
-                  <Text style={styles.tableCell}>75%</Text>
-                  <Text style={styles.tableCell}>10%</Text>
-                </View>
-                <View style={styles.tableRow}>
-                  <Text style={styles.tableCell}>Upper Middle ($3,000-$4,999)</Text>
-                  <Text style={styles.tableCell}>20%</Text>
-                  <Text style={styles.tableCell}>70%</Text>
-                  <Text style={styles.tableCell}>10%</Text>
-                </View>
-                <View style={styles.tableRow}>
-                  <Text style={styles.tableCell}>Middle ($2,000-$2,999)</Text>
-                  <Text style={styles.tableCell}>25%</Text>
-                  <Text style={styles.tableCell}>65%</Text>
-                  <Text style={styles.tableCell}>10%</Text>
-                </View>
-                <View style={styles.tableRow}>
-                  <Text style={styles.tableCell}>Lower Middle ($1,500-$1,999)</Text>
-                  <Text style={styles.tableCell}>30%</Text>
-                  <Text style={styles.tableCell}>60%</Text>
-                  <Text style={styles.tableCell}>10%</Text>
-                </View>
-                <View style={styles.tableRow}>
-                  <Text style={styles.tableCell}>Low (&lt;$1,500)</Text>
-                  <Text style={styles.tableCell}>40%</Text>
-                  <Text style={styles.tableCell}>50%</Text>
-                  <Text style={styles.tableCell}>10%</Text>
-                </View>
-              </View>
-
-              <Text style={styles.learnMoreTitle}>Currency Adjustments</Text>
-              <Text style={styles.learnMoreParagraph}>
-                Income thresholds are adjusted for your currency&apos;s value. Stronger currencies lower the thresholds, weaker ones raise them.
-              </Text>
-
-              <Text style={styles.learnMoreTitle}>Tips for Successful Budgeting</Text>
-              <Text style={styles.learnMoreParagraph}>
-                1. <Text style={styles.bold}>Track all expenses</Text>: Know where your money goes.
-              </Text>
-              <Text style={styles.learnMoreParagraph}>
-                2. <Text style={styles.bold}>Emergency fund</Text>: Save 3-6 months of expenses first.
-              </Text>
-              <Text style={styles.learnMoreParagraph}>
-                3. <Text style={styles.bold}>Automate savings</Text>: Set up automatic transfers.
-              </Text>
-              <Text style={styles.learnMoreParagraph}>
-                4. <Text style={styles.bold}>Review regularly</Text>: Adjust your budget monthly.
-              </Text>
-              <Text style={styles.learnMoreParagraph}>
-                5. <Text style={styles.bold}>Be flexible</Text>: Update your allocations as life changes.
-              </Text>
-            </ScrollView>
           </View>
         </View>
       </Modal>
