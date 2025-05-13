@@ -1,6 +1,6 @@
 import DateTimePicker from "@react-native-community/datetimepicker";
 import React, { useEffect, useRef, useState } from "react";
-import { Animated, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { Alert, Animated, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { useSelector } from "react-redux";
 import { BudgetColors } from "../app/constants/Colors";
 import { BudgetCategory, Expense, ExpenseCategory } from "../app/types/budget";
@@ -72,6 +72,11 @@ const AddExpense: React.FC<AddExpenseProps> = ({ onSave, onCancel, isEditing = f
   };
 
   const handleSave = () => {
+    if (parseFloat(amount) <= 0) {
+      Alert.alert("Invalid amount", "Please enter a valid amount.");
+      return;
+    }
+
     if (onSave) {
       onSave({
         amount: parseFloat(amount),

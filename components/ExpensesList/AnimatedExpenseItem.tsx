@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from "react";
 import { Animated, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import Swipeable from "react-native-gesture-handler/Swipeable";
+import ReanimatedSwipeable, { SwipeableMethods } from "react-native-gesture-handler/ReanimatedSwipeable";
+import { SharedValue } from "react-native-reanimated";
 import { useSelector } from "react-redux";
 import { BudgetCategory, Expense } from "../../app/types/budget";
 import { formatCurrency } from "../../app/utils/currency";
@@ -21,7 +22,7 @@ const AnimatedExpenseItem: React.FC<AnimatedExpenseItemProps> = ({ item, index, 
   const translateY = useRef(new Animated.Value(20)).current;
   const currency = useSelector(selectCurrency);
   const denominationFormat = useSelector(selectDenominationFormat);
-  const swipeableRef = useRef<Swipeable>(null);
+  const swipeableRef = useRef<SwipeableMethods>(null);
 
   useEffect(() => {
     Animated.parallel([
@@ -54,7 +55,7 @@ const AnimatedExpenseItem: React.FC<AnimatedExpenseItemProps> = ({ item, index, 
     onDelete(item.id);
   };
 
-  const renderRightActions = () => {
+  const renderRightActions = (progress: SharedValue<number>, dragX: SharedValue<number>, swipeableMethods: SwipeableMethods) => {
     return (
       <View style={styles.actionButtons}>
         <TouchableOpacity style={[styles.actionButton, styles.editButton]} onPress={handleEdit}>
@@ -71,7 +72,7 @@ const AnimatedExpenseItem: React.FC<AnimatedExpenseItemProps> = ({ item, index, 
   const categoryColor = getCategoryColor(item.category);
 
   return (
-    <Swipeable ref={swipeableRef} renderRightActions={renderRightActions} overshootRight={false}>
+    <ReanimatedSwipeable ref={swipeableRef} renderRightActions={renderRightActions} overshootRight={false}>
       <Animated.View
         style={[
           styles.container,
@@ -97,7 +98,7 @@ const AnimatedExpenseItem: React.FC<AnimatedExpenseItemProps> = ({ item, index, 
           <Text style={styles.amount}>{formatCurrency(item.amount, currency, denominationFormat)}</Text>
         </TouchableOpacity>
       </Animated.View>
-    </Swipeable>
+    </ReanimatedSwipeable>
   );
 };
 
@@ -171,7 +172,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    height: "100%",
+    height: "60%",
     borderRadius: 12,
   },
   editButton: {
