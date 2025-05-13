@@ -15,6 +15,9 @@ import { Colors } from "./constants/Colors";
 function AuthContextProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
 
+  // const { signOut } = useClerk();
+  // signOut();
+
   const isFirstTimeUser = useSelector(selectIsFirstTimeUser);
   const isAuthenticated = useSelector(selectIsAuthenticated);
 

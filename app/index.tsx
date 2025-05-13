@@ -1,10 +1,11 @@
 import { Redirect } from "expo-router";
 import React from "react";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { selectIsFirstTimeUser } from "../redux/slices/expenseSlice";
+
 export default function Index() {
   const isFirstTimeUser = useSelector(selectIsFirstTimeUser);
-  // const dispatch = useDispatch();
+  const dispatch = useDispatch();
 
   console.log("isFirstTimeUser", isFirstTimeUser);
 
