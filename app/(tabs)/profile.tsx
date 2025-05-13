@@ -237,9 +237,9 @@ export default function ProfileScreen() {
         <Animated.View style={styles.profileCard} entering={FadeIn.duration(300)}>
           <View style={styles.header}>
             <Text style={styles.title}>Profile</Text>
-            <TouchableOpacity style={styles.settingsButton} onPress={handleNavigateToSettings}>
+            {/* <TouchableOpacity style={styles.settingsButton} onPress={handleNavigateToSettings}>
               <FontAwesome name="gear" size={24} color="#666" />
-            </TouchableOpacity>
+            </TouchableOpacity> */}
           </View>
 
           {/* Profile picture and name */}
