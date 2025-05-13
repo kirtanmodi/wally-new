@@ -287,9 +287,9 @@ export default function ProfileScreen() {
           <View style={styles.statsCard}>
             <View style={styles.sectionTitleRow}>
               <Text style={styles.sectionTitle}>Budget Stats</Text>
-              <TouchableOpacity onPress={handleNavigateToAnalytics}>
+              {/* <TouchableOpacity onPress={handleNavigateToAnalytics}>
                 <Text style={styles.viewMoreLink}>View Analytics</Text>
-              </TouchableOpacity>
+              </TouchableOpacity> */}
             </View>
 
             {/* Budget Overview */}

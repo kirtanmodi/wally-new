@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo } from "react";
+import React, { useEffect, useMemo } from "react";
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSelector } from "react-redux";
 import { BudgetColors } from "../app/constants/Colors";
@@ -114,25 +114,6 @@ const BudgetOverview: React.FC<BudgetOverviewProps> = ({
     return selectedDate.toLocaleDateString("en-US", { month: "long", year: "numeric" });
   }, [selectedDate]);
 
-  // Format currency to appropriate locale with 2 decimal places
-  const formatBudgetAmount = useCallback(
-    (amount: number) => {
-      return formatCurrency(amount, currency);
-    },
-    [currency]
-  );
-
-  // Format percentage
-  const formatPercentage = (percentage: number): string => {
-    return `${Math.round(percentage)}%`;
-  };
-
-  // Calculate progress percentage
-  const getProgressPercentage = (spent: number, budgeted: number): number => {
-    if (budgeted === 0) return 0;
-    return Math.min(100, (spent / budgeted) * 100);
-  };
-
   // Add calculation for total savings across all months
   const calculateTotalSavingsByCategoryId = useMemo(() => {
     // Only needed for Savings categories
@@ -155,9 +136,6 @@ const BudgetOverview: React.FC<BudgetOverviewProps> = ({
         </TouchableOpacity> */}
         <Text style={styles.headerTitle}>Income & Budget</Text>
         <Text style={styles.headerSubtitle}>{formattedMonthYear}</Text>
-        <TouchableOpacity onPress={onOpenSettings}>
-          <Text style={styles.settingsButton}>⚙️</Text>
-        </TouchableOpacity>
       </View>
 
       <ScrollView style={styles.scrollView}>
