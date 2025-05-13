@@ -606,23 +606,6 @@ const SavingsDetailScreen: React.FC<SavingsDetailScreenProps> = ({ onBackPress, 
             );
           })}
         </View>
-
-        {/* AI Insight Section */}
-        <View style={styles.insightContainer}>
-          <View style={styles.insightHeader}>
-            <Text style={styles.insightIcon}>💡</Text>
-            <Text style={styles.insightTitle}>Insight</Text>
-          </View>
-          <Text style={styles.insightText}>
-            {percentageUsed >= 100
-              ? `Excellent work! You've met your savings goal for ${monthName}. Consistent saving is key to long-term financial health.`
-              : percentageUsed >= 75
-              ? `You're on track with your savings goal for ${monthName}. Just a bit more to reach your target!`
-              : percentageUsed >= 50
-              ? `You're making progress on your savings for ${monthName}, but try to allocate a bit more to stay on track with your annual goals.`
-              : `Consider reviewing your budget to prioritize savings this month. Even small, consistent contributions add up over time.`}
-          </Text>
-        </View>
       </ScrollView>
 
       {/* Goal Setting Modal */}
