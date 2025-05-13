@@ -154,13 +154,6 @@ const GoalSettingModal: React.FC<GoalSettingModalProps> = ({
             </TouchableOpacity>
 
             {showDatePicker && (
-              // <DateTimePicker
-              //   value={selectedDate || minimumDate}
-              //   mode="date"
-              //   display={Platform.OS === "ios" ? "spinner" : "default"}
-              //   onChange={onDateChange}
-              //   minimumDate={minimumDate}
-              // />
               <DateTimePicker
                 value={selectedDate || minimumDate}
                 mode="date"
