@@ -126,7 +126,7 @@ export default function LoginScreen() {
         const userId = signInAttempt.userId || user?.id || "";
         await saveUserToRedux(userId);
 
-        router.replace("/(tabs)");
+        // router.replace("/(tabs)");
       } else {
         // If the status isn't complete, check why. User might need to
         // complete further steps.
@@ -158,7 +158,7 @@ export default function LoginScreen() {
         const userId = result.firstFactorVerification?.userId || user?.id || "";
         await saveUserToRedux(userId, "google");
 
-        router.replace("/(tabs)");
+        // router.replace("/(tabs)");
       }
     } catch (error) {
       console.error("Google sign in error:", error);
@@ -183,7 +183,7 @@ export default function LoginScreen() {
         const userId = result.firstFactorVerification?.userId || user?.id || "";
         await saveUserToRedux(userId, "apple");
 
-        router.replace("/(tabs)");
+        // router.replace("/(tabs)");
       }
     } catch (error) {
       console.error("Apple sign in error:", error);

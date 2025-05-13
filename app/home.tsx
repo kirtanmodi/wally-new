@@ -1,8 +1,8 @@
-import { Redirect } from "expo-router";
-import React from "react";
+// import { Redirect } from "expo-router";
+// import React from "react";
 
-const home = () => {
-  return <Redirect href="/(tabs)" />;
-};
+// const home = () => {
+//   return <Redirect href="/(tabs)" />;
+// };
 
-export default home;
+// export default home;
