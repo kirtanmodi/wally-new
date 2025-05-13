@@ -5,7 +5,7 @@ import { useSelector } from "react-redux";
 import { CategorySummary } from "../../app/types/budget";
 import { formatCurrency } from "../../app/utils/currency";
 import { responsiveMargin, scaleFontSize, wp } from "../../app/utils/responsive";
-import { selectCurrency } from "../../redux/slices/budgetSlice";
+import { selectCurrency, selectDenominationFormat } from "../../redux/slices/budgetSlice";
 
 interface AnimatedCategoryCircleProps {
   item: CategorySummary;
@@ -31,7 +31,7 @@ const AnimatedCategoryCircle: React.FC<AnimatedCategoryCircleProps> = ({
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const warningFade = useRef(new Animated.Value(0)).current;
   const currency = useSelector(selectCurrency);
-
+  const denominationFormat = useSelector(selectDenominationFormat);
   useEffect(() => {
     // Staggered animation
     Animated.parallel([
@@ -127,11 +127,9 @@ const AnimatedCategoryCircle: React.FC<AnimatedCategoryCircleProps> = ({
         </Animated.View>
         <Text style={styles.categoryCircleLabel}>{item.category}</Text>
         <Text style={[styles.categoryCircleAmount, isOverBudget && styles.overBudgetText]}>
-          {formatCurrency(item.spent, currency, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+          {formatCurrency(item.spent, currency, denominationFormat)}
         </Text>
-        <Text style={styles.categoryCircleTotal}>
-          of {formatCurrency(item.total, currency, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
-        </Text>
+        <Text style={styles.categoryCircleTotal}>of {formatCurrency(item.total, currency, denominationFormat)}</Text>
         {isOverBudget && <Animated.Text style={[styles.overBudgetMessage, { opacity: warningFade }]}>Over budget</Animated.Text>}
       </TouchableOpacity>
     </Animated.View>

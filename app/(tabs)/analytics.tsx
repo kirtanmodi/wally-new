@@ -4,9 +4,10 @@ import React, { useCallback, useMemo, useState } from "react";
 import { ActivityIndicator, Dimensions, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
 import { useSelector } from "react-redux";
-import { selectBudgetRule, selectCategories, selectCurrency, selectMonthlyIncome } from "../../redux/slices/budgetSlice";
+import { selectBudgetRule, selectCategories, selectCurrency, selectDenominationFormat, selectMonthlyIncome } from "../../redux/slices/budgetSlice";
 import { selectExpenses } from "../../redux/slices/expenseSlice";
 import { BudgetCategory } from "../types/budget";
+import { formatCurrency } from "../utils/currency";
 import { getCurrentMonthYearKey } from "../utils/dateUtils";
 
 const { width } = Dimensions.get("window");
@@ -33,6 +34,8 @@ export default function AnalyticsScreen() {
   const [selectedMonth] = useState(getCurrentMonthYearKey());
   const [selectedPeriod, setSelectedPeriod] = useState<TimePeriod>("Month");
   const [isLoading, setIsLoading] = useState(false);
+
+  const denominationFormat = useSelector(selectDenominationFormat);
 
   // Simulating data loading when changing period
   const handlePeriodChange = useCallback((period: TimePeriod) => {
@@ -172,9 +175,9 @@ export default function AnalyticsScreen() {
   };
 
   // Helper function to format currency
-  const formatCurrency = (amount: number) => {
-    return `${currency.symbol}${amount.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}`;
-  };
+  // const formatCurrency = (amount: number) => {
+  //   return `${currency.symbol}${amount.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}`;
+  // };
 
   // Determine status colors
   const getStatusColor = (percentage: number) => {
@@ -240,7 +243,7 @@ export default function AnalyticsScreen() {
                 </View>
                 <View style={styles.spendingSummary}>
                   <Text style={styles.spendingText}>
-                    {formatCurrency(needsTotal)} of {formatCurrency(needsAllocation)}
+                    {formatCurrency(needsTotal, currency, denominationFormat)} of {formatCurrency(needsAllocation, currency, denominationFormat)}
                   </Text>
                 </View>
               </View>
@@ -266,7 +269,7 @@ export default function AnalyticsScreen() {
                 </View>
                 <View style={styles.spendingSummary}>
                   <Text style={styles.spendingText}>
-                    {formatCurrency(wantsTotal)} of {formatCurrency(wantsAllocation)}
+                    {formatCurrency(wantsTotal, currency, denominationFormat)} of {formatCurrency(wantsAllocation, currency, denominationFormat)}
                   </Text>
                 </View>
               </View>
@@ -292,7 +295,7 @@ export default function AnalyticsScreen() {
                 </View>
                 <View style={styles.spendingSummary}>
                   <Text style={styles.spendingText}>
-                    {formatCurrency(savingsTotal)} of {formatCurrency(savingsAllocation)}
+                    {formatCurrency(savingsTotal, currency, denominationFormat)} of {formatCurrency(savingsAllocation, currency, denominationFormat)}
                   </Text>
                 </View>
               </View>
@@ -311,7 +314,7 @@ export default function AnalyticsScreen() {
                       <View style={styles.middleRing}>
                         <View style={styles.innerRing}>
                           <View style={styles.centerRing}>
-                            <Text style={styles.centerRingText}>{formatCurrency(totalSpent)}</Text>
+                            <Text style={styles.centerRingText}>{formatCurrency(totalSpent, currency, denominationFormat)}</Text>
                           </View>
                         </View>
                       </View>
@@ -334,7 +337,7 @@ export default function AnalyticsScreen() {
                         <Text style={styles.legendText}>
                           {category.name} ({category.percentage.toFixed(0)}%)
                         </Text>
-                        <Text style={styles.legendAmount}>{formatCurrency(category.amount)}</Text>
+                        <Text style={styles.legendAmount}>{formatCurrency(category.amount, currency, denominationFormat)}</Text>
                       </View>
                     </View>
                   ))
@@ -359,7 +362,7 @@ export default function AnalyticsScreen() {
                       <Text style={styles.categoryName}>{category.name}</Text>
                     </View>
                     <View>
-                      <Text style={styles.categoryAmount}>{formatCurrency(category.amount)}</Text>
+                      <Text style={styles.categoryAmount}>{formatCurrency(category.amount, currency, denominationFormat)}</Text>
                       <View style={styles.categoryBarContainer}>
                         <View
                           style={[
@@ -389,17 +392,19 @@ export default function AnalyticsScreen() {
 
               <View style={styles.budgetItem}>
                 <Text style={styles.budgetLabel}>Period Income</Text>
-                <Text style={styles.budgetAmount}>{formatCurrency(periodIncome)}</Text>
+                <Text style={styles.budgetAmount}>{formatCurrency(periodIncome, currency, denominationFormat)}</Text>
               </View>
 
               <View style={styles.budgetItem}>
                 <Text style={styles.budgetLabel}>Total Spent</Text>
-                <Text style={styles.budgetAmount}>{formatCurrency(totalSpent)}</Text>
+                <Text style={styles.budgetAmount}>{formatCurrency(totalSpent, currency, denominationFormat)}</Text>
               </View>
 
               <View style={styles.budgetItem}>
                 <Text style={[styles.budgetLabel, styles.remainingLabel]}>Remaining Budget</Text>
-                <Text style={[styles.budgetAmount, { color: remainingBudget > 0 ? "#4cd964" : "#ff3b30" }]}>{formatCurrency(remainingBudget)}</Text>
+                <Text style={[styles.budgetAmount, { color: remainingBudget > 0 ? "#4cd964" : "#ff3b30" }]}>
+                  {formatCurrency(remainingBudget, currency, denominationFormat)}
+                </Text>
               </View>
 
               <View style={styles.budgetProgressContainer}>

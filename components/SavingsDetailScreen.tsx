@@ -463,100 +463,135 @@ const SavingsDetailScreen: React.FC<SavingsDetailScreenProps> = ({ onBackPress, 
           {categorySpending.map((category) => {
             const goal = category.goal;
 
+            // Use a separate state for category expansion
+            const isExpanded = !collapsedContributions[category.id];
+            // Calculate goal progress percentage
+            const goalProgressPercentage = goal ? Math.round((category.totalSpent / goal.amount) * 100 * 10) / 10 : 0;
+            // Whether the goal is achieved
+            const isGoalAchieved = goal && goal.amount <= category.totalSpent;
+
             return (
               <View key={category.id} style={styles.categoryItem}>
-                <View style={styles.categoryHeader}>
-                  <View style={styles.categoryIconContainer}>
-                    <Text style={styles.categoryIcon}>{category.icon}</Text>
-                  </View>
-                  <View style={styles.categoryInfo}>
-                    <Text style={styles.categoryName}>{category.name}</Text>
-                    <Text style={styles.categoryDescription}>
-                      {category.name === "Emergency Fund"
-                        ? "3-6 months of essential expenses"
-                        : category.name === "Investments"
-                        ? "Stocks, bonds, retirement accounts"
-                        : category.name === "Down Payment"
-                        ? "Saving for home purchase"
-                        : category.name === "Education"
-                        ? "College funds, continuing education"
-                        : ""}
-                    </Text>
-                  </View>
-                  <View style={styles.categoryAmountContainer}>
-                    <Text style={styles.categoryAmount}>{formatWithDenomination(category.spent)}</Text>
-                    <Text style={styles.categoryPercentage}>{category.percentage}% of savings</Text>
-                  </View>
-                </View>
-
-                {/* Goal Section */}
-                <View style={styles.goalSection}>
-                  {goal ? (
-                    <>
-                      <View style={styles.goalHeader}>
-                        <View>
-                          <Text style={styles.goalTitle}>Goal: {formatWithDenomination(goal.amount)}</Text>
-                          {goal.targetDate && <Text style={styles.goalSubtitle}>Target: {formatTargetDate(goal.targetDate)}</Text>}
+                {/* Accordion Header - Always visible */}
+                <TouchableOpacity
+                  style={styles.accordionHeader}
+                  onPress={() => {
+                    const newState = { ...collapsedContributions };
+                    newState[category.id] = !newState[category.id];
+                    setCollapsedContributions(newState);
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <View style={styles.categoryHeaderRow}>
+                    <View style={styles.categoryIconContainer}>
+                      <Text style={styles.categoryIcon}>{category.icon}</Text>
+                    </View>
+                    <View style={styles.categoryMainInfo}>
+                      <Text style={styles.categoryName}>{category.name}</Text>
+                      {goal ? (
+                        <View style={styles.miniProgressContainer}>
+                          <View style={styles.miniProgressBar}>
+                            <View
+                              style={[
+                                styles.miniProgressFill,
+                                {
+                                  width: `${Math.min(100, goalProgressPercentage)}%`,
+                                  backgroundColor: isGoalAchieved ? "#4CAF50" : BudgetColors.savings,
+                                },
+                              ]}
+                            />
+                          </View>
+                          <Text style={styles.miniProgressText}>
+                            {goalProgressPercentage}% {isGoalAchieved && "🎉"}
+                          </Text>
                         </View>
-                        <TouchableOpacity style={styles.editGoalButton} onPress={() => openGoalSettingModal(category)}>
-                          <Text style={styles.editGoalButtonText}>Edit</Text>
-                        </TouchableOpacity>
-                      </View>
+                      ) : (
+                        <Text style={styles.noGoalText}>No goal set</Text>
+                      )}
+                    </View>
+                    <View style={styles.categoryAmountContainer}>
+                      <Text style={styles.categoryAmount}>{formatWithDenomination(category.spent)}</Text>
+                      <Text style={styles.expandIndicator}>{isExpanded ? "▲" : "▼"}</Text>
+                    </View>
+                  </View>
+                </TouchableOpacity>
 
-                      {/* Use totalSpent for goal progress instead of the current month's spent amount */}
-                      <View style={styles.goalProgressBarContainer}>
-                        <View style={[styles.goalProgressBar, { width: `${Math.min(100, (category.totalSpent / goal.amount) * 100)}%` }]} />
-                      </View>
+                {/* Accordion Content - Only visible when expanded */}
+                {isExpanded && (
+                  <View style={styles.accordionContent}>
+                    {/* Description */}
+                    {category.name === "Emergency Fund" ||
+                    category.name === "Investments" ||
+                    category.name === "Down Payment" ||
+                    category.name === "Education" ? (
+                      <Text style={styles.categoryDescription}>
+                        {category.name === "Emergency Fund"
+                          ? "3-6 months of essential expenses"
+                          : category.name === "Investments"
+                          ? "Stocks, bonds, retirement accounts"
+                          : category.name === "Down Payment"
+                          ? "Saving for home purchase"
+                          : "College funds, continuing education"}
+                      </Text>
+                    ) : null}
 
-                      <View style={styles.goalProgressInfo}>
-                        <Text style={styles.goalProgressText}>{Math.round((category.totalSpent / goal.amount) * 100 * 10) / 10}% complete</Text>
-                        <Text style={styles.goalRemainingText}>
-                          {formatWithDenomination(Math.max(0, goal.amount - category.totalSpent))} remaining
-                        </Text>
-                      </View>
-
-                      {/* Add info about this month's contribution vs. total */}
-                      <View style={styles.goalContributionInfo}>
-                        <Text style={styles.goalContributionText}>
-                          Total saved: {formatWithDenomination(category.totalSpent)}
-                          {category.spent > 0 && ` (${formatWithDenomination(category.spent)} this month)`}
-                        </Text>
-                      </View>
-
-                      {/* Monthly contribution recommendation */}
-                      {category.monthlyContribution > 0 && (
-                        <View style={styles.monthlyContributionContainer}>
-                          <TouchableOpacity
-                            style={styles.monthlyContributionHeader}
-                            onPress={() => {
-                              // Toggle collapse state for this specific category
-                              const newState = { ...collapsedContributions };
-                              newState[category.id] = !newState[category.id];
-                              setCollapsedContributions(newState);
-                            }}
-                          >
-                            <Text style={styles.monthlyContributionTitle}>Monthly Recommendation</Text>
-                            <View style={{ flexDirection: "row", alignItems: "center" }}>
-                              <View
-                                style={[
-                                  styles.contributionStatusIndicator,
-                                  {
-                                    backgroundColor:
-                                      category.contributionStatus === "ahead"
-                                        ? "#4CAF50"
-                                        : category.contributionStatus === "on-track"
-                                        ? "#FFB74D"
-                                        : "#F44336",
-                                  },
-                                ]}
-                              />
-                              <Text style={styles.collapseIndicator}>{collapsedContributions[category.id] ? "▶" : "▼"}</Text>
+                    {/* Goal Section */}
+                    <View style={styles.goalSection}>
+                      {goal ? (
+                        <>
+                          <View style={styles.goalHeader}>
+                            <View>
+                              <Text style={styles.goalTitle}>Goal: {formatWithDenomination(goal.amount)}</Text>
+                              {goal.targetDate && <Text style={styles.goalSubtitle}>Target: {formatTargetDate(goal.targetDate)}</Text>}
                             </View>
-                          </TouchableOpacity>
+                            <TouchableOpacity style={styles.editGoalButton} onPress={() => openGoalSettingModal(category)}>
+                              <Text style={styles.editGoalButtonText}>Edit</Text>
+                            </TouchableOpacity>
+                          </View>
 
-                          {!collapsedContributions[category.id] && (
-                            <>
-                              <Text style={styles.monthlyContributionAmount}>{formatWithDenomination(category.monthlyContribution)}/month</Text>
+                          {/* Goal Progress */}
+                          <View style={styles.goalProgressBarContainer}>
+                            <View style={[styles.goalProgressBar, { width: `${Math.min(100, (category.totalSpent / goal.amount) * 100)}%` }]} />
+                          </View>
+
+                          <View style={styles.goalProgressInfo}>
+                            <Text style={styles.goalProgressText}>{goalProgressPercentage}% complete</Text>
+                            <Text style={styles.goalRemainingText}>
+                              {formatWithDenomination(Math.max(0, goal.amount - category.totalSpent))} remaining
+                            </Text>
+                          </View>
+
+                          {/* Total saved information */}
+                          <View style={styles.goalContributionInfo}>
+                            <Text style={styles.goalContributionText}>
+                              Total saved: {formatWithDenomination(category.totalSpent)}
+                              {category.spent > 0 && ` (${formatWithDenomination(category.spent)} this month)`}
+                            </Text>
+                          </View>
+
+                          {/* Monthly contribution recommendation */}
+                          {category.monthlyContribution > 0 && (
+                            <View style={styles.monthlyContributionContainer}>
+                              <View style={styles.monthlyContributionHeader}>
+                                <Text style={styles.monthlyContributionTitle}>Monthly Recommendation</Text>
+                                <View
+                                  style={[
+                                    styles.contributionStatusIndicator,
+                                    {
+                                      backgroundColor:
+                                        category.contributionStatus === "ahead"
+                                          ? "#4CAF50"
+                                          : category.contributionStatus === "on-track"
+                                          ? "#FFB74D"
+                                          : "#F44336",
+                                    },
+                                  ]}
+                                />
+                              </View>
+
+                              <Text style={styles.monthlyContributionAmount}>
+                                {formatWithDenomination(category.monthlyContribution)}/month (including current month)
+                              </Text>
 
                               {category.monthsRemaining > 0 && (
                                 <Text style={styles.monthsRemainingText}>
@@ -609,30 +644,32 @@ const SavingsDetailScreen: React.FC<SavingsDetailScreenProps> = ({ onBackPress, 
                                   {Math.round((category.spent / category.monthlyContribution) * 100)}% of monthly target
                                 </Text>
                               </View>
-                            </>
+                            </View>
                           )}
-                        </View>
-                      )}
 
-                      {goal.note && (
-                        <View style={styles.goalNoteContainer}>
-                          <Text style={styles.goalNoteText}>{goal.note}</Text>
-                        </View>
-                      )}
+                          {goal.note && (
+                            <View style={styles.goalNoteContainer}>
+                              <Text style={styles.goalNoteText}>{goal.note}</Text>
+                            </View>
+                          )}
 
-                      {goal && goal.amount <= category.totalSpent && (
-                        <View style={styles.goalAchievedContainer}>
-                          <Text style={styles.goalAchievedIcon}>🎉</Text>
-                          <Text style={styles.goalAchievedText}>Congratulations! You&apos;ve achieved your savings goal for {category.name}.</Text>
-                        </View>
+                          {isGoalAchieved && (
+                            <View style={styles.goalAchievedContainer}>
+                              <Text style={styles.goalAchievedIcon}>🎉</Text>
+                              <Text style={styles.goalAchievedText}>
+                                Congratulations! You&apos;ve achieved your savings goal for {category.name}.
+                              </Text>
+                            </View>
+                          )}
+                        </>
+                      ) : (
+                        <TouchableOpacity style={styles.setGoalButton} onPress={() => openGoalSettingModal(category)}>
+                          <Text style={styles.setGoalButtonText}>+ Set a goal</Text>
+                        </TouchableOpacity>
                       )}
-                    </>
-                  ) : (
-                    <TouchableOpacity style={styles.setGoalButton} onPress={() => openGoalSettingModal(category)}>
-                      <Text style={styles.setGoalButtonText}>+ Set a goal</Text>
-                    </TouchableOpacity>
-                  )}
-                </View>
+                    </View>
+                  </View>
+                )}
               </View>
             );
           })}
@@ -852,10 +889,13 @@ const styles = StyleSheet.create({
     shadowRadius: 3,
     elevation: 2,
   },
-  categoryHeader: {
+  accordionHeader: {
+    padding: responsivePadding(12),
+    borderRadius: 8,
+  },
+  categoryHeaderRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: responsiveMargin(12),
   },
   categoryIconContainer: {
     width: 40,
@@ -869,16 +909,12 @@ const styles = StyleSheet.create({
   categoryIcon: {
     fontSize: scaleFontSize(20),
   },
-  categoryInfo: {
+  categoryMainInfo: {
     flex: 1,
   },
   categoryName: {
     fontSize: scaleFontSize(16),
     fontWeight: "600",
-  },
-  categoryDescription: {
-    fontSize: scaleFontSize(14),
-    color: "#666",
   },
   categoryAmountContainer: {
     alignItems: "flex-end",
@@ -887,45 +923,19 @@ const styles = StyleSheet.create({
     fontSize: scaleFontSize(18),
     fontWeight: "700",
   },
-  categoryPercentage: {
+  expandIndicator: {
     fontSize: scaleFontSize(14),
-    color: BudgetColors.savings,
+    color: "#555",
+    marginLeft: responsiveMargin(4),
+    fontWeight: "bold",
   },
-  categoryProgressContainer: {
-    height: 8,
-    backgroundColor: "#F0F0F0",
-    borderRadius: 4,
-    overflow: "hidden",
+  accordionContent: {
+    paddingTop: responsivePadding(12),
   },
-  categoryProgressBar: {
-    height: "100%",
-    backgroundColor: BudgetColors.savings,
-    borderRadius: 4,
-  },
-  insightContainer: {
-    backgroundColor: "#FFF8F0",
-    borderRadius: 16,
-    padding: responsivePadding(16),
-    marginBottom: responsiveMargin(20),
-  },
-  insightHeader: {
-    flexDirection: "row",
-    alignItems: "center",
+  categoryDescription: {
+    fontSize: scaleFontSize(14),
+    color: "#666",
     marginBottom: responsiveMargin(8),
-  },
-  insightIcon: {
-    fontSize: scaleFontSize(20),
-    marginRight: responsiveMargin(8),
-  },
-  insightTitle: {
-    fontSize: scaleFontSize(16),
-    fontWeight: "600",
-    color: "#FF9C36",
-  },
-  insightText: {
-    fontSize: scaleFontSize(14),
-    lineHeight: 20,
-    color: "#333",
   },
   goalSection: {
     marginTop: responsiveMargin(16),
@@ -1011,7 +1021,6 @@ const styles = StyleSheet.create({
     color: BudgetColors.savings,
     fontWeight: "600",
   },
-
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0, 0, 0, 0.5)",
@@ -1103,7 +1112,6 @@ const styles = StyleSheet.create({
     color: "#2E7D32",
     fontWeight: "500",
   },
-
   datePickerButton: {
     justifyContent: "center",
     height: 48,
@@ -1229,11 +1237,33 @@ const styles = StyleSheet.create({
     fontSize: scaleFontSize(12),
     color: "#666",
   },
-  collapseIndicator: {
-    fontSize: scaleFontSize(14),
-    color: "#555",
-    marginLeft: responsiveMargin(4),
-    fontWeight: "bold",
+  miniProgressContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: responsiveMargin(4),
+  },
+  miniProgressBar: {
+    height: 6,
+    backgroundColor: "#F0F0F0",
+    borderRadius: 3,
+    flex: 1,
+    marginRight: responsiveMargin(8),
+    overflow: "hidden",
+  },
+  miniProgressFill: {
+    height: "100%",
+    borderRadius: 3,
+  },
+  miniProgressText: {
+    fontSize: scaleFontSize(12),
+    color: "#666",
+    minWidth: 45,
+  },
+  noGoalText: {
+    fontSize: scaleFontSize(13),
+    color: "#999",
+    marginTop: responsiveMargin(4),
+    fontStyle: "italic",
   },
   modalContainerView: {
     backgroundColor: "#FFF",
@@ -1326,6 +1356,31 @@ const styles = StyleSheet.create({
     color: "#FFF",
     fontSize: scaleFontSize(16),
     fontWeight: "600",
+  },
+  insightContainer: {
+    backgroundColor: "#FFF8F0",
+    borderRadius: 16,
+    padding: responsivePadding(16),
+    marginBottom: responsiveMargin(20),
+  },
+  insightHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: responsiveMargin(8),
+  },
+  insightIcon: {
+    fontSize: scaleFontSize(20),
+    marginRight: responsiveMargin(8),
+  },
+  insightTitle: {
+    fontSize: scaleFontSize(16),
+    fontWeight: "600",
+    color: "#FF9C36",
+  },
+  insightText: {
+    fontSize: scaleFontSize(14),
+    lineHeight: 20,
+    color: "#333",
   },
 });
 
