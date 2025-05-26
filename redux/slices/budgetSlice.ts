@@ -56,7 +56,7 @@ interface BudgetState {
 }
 
 const initialState: BudgetState = {
-  monthlyIncome: 40000,
+  monthlyIncome: 0,
   budgetRule: {
     needs: 50,
     savings: 30,
@@ -85,7 +85,7 @@ export const budgetSlice = createSlice({
   initialState,
   reducers: {
     resetBudget: (state) => {
-      state.monthlyIncome = 40000;
+      state.monthlyIncome = 0;
       state.budgetRule = {
         needs: 50,
         savings: 30,

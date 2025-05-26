@@ -25,12 +25,8 @@ function AuthContextProvider({ children }: { children: React.ReactNode }) {
     const prepareAuth = setTimeout(() => {
       if (!isAuthenticated) {
         router.replace("/(auth)/login");
-      } else if (isAuthenticated) {
-        if (isFirstTimeUser) {
-          router.replace("/welcome");
-        } else {
-          router.replace("/(tabs)");
-        }
+      } else if (isAuthenticated && isFirstTimeUser) {
+        router.replace("/welcome");
       }
     }, 100);
 

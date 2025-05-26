@@ -14,11 +14,11 @@ export default function Welcome() {
 
   const handleGetStarted = () => {
     dispatch(setUserOnboarded());
-    // if (monthlyIncome === 0) {
-    //   router.push("/(tabs)/settings");
-    // } else {
-    //   router.push("/(tabs)");
-    // }
+    if (monthlyIncome === 0) {
+      router.replace("/(tabs)/settings");
+    } else {
+      router.replace("/(tabs)");
+    }
   };
 
   return (
