@@ -10,6 +10,7 @@ import { KeyboardAwareView } from "../app/utils/keyboard";
 import { responsiveMargin, responsivePadding, scaleFontSize } from "../app/utils/responsive";
 import {
   AVAILABLE_CURRENCIES,
+  AdditionalIncomeItem,
   CurrencyInfo,
   addCategory,
   deleteCategory,
@@ -73,6 +74,9 @@ interface BudgetSettingsProps {
 const BudgetSettings: React.FC<BudgetSettingsProps> = ({ onBackPress }) => {
   const dispatch = useDispatch();
   const monthlyIncome = useSelector(selectMonthlyIncome);
+  const additionalIncome = useSelector((state: any) => state.budget.additionalIncome);
+  const totalAdditionalIncome = additionalIncome.reduce((total: number, income: AdditionalIncomeItem) => total + income.amount, 0);
+  const totalIncome = monthlyIncome + totalAdditionalIncome;
   const budgetRule = useSelector(selectBudgetRule);
   const categories = useSelector(selectCategories);
   const currency = useSelector(selectCurrency);
@@ -92,6 +96,11 @@ const BudgetSettings: React.FC<BudgetSettingsProps> = ({ onBackPress }) => {
   // Add search filter state
   const [categorySearchQuery, setCategorySearchQuery] = useState("");
   const [filteredCategories, setFilteredCategories] = useState<any[]>([]);
+
+  // Additional income states
+  const [showAddIncomeModal, setShowAddIncomeModal] = useState(false);
+  const [newIncomeDescription, setNewIncomeDescription] = useState("");
+  const [newIncomeAmount, setNewIncomeAmount] = useState("");
 
   const [fadeAnim] = useState(new Animated.Value(0));
   const [slideAnim] = useState(new Animated.Value(50));
@@ -390,6 +399,42 @@ const BudgetSettings: React.FC<BudgetSettingsProps> = ({ onBackPress }) => {
     }, 300);
   };
 
+  // Additional income functions
+  const handleAddAdditionalIncome = () => {
+    if (!newIncomeDescription.trim() || !newIncomeAmount.trim()) {
+      Alert.alert("Error", "Please fill in both description and amount");
+      return;
+    }
+
+    const amount = parseFloat(newIncomeAmount);
+    if (isNaN(amount) || amount <= 0) {
+      Alert.alert("Error", "Please enter a valid amount");
+      return;
+    }
+
+    const id = Date.now().toString();
+    const incomeItem: AdditionalIncomeItem = {
+      id,
+      description: newIncomeDescription,
+      amount,
+      date: new Date().toISOString(),
+    };
+
+    dispatch({ type: "budget/addAdditionalIncome", payload: incomeItem });
+    setNewIncomeDescription("");
+    setNewIncomeAmount("");
+    setShowAddIncomeModal(false);
+
+    Alert.alert("Success", `Additional income "${newIncomeDescription}" has been added.`);
+  };
+
+  const handleDeleteAdditionalIncome = (id: string) => {
+    Alert.alert("Delete Income", "Are you sure you want to delete this additional income?", [
+      { text: "Cancel", style: "cancel" },
+      { text: "Delete", style: "destructive", onPress: () => dispatch({ type: "budget/deleteAdditionalIncome", payload: id }) },
+    ]);
+  };
+
   return (
     <Animated.View
       style={[
@@ -434,11 +479,61 @@ const BudgetSettings: React.FC<BudgetSettingsProps> = ({ onBackPress }) => {
 
         <View style={styles.section}>
           <View style={styles.sectionTitleRow}>
+            <Text style={styles.sectionTitle}>Additional Income</Text>
+            <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
+              <TouchableOpacity style={styles.addButton} onPress={() => setShowAddIncomeModal(true)} activeOpacity={0.7}>
+                <LinearGradient colors={["#5BD990", "#3DB26E"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.addButtonGradient}>
+                  <Text style={styles.addButtonText}>+ Add Income</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            </Animated.View>
+          </View>
+
+          {totalAdditionalIncome > 0 && (
+            <View style={styles.incomeSummaryContainer}>
+              <Text style={styles.incomeSummaryText}>
+                Total Additional: {currency ? getCurrencySymbol(currency) : "$"}
+                {totalAdditionalIncome.toLocaleString()}
+              </Text>
+              <Text style={styles.totalIncomeText}>
+                Total Monthly Income: {currency ? getCurrencySymbol(currency) : "$"}
+                {totalIncome.toLocaleString()}
+              </Text>
+            </View>
+          )}
+
+          {additionalIncome.length === 0 ? (
+            <Text style={styles.emptyText}>No additional income sources yet. Add your first one!</Text>
+          ) : (
+            <View style={styles.incomeList}>
+              {additionalIncome.map((income: AdditionalIncomeItem) => (
+                <View key={income.id} style={styles.incomeItem}>
+                  <View style={styles.incomeItemLeft}>
+                    <Text style={styles.incomeDescription}>{income.description}</Text>
+                    <Text style={styles.incomeDate}>{new Date(income.date).toLocaleDateString()}</Text>
+                  </View>
+                  <View style={styles.incomeRight}>
+                    <Text style={styles.incomeAmount}>
+                      {currency ? getCurrencySymbol(currency) : "$"}
+                      {income.amount.toLocaleString()}
+                    </Text>
+                    <TouchableOpacity style={styles.deleteButton} onPress={() => handleDeleteAdditionalIncome(income.id)}>
+                      <Text style={styles.deleteIcon}>🗑️</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ))}
+            </View>
+          )}
+        </View>
+
+        <View style={styles.section}>
+          <View style={styles.sectionTitleRow}>
             <Text style={styles.sectionTitle}>Budget Allocation</Text>
             <TouchableOpacity
               style={styles.recommendButton}
               onPress={() => {
-                const income = parseFloat(incomeInput);
+                const income = totalIncome > 0 ? totalIncome : parseFloat(incomeInput);
 
                 const {
                   needs: newNeeds,
@@ -738,6 +833,54 @@ const BudgetSettings: React.FC<BudgetSettingsProps> = ({ onBackPress }) => {
               )}
               ItemSeparatorComponent={() => <View style={styles.separator} />}
             />
+          </View>
+        </View>
+      </Modal>
+
+      {/* Add Additional Income Modal */}
+      <Modal visible={showAddIncomeModal} animationType="fade" transparent={true} onRequestClose={() => setShowAddIncomeModal(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainerView}>
+            <View style={styles.modalHeaderView}>
+              <Text style={styles.modalTitleText}>Add Additional Income</Text>
+              <TouchableOpacity onPress={() => setShowAddIncomeModal(false)} hitSlop={{ top: 20, right: 20, bottom: 20, left: 20 }}>
+                <Text style={styles.modalCloseText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.modalScrollView} contentContainerStyle={styles.modalScrollContent}>
+              <View style={styles.formGroup}>
+                <Text style={styles.formLabel}>Description</Text>
+                <TextInput
+                  style={styles.formInput}
+                  value={newIncomeDescription}
+                  onChangeText={setNewIncomeDescription}
+                  placeholder="e.g., Freelance work, Bonus, etc."
+                  returnKeyType="next"
+                />
+              </View>
+
+              <View style={styles.formGroup}>
+                <Text style={styles.formLabel}>Amount</Text>
+                <View style={styles.inputContainer}>
+                  <Text style={styles.dollarSign}>{currency ? getCurrencySymbol(currency) : "$"}</Text>
+                  <TextInput
+                    style={styles.incomeInput}
+                    value={newIncomeAmount}
+                    onChangeText={setNewIncomeAmount}
+                    keyboardType="numeric"
+                    returnKeyType="done"
+                    placeholder="Enter amount"
+                  />
+                </View>
+              </View>
+
+              <TouchableOpacity style={styles.saveButtonContainer} onPress={handleAddAdditionalIncome} activeOpacity={0.8}>
+                <LinearGradient colors={["#5BD990", "#3DB26E"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.saveButton}>
+                  <Text style={styles.saveButtonText}>Add Income</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            </ScrollView>
           </View>
         </View>
       </Modal>
@@ -1578,6 +1721,64 @@ const styles = StyleSheet.create({
   },
   emptyListContent: {
     flexGrow: 1,
+  },
+  incomeSummaryContainer: {
+    padding: responsivePadding(16),
+    borderRadius: 14,
+    backgroundColor: "#F0F8FF",
+    borderWidth: 1,
+    borderColor: "#E6F3FF",
+    marginBottom: responsiveMargin(16),
+  },
+  incomeSummaryText: {
+    fontSize: scaleFontSize(15),
+    fontWeight: "500",
+    color: "#444",
+    marginBottom: responsiveMargin(6),
+  },
+  totalIncomeText: {
+    fontSize: scaleFontSize(16),
+    fontWeight: "600",
+    color: "#2E7D32",
+  },
+  incomeList: {
+    marginTop: responsiveMargin(8),
+  },
+  incomeItem: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: responsivePadding(12),
+    paddingHorizontal: responsivePadding(16),
+    backgroundColor: "#FAFAFA",
+    borderRadius: 12,
+    marginBottom: responsiveMargin(8),
+    borderWidth: 1,
+    borderColor: "#E6E6E6",
+  },
+  incomeItemLeft: {
+    flex: 1,
+    marginRight: responsiveMargin(12),
+  },
+  incomeDescription: {
+    fontSize: scaleFontSize(16),
+    fontWeight: "500",
+    color: "#333",
+    marginBottom: responsiveMargin(4),
+  },
+  incomeDate: {
+    fontSize: scaleFontSize(13),
+    color: "#666",
+  },
+  incomeRight: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  incomeAmount: {
+    fontSize: scaleFontSize(16),
+    fontWeight: "600",
+    color: "#2E7D32",
+    marginRight: responsiveMargin(8),
   },
 });
 

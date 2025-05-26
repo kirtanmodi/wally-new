@@ -41,8 +41,16 @@ export interface SavingsGoals {
   [categoryId: string]: SavingsGoal;
 }
 
+export interface AdditionalIncomeItem {
+  id: string;
+  description: string;
+  amount: number;
+  date: string;
+}
+
 interface BudgetState {
   monthlyIncome: number;
+  additionalIncome: AdditionalIncomeItem[];
   budgetRule: {
     needs: number;
     savings: number;
@@ -57,6 +65,7 @@ interface BudgetState {
 
 const initialState: BudgetState = {
   monthlyIncome: 0,
+  additionalIncome: [],
   budgetRule: {
     needs: 50,
     savings: 30,
@@ -86,6 +95,7 @@ export const budgetSlice = createSlice({
   reducers: {
     resetBudget: (state) => {
       state.monthlyIncome = 0;
+      state.additionalIncome = [];
       state.budgetRule = {
         needs: 50,
         savings: 30,
@@ -180,6 +190,30 @@ export const budgetSlice = createSlice({
     setCategorySortOption: (state, action: PayloadAction<string>) => {
       state.categorySortOption = action.payload;
     },
+    addAdditionalIncome: (state, action: PayloadAction<AdditionalIncomeItem>) => {
+      state.additionalIncome.push(action.payload);
+    },
+    updateAdditionalIncome: (
+      state,
+      action: PayloadAction<{
+        id: string;
+        updates: Partial<Omit<AdditionalIncomeItem, "id">>;
+      }>
+    ) => {
+      const index = state.additionalIncome.findIndex((income) => income.id === action.payload.id);
+      if (index !== -1) {
+        state.additionalIncome[index] = {
+          ...state.additionalIncome[index],
+          ...action.payload.updates,
+        };
+      }
+    },
+    deleteAdditionalIncome: (state, action: PayloadAction<string>) => {
+      state.additionalIncome = state.additionalIncome.filter((income) => income.id !== action.payload);
+    },
+    clearAdditionalIncome: (state) => {
+      state.additionalIncome = [];
+    },
   },
 });
 
@@ -196,6 +230,10 @@ export const {
   deleteSavingsGoal,
   setDenominationFormat,
   setCategorySortOption,
+  addAdditionalIncome,
+  updateAdditionalIncome,
+  deleteAdditionalIncome,
+  clearAdditionalIncome,
 } = budgetSlice.actions;
 
 const selectBudgetState = (state: RootState) => state.budget;
@@ -204,6 +242,7 @@ const selectSavingsGoalsState = (state: RootState) => state.budget.savingsGoals;
 
 export const selectBudget = (state: RootState) => state.budget;
 export const selectMonthlyIncome = (state: RootState) => state.budget.monthlyIncome;
+export const selectAdditionalIncome = (state: RootState) => state.budget.additionalIncome;
 export const selectBudgetRule = (state: RootState) => state.budget.budgetRule;
 export const selectCategories = (state: RootState) => state.budget.categories;
 export const selectCurrency = (state: RootState) => state.budget.currency;
@@ -219,5 +258,11 @@ export const selectSavingsGoalByCategory = createSelector(
   [selectSavingsGoalsState, (_, categoryId: string) => categoryId],
   (savingsGoals, categoryId) => savingsGoals[categoryId] || null
 );
+
+export const selectTotalAdditionalIncome = createSelector([selectAdditionalIncome], (additionalIncome) =>
+  additionalIncome.reduce((total, income) => total + income.amount, 0)
+);
+
+export const selectTotalIncome = createSelector([selectMonthlyIncome, selectTotalAdditionalIncome], (monthly, additional) => monthly + additional);
 
 export default budgetSlice.reducer;
