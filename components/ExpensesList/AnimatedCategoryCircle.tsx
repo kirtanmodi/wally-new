@@ -1,11 +1,14 @@
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect, useRef } from "react";
 import { Animated, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import Svg, { Circle } from "react-native-svg";
 import { useSelector } from "react-redux";
 import { CategorySummary } from "../../app/types/budget";
 import { formatCurrency } from "../../app/utils/currency";
 import { responsiveMargin, scaleFontSize, wp } from "../../app/utils/responsive";
 import { selectCurrency, selectDenominationFormat } from "../../redux/slices/budgetSlice";
+
+const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
 interface AnimatedCategoryCircleProps {
   item: CategorySummary;
@@ -26,12 +29,23 @@ const AnimatedCategoryCircle: React.FC<AnimatedCategoryCircleProps> = ({
 }) => {
   const percentage = Math.min(100, (item.spent / item.total) * 100);
   const isOverBudget = item.spent > item.total;
+  const remaining = Math.max(0, item.total - item.spent);
+  const overAmount = isOverBudget ? item.spent - item.total : 0;
+
   const itemFade = useRef(new Animated.Value(0)).current;
   const itemSlide = useRef(new Animated.Value(30)).current;
-  const pulseAnim = useRef(new Animated.Value(1)).current;
+  const progressAnim = useRef(new Animated.Value(0)).current;
+  const pulseAnim = useRef(new Animated.Value(0)).current;
   const warningFade = useRef(new Animated.Value(0)).current;
+
   const currency = useSelector(selectCurrency);
   const denominationFormat = useSelector(selectDenominationFormat);
+
+  const circleRadius = wp(10);
+  const strokeWidth = 6;
+  const circumference = 2 * Math.PI * circleRadius;
+  const strokeDasharray = circumference;
+
   useEffect(() => {
     // Staggered animation
     Animated.parallel([
@@ -49,25 +63,31 @@ const AnimatedCategoryCircle: React.FC<AnimatedCategoryCircleProps> = ({
       }),
     ]).start();
 
+    // Animate progress ring
+    Animated.timing(progressAnim, {
+      toValue: percentage,
+      duration: 1000,
+      delay: index * 100 + 200,
+      useNativeDriver: false,
+    }).start();
+
     // Add pulsing animation if over budget
     if (isOverBudget && item.category !== "Savings") {
-      // Pulse animation
-      Animated.loop(
-        Animated.sequence([
-          Animated.timing(pulseAnim, {
-            toValue: 1.08,
-            duration: 800,
-            useNativeDriver: true,
-          }),
-          Animated.timing(pulseAnim, {
-            toValue: 1,
-            duration: 800,
-            useNativeDriver: true,
-          }),
-        ])
-      ).start();
+      // Animated.loop(
+      //   Animated.sequence([
+      //     Animated.timing(pulseAnim, {
+      //       toValue: 1.05,
+      //       duration: 800,
+      //       useNativeDriver: true,
+      //     }),
+      //     Animated.timing(pulseAnim, {
+      //       toValue: 1,
+      //       duration: 800,
+      //       useNativeDriver: true,
+      //     }),
+      //   ])
+      // ).start();
 
-      // Warning text fade in
       Animated.timing(warningFade, {
         toValue: 1,
         duration: 600,
@@ -75,7 +95,7 @@ const AnimatedCategoryCircle: React.FC<AnimatedCategoryCircleProps> = ({
         useNativeDriver: true,
       }).start();
     }
-  }, [isOverBudget]);
+  }, [isOverBudget, percentage, index]);
 
   const handleCategoryPress = () => {
     if (item.category === "Needs") {
@@ -99,38 +119,86 @@ const AnimatedCategoryCircle: React.FC<AnimatedCategoryCircleProps> = ({
       }}
     >
       <TouchableOpacity activeOpacity={0.85} onPress={handleCategoryPress}>
-        <Animated.View style={[styles.categoryCircleContainer, isOverBudget && item.category !== "Savings" && {}]}>
+        <View style={styles.categoryCircleContainer}>
+          {/* Background Circle */}
           <LinearGradient
             colors={isOverBudget && item.category !== "Savings" ? ["#FF7171", "#FF4040"] : (item.gradientColors as [string, string])}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.categoryCircle}
           >
-            <Text style={styles.categoryPercentage}>{percentage ? Math.round(percentage) : 0}%</Text>
-            <View style={styles.circleProgressContainer}>
-              <View
-                style={[
-                  styles.circleProgress,
-                  {
-                    height: `${percentage}%`,
-                    backgroundColor: "#FFFFFF",
-                  },
-                ]}
-              />
+            {/* Progress Ring */}
+            <View style={styles.progressContainer}>
+              <Svg width={wp(25)} height={wp(25)} style={styles.progressSvg}>
+                {/* Background circle */}
+                <Circle
+                  cx={wp(25) / 2}
+                  cy={wp(25) / 2}
+                  r={circleRadius}
+                  stroke="rgba(255,255,255,0.3)"
+                  strokeWidth={strokeWidth}
+                  fill="transparent"
+                />
+                {/* Progress circle */}
+                <AnimatedCircle
+                  cx={wp(25) / 2}
+                  cy={wp(25) / 2}
+                  r={circleRadius}
+                  stroke="#FFFFFF"
+                  strokeWidth={strokeWidth}
+                  fill="transparent"
+                  strokeDasharray={strokeDasharray}
+                  strokeDashoffset={progressAnim.interpolate({
+                    inputRange: [0, 100],
+                    outputRange: [circumference, 0],
+                  })}
+                  strokeLinecap="round"
+                  transform={`rotate(-90 ${wp(25) / 2} ${wp(25) / 2})`}
+                />
+              </Svg>
+
+              {/* Center Content */}
+              <View style={styles.centerContent}>
+                <Text style={styles.categoryPercentage}>{Math.round(percentage)}%</Text>
+                <Text style={styles.categoryLabel}>{item.category}</Text>
+              </View>
             </View>
           </LinearGradient>
+
+          {/* Over Budget Badge */}
           {isOverBudget && item.category !== "Savings" && (
             <View style={styles.overBudgetBadge}>
               <Text style={styles.overBudgetIcon}>!</Text>
             </View>
           )}
-        </Animated.View>
-        <Text style={styles.categoryCircleLabel}>{item.category}</Text>
-        <Text style={[styles.categoryCircleAmount, isOverBudget && styles.overBudgetText]}>
-          {formatCurrency(item.spent, currency, denominationFormat)}
-        </Text>
-        <Text style={styles.categoryCircleTotal}>of {formatCurrency(item.total, currency, denominationFormat)}</Text>
-        {isOverBudget && <Animated.Text style={[styles.overBudgetMessage, { opacity: warningFade }]}>Over budget</Animated.Text>}
+        </View>
+
+        {/* Budget Information */}
+        <View style={styles.budgetInfo}>
+          <View style={styles.spentContainer}>
+            <Text style={styles.spentLabel}>Spent</Text>
+            <Text style={[styles.spentAmount, isOverBudget && styles.overBudgetText]}>
+              {formatCurrency(item.spent, currency, denominationFormat)}
+            </Text>
+          </View>
+
+          <View style={styles.remainingContainer}>
+            <Text style={styles.remainingLabel}>{isOverBudget ? "Over by" : "Remaining"}</Text>
+            <Text style={[styles.remainingAmount, isOverBudget ? styles.overBudgetText : styles.remainingPositive]}>
+              {formatCurrency(isOverBudget ? overAmount : remaining, currency, denominationFormat)}
+            </Text>
+          </View>
+
+          <View style={styles.totalContainer}>
+            <Text style={styles.totalLabel}>Budget</Text>
+            <Text style={styles.totalAmount}>{formatCurrency(item.total, currency, denominationFormat)}</Text>
+          </View>
+        </View>
+
+        {/* Over Budget Warning */}
+        {isOverBudget && item.category !== "Savings" && (
+          <Animated.Text style={[styles.overBudgetMessage, { opacity: warningFade }]}>Over budget</Animated.Text>
+        )}
       </TouchableOpacity>
     </Animated.View>
   );
@@ -140,6 +208,7 @@ const styles = StyleSheet.create({
   categoryCircleContainer: {
     alignItems: "center",
     justifyContent: "center",
+    position: "relative",
   },
   categoryCircle: {
     width: wp(25),
@@ -147,85 +216,135 @@ const styles = StyleSheet.create({
     borderRadius: wp(25) / 2,
     justifyContent: "center",
     alignItems: "center",
-    position: "relative",
-    overflow: "hidden",
-    elevation: 4,
+    elevation: 6,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
   },
-  circleProgressContainer: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    width: "100%",
-    height: "100%",
-    overflow: "hidden",
-    opacity: 0.3,
+  progressContainer: {
+    position: "relative",
+    width: wp(25),
+    height: wp(25),
+    justifyContent: "center",
+    alignItems: "center",
   },
-  circleProgress: {
-    width: "100%",
+  progressSvg: {
     position: "absolute",
-    bottom: 0,
+  },
+  centerContent: {
+    alignItems: "center",
+    justifyContent: "center",
   },
   categoryPercentage: {
-    fontSize: scaleFontSize(18),
-    fontWeight: "700",
-    color: "#FFFFFF",
-  },
-  categoryCircleLabel: {
-    fontSize: scaleFontSize(14),
-    fontWeight: "600",
-    color: "#333",
-    marginTop: responsiveMargin(8),
-    textAlign: "center",
-  },
-  categoryCircleAmount: {
     fontSize: scaleFontSize(16),
-    fontWeight: "700",
-    color: "#333",
-    marginTop: responsiveMargin(4),
-    textAlign: "center",
+    fontWeight: "800",
+    color: "#FFFFFF",
+    textShadowColor: "rgba(0,0,0,0.3)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
-  categoryCircleTotal: {
-    fontSize: scaleFontSize(12),
-    color: "#777",
-    textAlign: "center",
+  categoryLabel: {
+    fontSize: scaleFontSize(10),
+    fontWeight: "600",
+    color: "#FFFFFF",
+    marginTop: responsiveMargin(1),
+    textShadowColor: "rgba(0,0,0,0.3)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   overBudgetBadge: {
     position: "absolute",
     top: -4,
     right: -4,
     backgroundColor: "#FFFFFF",
-    borderRadius: 10,
-    width: 20,
-    height: 20,
+    borderRadius: 12,
+    width: 24,
+    height: 24,
     justifyContent: "center",
     alignItems: "center",
-    borderWidth: 1.5,
+    borderWidth: 2,
     borderColor: "#FF4040",
-    elevation: 3,
+    elevation: 4,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3,
   },
   overBudgetIcon: {
-    fontSize: scaleFontSize(12),
+    fontSize: scaleFontSize(13),
     fontWeight: "900",
     color: "#FF4040",
     textAlign: "center",
+  },
+  budgetInfo: {
+    marginTop: responsiveMargin(12),
+    alignItems: "center",
+    minWidth: wp(25),
+  },
+  spentContainer: {
+    alignItems: "center",
+    marginBottom: responsiveMargin(6),
+  },
+  spentLabel: {
+    fontSize: scaleFontSize(11),
+    fontWeight: "500",
+    color: "#666",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  spentAmount: {
+    fontSize: scaleFontSize(14),
+    fontWeight: "700",
+    color: "#333",
+    marginTop: responsiveMargin(2),
+  },
+  remainingContainer: {
+    alignItems: "center",
+    marginBottom: responsiveMargin(6),
+  },
+  remainingLabel: {
+    fontSize: scaleFontSize(11),
+    fontWeight: "500",
+    color: "#666",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  remainingAmount: {
+    fontSize: scaleFontSize(13),
+    fontWeight: "600",
+    marginTop: responsiveMargin(2),
+  },
+  remainingPositive: {
+    color: "#27AE60",
+  },
+  totalContainer: {
+    alignItems: "center",
+  },
+  totalLabel: {
+    fontSize: scaleFontSize(10),
+    fontWeight: "500",
+    color: "#999",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  totalAmount: {
+    fontSize: scaleFontSize(12),
+    fontWeight: "500",
+    color: "#777",
+    marginTop: responsiveMargin(1),
   },
   overBudgetText: {
     color: "#FF4040",
   },
   overBudgetMessage: {
-    fontSize: scaleFontSize(12),
-    fontWeight: "500",
+    fontSize: scaleFontSize(11),
+    fontWeight: "600",
     color: "#FF4040",
-    marginTop: responsiveMargin(2),
+    marginTop: responsiveMargin(4),
     textAlign: "center",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
   },
 });
 
