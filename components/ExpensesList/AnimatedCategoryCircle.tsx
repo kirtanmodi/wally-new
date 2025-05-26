@@ -175,18 +175,16 @@ const AnimatedCategoryCircle: React.FC<AnimatedCategoryCircleProps> = ({
 
         {/* Budget Information */}
         <View style={styles.budgetInfo}>
-          <View style={styles.spentContainer}>
-            <Text style={styles.spentLabel}>Spent</Text>
-            <Text style={[styles.spentAmount, isOverBudget && styles.overBudgetText]}>
-              {formatCurrency(item.spent, currency, denominationFormat)}
-            </Text>
-          </View>
-
-          <View style={styles.remainingContainer}>
-            <Text style={styles.remainingLabel}>{isOverBudget ? "Over by" : "Remaining"}</Text>
-            <Text style={[styles.remainingAmount, isOverBudget ? styles.overBudgetText : styles.remainingPositive]}>
-              {formatCurrency(isOverBudget ? overAmount : remaining, currency, denominationFormat)}
-            </Text>
+          <View style={styles.spentRemainingContainer}>
+            <View style={styles.compactAmountRow}>
+              <Text style={[styles.spentAmount, isOverBudget && styles.overBudgetText]}>
+                {formatCurrency(item.spent, currency, denominationFormat)}
+              </Text>
+              <Text style={styles.divider}> / </Text>
+              <Text style={[styles.remainingAmount, isOverBudget ? styles.overBudgetText : styles.remainingPositive]}>
+                {formatCurrency(isOverBudget ? overAmount : remaining, currency, denominationFormat)}
+              </Text>
+            </View>
           </View>
 
           <View style={styles.totalContainer}>
@@ -282,38 +280,35 @@ const styles = StyleSheet.create({
     alignItems: "center",
     minWidth: wp(25),
   },
-  spentContainer: {
+  spentRemainingContainer: {
     alignItems: "center",
     marginBottom: responsiveMargin(6),
   },
-  spentLabel: {
+  compactLabel: {
     fontSize: scaleFontSize(11),
     fontWeight: "500",
     color: "#666",
     textTransform: "uppercase",
     letterSpacing: 0.5,
+  },
+  compactAmountRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: responsiveMargin(2),
   },
   spentAmount: {
     fontSize: scaleFontSize(14),
     fontWeight: "700",
     color: "#333",
-    marginTop: responsiveMargin(2),
   },
-  remainingContainer: {
-    alignItems: "center",
-    marginBottom: responsiveMargin(6),
-  },
-  remainingLabel: {
-    fontSize: scaleFontSize(11),
-    fontWeight: "500",
-    color: "#666",
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
+  divider: {
+    fontSize: scaleFontSize(14),
+    fontWeight: "600",
+    color: "#999",
   },
   remainingAmount: {
-    fontSize: scaleFontSize(13),
-    fontWeight: "600",
-    marginTop: responsiveMargin(2),
+    fontSize: scaleFontSize(14),
+    fontWeight: "700",
   },
   remainingPositive: {
     color: "#27AE60",
