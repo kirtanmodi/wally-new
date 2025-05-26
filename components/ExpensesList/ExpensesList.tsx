@@ -48,6 +48,19 @@ const ExpensesList: React.FC<ExpensesListProps> = ({
   const monthModalAnim = useRef(new Animated.Value(0)).current;
 
   const monthlyIncome = useSelector(selectMonthlyIncome);
+  const additionalIncome = useSelector((state: any) => state.budget.additionalIncome) || [];
+
+  // Filter additional income by selected month
+  const monthlyAdditionalIncome = useMemo(() => {
+    return additionalIncome.filter((income: any) => {
+      const incomeDate = new Date(income.date);
+      const incomeMonthKey = `${incomeDate.getFullYear()}-${incomeDate.getMonth() + 1}`;
+      return incomeMonthKey === selectedMonth;
+    });
+  }, [additionalIncome, selectedMonth]);
+
+  const totalAdditionalIncome = monthlyAdditionalIncome.reduce((total: any, income: any) => total + income.amount, 0);
+  const totalIncome = monthlyIncome + totalAdditionalIncome;
   const budgetRule = useSelector(selectBudgetRule);
 
   const selectedDate = useMemo(() => {
@@ -182,9 +195,9 @@ const ExpensesList: React.FC<ExpensesListProps> = ({
   const monthlyExpenses = useMemo(() => filterExpensesByMonth(expenses, selectedMonth), [expenses, selectedMonth]);
 
   const categorySummaries: CategorySummary[] = useMemo(() => {
-    const needsBudget = monthlyIncome * (budgetRule.needs / 100);
-    const savingsBudget = monthlyIncome * (budgetRule.savings / 100);
-    const wantsBudget = monthlyIncome * (budgetRule.wants / 100);
+    const needsBudget = totalIncome * (budgetRule.needs / 100);
+    const savingsBudget = totalIncome * (budgetRule.savings / 100);
+    const wantsBudget = totalIncome * (budgetRule.wants / 100);
 
     const needsSpent = monthlyExpenses.filter((exp) => exp.category === "Needs").reduce((sum, exp) => sum + exp.amount, 0);
     const savingsSpent = monthlyExpenses.filter((exp) => exp.category === "Savings").reduce((sum, exp) => sum + exp.amount, 0);
@@ -213,7 +226,7 @@ const ExpensesList: React.FC<ExpensesListProps> = ({
         gradientColors: ["#837BFF", "#605BFF"],
       },
     ];
-  }, [monthlyExpenses, monthlyIncome, budgetRule]);
+  }, [monthlyExpenses, totalIncome, budgetRule, selectedMonth]);
 
   const filteredExpenses = useMemo(() => {
     let filtered = activeTab === "All" ? monthlyExpenses : monthlyExpenses.filter((expense) => expense.category === activeTab);

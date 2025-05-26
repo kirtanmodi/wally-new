@@ -58,7 +58,17 @@ const BudgetOverview: React.FC<BudgetOverviewProps> = ({
   // Get income data from Redux
   const monthlyIncome = useSelector((state: RootState) => state.budget.monthlyIncome) || 0;
   const additionalIncome = useSelector((state: RootState) => state.budget.additionalIncome) || [];
-  const totalAdditionalIncome = additionalIncome.reduce((total, income) => total + income.amount, 0);
+
+  // Filter additional income by selected month
+  const monthlyAdditionalIncome = useMemo(() => {
+    return additionalIncome.filter((income) => {
+      const incomeDate = new Date(income.date);
+      const incomeMonthKey = `${incomeDate.getFullYear()}-${incomeDate.getMonth() + 1}`;
+      return incomeMonthKey === selectedMonth;
+    });
+  }, [additionalIncome, selectedMonth]);
+
+  const totalAdditionalIncome = monthlyAdditionalIncome.reduce((total, income) => total + income.amount, 0);
   const totalIncome = monthlyIncome + totalAdditionalIncome;
 
   // Log selected month to verify it's changing
