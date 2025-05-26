@@ -16,8 +16,6 @@ export default function Index() {
     dispatch(resetApp());
   }, [dispatch]);
 
-  // return <Redirect href="/welcome" />;
-
   // Redirect to welcome for first-time users, otherwise go to the tabs
   return <Redirect href="/(tabs)" />;
 }
