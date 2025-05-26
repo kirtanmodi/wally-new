@@ -1,3 +1,4 @@
+import DateTimePicker from "@react-native-community/datetimepicker";
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect, useRef, useState } from "react";
 import { Alert, Animated, FlatList, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
@@ -5,6 +6,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { AdditionalColors, BudgetColors } from "../app/constants/Colors";
 import { BudgetCategory } from "../app/types/budget";
 import { getCurrencySymbol } from "../app/utils/currency";
+import { getCurrentMonthYearKey } from "../app/utils/dateUtils";
 import { DenominationFormat, getFormatPreviews } from "../app/utils/denominationFormatter";
 import { KeyboardAwareView } from "../app/utils/keyboard";
 import { responsiveMargin, responsivePadding, scaleFontSize } from "../app/utils/responsive";
@@ -75,7 +77,16 @@ const BudgetSettings: React.FC<BudgetSettingsProps> = ({ onBackPress }) => {
   const dispatch = useDispatch();
   const monthlyIncome = useSelector(selectMonthlyIncome);
   const additionalIncome = useSelector((state: any) => state.budget.additionalIncome);
-  const totalAdditionalIncome = additionalIncome.reduce((total: number, income: AdditionalIncomeItem) => total + income.amount, 0);
+
+  // Filter additional income for current month only
+  const currentMonth = getCurrentMonthYearKey();
+  const currentMonthAdditionalIncome = additionalIncome.filter((income: AdditionalIncomeItem) => {
+    const incomeDate = new Date(income.date);
+    const incomeMonthKey = `${incomeDate.getFullYear()}-${incomeDate.getMonth() + 1}`;
+    return incomeMonthKey === currentMonth;
+  });
+
+  const totalAdditionalIncome = currentMonthAdditionalIncome.reduce((total: number, income: AdditionalIncomeItem) => total + income.amount, 0);
   const totalIncome = monthlyIncome + totalAdditionalIncome;
   const budgetRule = useSelector(selectBudgetRule);
   const categories = useSelector(selectCategories);
@@ -99,8 +110,14 @@ const BudgetSettings: React.FC<BudgetSettingsProps> = ({ onBackPress }) => {
 
   // Additional income states
   const [showAddIncomeModal, setShowAddIncomeModal] = useState(false);
+  const [showManageIncomeModal, setShowManageIncomeModal] = useState(false);
+  const [showEditIncomeModal, setShowEditIncomeModal] = useState(false);
   const [newIncomeDescription, setNewIncomeDescription] = useState("");
   const [newIncomeAmount, setNewIncomeAmount] = useState("");
+  const [editingIncome, setEditingIncome] = useState<AdditionalIncomeItem | null>(null);
+  const [incomeFilterMonth, setIncomeFilterMonth] = useState<string>("all");
+  const [editIncomeDate, setEditIncomeDate] = useState<Date>(new Date());
+  const [showEditDatePicker, setShowEditDatePicker] = useState(false);
 
   const [fadeAnim] = useState(new Animated.Value(0));
   const [slideAnim] = useState(new Animated.Value(50));
@@ -435,6 +452,85 @@ const BudgetSettings: React.FC<BudgetSettingsProps> = ({ onBackPress }) => {
     ]);
   };
 
+  const handleEditIncome = (income: AdditionalIncomeItem) => {
+    setEditingIncome(income);
+    setNewIncomeDescription(income.description);
+    setNewIncomeAmount(income.amount.toString());
+    setEditIncomeDate(new Date(income.date));
+    setShowManageIncomeModal(false);
+    setTimeout(() => setShowEditIncomeModal(true), 300);
+  };
+
+  const handleUpdateIncome = () => {
+    if (!editingIncome || !newIncomeDescription.trim() || !newIncomeAmount.trim()) {
+      Alert.alert("Error", "Please fill in both description and amount");
+      return;
+    }
+
+    const amount = parseFloat(newIncomeAmount);
+    if (isNaN(amount) || amount <= 0) {
+      Alert.alert("Error", "Please enter a valid amount");
+      return;
+    }
+
+    dispatch({
+      type: "budget/updateAdditionalIncome",
+      payload: {
+        id: editingIncome.id,
+        updates: {
+          description: newIncomeDescription,
+          amount: amount,
+          date: editIncomeDate.toISOString(),
+        },
+      },
+    });
+
+    setNewIncomeDescription("");
+    setNewIncomeAmount("");
+    setEditingIncome(null);
+    setEditIncomeDate(new Date());
+    setShowEditIncomeModal(false);
+
+    Alert.alert("Success", "Income updated successfully.");
+  };
+
+  // Get unique months from additional income for filtering
+  const getAvailableIncomeMonths = () => {
+    const months = new Set<string>();
+    additionalIncome.forEach((income: AdditionalIncomeItem) => {
+      const incomeDate = new Date(income.date);
+      const monthKey = `${incomeDate.getFullYear()}-${incomeDate.getMonth() + 1}`;
+      months.add(monthKey);
+    });
+
+    return Array.from(months)
+      .map((key) => {
+        const [year, month] = key.split("-").map(Number);
+        const date = new Date(year, month - 1, 1);
+        return {
+          key,
+          display: date.toLocaleDateString("en-US", { month: "long", year: "numeric" }),
+        };
+      })
+      .sort((a, b) => {
+        const [yearA, monthA] = a.key.split("-").map(Number);
+        const [yearB, monthB] = b.key.split("-").map(Number);
+        if (yearA !== yearB) return yearB - yearA;
+        return monthB - monthA;
+      });
+  };
+
+  // Filter income by selected month
+  const getFilteredIncome = () => {
+    if (incomeFilterMonth === "all") return additionalIncome;
+
+    return additionalIncome.filter((income: AdditionalIncomeItem) => {
+      const incomeDate = new Date(income.date);
+      const incomeMonthKey = `${incomeDate.getFullYear()}-${incomeDate.getMonth() + 1}`;
+      return incomeMonthKey === incomeFilterMonth;
+    });
+  };
+
   return (
     <Animated.View
       style={[
@@ -480,13 +576,18 @@ const BudgetSettings: React.FC<BudgetSettingsProps> = ({ onBackPress }) => {
         <View style={styles.section}>
           <View style={styles.sectionTitleRow}>
             <Text style={styles.sectionTitle}>Additional Income</Text>
-            <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
-              <TouchableOpacity style={styles.addButton} onPress={() => setShowAddIncomeModal(true)} activeOpacity={0.7}>
-                <LinearGradient colors={["#5BD990", "#3DB26E"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.addButtonGradient}>
-                  <Text style={styles.addButtonText}>+ Add Income</Text>
-                </LinearGradient>
+            <View style={styles.headerButtonsContainer}>
+              <TouchableOpacity style={styles.manageButton} onPress={() => setShowManageIncomeModal(true)} activeOpacity={0.7}>
+                <Text style={styles.manageButtonText}>📊</Text>
               </TouchableOpacity>
-            </Animated.View>
+              <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
+                <TouchableOpacity style={styles.addButton} onPress={() => setShowAddIncomeModal(true)} activeOpacity={0.7}>
+                  <LinearGradient colors={["#5BD990", "#3DB26E"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.compactAddButtonGradient}>
+                    <Text style={styles.addButtonIcon}>+</Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+              </Animated.View>
+            </View>
           </View>
 
           {totalAdditionalIncome > 0 && (
@@ -502,11 +603,20 @@ const BudgetSettings: React.FC<BudgetSettingsProps> = ({ onBackPress }) => {
             </View>
           )}
 
-          {additionalIncome.length === 0 ? (
-            <Text style={styles.emptyText}>No additional income sources yet. Add your first one!</Text>
+          {currentMonthAdditionalIncome.length === 0 ? (
+            <View>
+              <Text style={styles.emptyText}>
+                No additional income for {new Date().toLocaleDateString("en-US", { month: "long", year: "numeric" })} yet.
+              </Text>
+              {additionalIncome.length > 0 && (
+                <TouchableOpacity style={styles.viewAllIncomeButton} onPress={() => setShowManageIncomeModal(true)}>
+                  <Text style={styles.viewAllIncomeText}>View All Months ({additionalIncome.length} total)</Text>
+                </TouchableOpacity>
+              )}
+            </View>
           ) : (
             <View style={styles.incomeList}>
-              {additionalIncome.map((income: AdditionalIncomeItem) => (
+              {currentMonthAdditionalIncome.map((income: AdditionalIncomeItem) => (
                 <View key={income.id} style={styles.incomeItem}>
                   <View style={styles.incomeItemLeft}>
                     <Text style={styles.incomeDescription}>{income.description}</Text>
@@ -523,6 +633,11 @@ const BudgetSettings: React.FC<BudgetSettingsProps> = ({ onBackPress }) => {
                   </View>
                 </View>
               ))}
+              {additionalIncome.length > currentMonthAdditionalIncome.length && (
+                <TouchableOpacity style={styles.viewAllIncomeButton} onPress={() => setShowManageIncomeModal(true)}>
+                  <Text style={styles.viewAllIncomeText}>View All Months ({additionalIncome.length} total)</Text>
+                </TouchableOpacity>
+              )}
             </View>
           )}
         </View>
@@ -862,6 +977,231 @@ const BudgetSettings: React.FC<BudgetSettingsProps> = ({ onBackPress }) => {
               <TouchableOpacity style={styles.saveButtonContainer} onPress={handleAddAdditionalIncome} activeOpacity={0.8}>
                 <LinearGradient colors={["#5BD990", "#3DB26E"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.saveButton}>
                   <Text style={styles.saveButtonText}>Add Income</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Manage All Income Modal */}
+      <Modal visible={showManageIncomeModal} animationType="slide" transparent={true} onRequestClose={() => setShowManageIncomeModal(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.categoriesModalContainer}>
+            <View style={styles.modalHeaderView}>
+              <Text style={styles.modalTitleText}>Manage Additional Income</Text>
+              <TouchableOpacity onPress={() => setShowManageIncomeModal(false)} hitSlop={{ top: 20, right: 20, bottom: 20, left: 20 }}>
+                <Text style={styles.modalCloseText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Summary and Add Button */}
+            <View style={styles.searchContainer}>
+              <View style={styles.totalIncomeContainer}>
+                <Text style={styles.totalIncomeLabel}>{incomeFilterMonth === "all" ? "Total Across All Months" : "Total for Selected Month"}</Text>
+                <Text style={styles.totalIncomeValue}>
+                  {currency ? getCurrencySymbol(currency) : "$"}
+                  {getFilteredIncome()
+                    .reduce((total: number, income: AdditionalIncomeItem) => total + income.amount, 0)
+                    .toLocaleString()}
+                </Text>
+              </View>
+
+              <TouchableOpacity
+                style={styles.modalAddButton}
+                onPress={() => {
+                  setShowManageIncomeModal(false);
+                  setTimeout(() => setShowAddIncomeModal(true), 300);
+                }}
+              >
+                <LinearGradient colors={["#5BD990", "#3DB26E"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.modalAddButtonGradient}>
+                  <Text style={styles.modalAddButtonText}>+</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
+
+            {/* Month Filter */}
+            {additionalIncome.length > 0 && (
+              <View style={styles.filterContainer}>
+                <Text style={styles.filterLabel}>Filter by Month:</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScrollView}>
+                  <TouchableOpacity
+                    style={[styles.filterOption, incomeFilterMonth === "all" && styles.activeFilterOption]}
+                    onPress={() => setIncomeFilterMonth("all")}
+                  >
+                    <Text style={[styles.filterOptionText, incomeFilterMonth === "all" && styles.activeFilterOptionText]}>
+                      All ({additionalIncome.length})
+                    </Text>
+                  </TouchableOpacity>
+                  {getAvailableIncomeMonths().map((month) => {
+                    const monthCount = additionalIncome.filter((income: AdditionalIncomeItem) => {
+                      const incomeDate = new Date(income.date);
+                      const incomeMonthKey = `${incomeDate.getFullYear()}-${incomeDate.getMonth() + 1}`;
+                      return incomeMonthKey === month.key;
+                    }).length;
+
+                    return (
+                      <TouchableOpacity
+                        key={month.key}
+                        style={[styles.filterOption, incomeFilterMonth === month.key && styles.activeFilterOption]}
+                        onPress={() => setIncomeFilterMonth(month.key)}
+                      >
+                        <Text style={[styles.filterOptionText, incomeFilterMonth === month.key && styles.activeFilterOptionText]}>
+                          {month.display} ({monthCount})
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </ScrollView>
+              </View>
+            )}
+
+            {additionalIncome.length === 0 ? (
+              <View style={styles.emptyContainer}>
+                <Text style={styles.emptyIconText}>💰</Text>
+                <Text style={styles.emptyText}>No additional income recorded yet</Text>
+                <TouchableOpacity
+                  style={styles.emptyAddButton}
+                  onPress={() => {
+                    setShowManageIncomeModal(false);
+                    setTimeout(() => setShowAddIncomeModal(true), 300);
+                  }}
+                >
+                  <LinearGradient colors={["#5BD990", "#3DB26E"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.emptyAddButtonGradient}>
+                    <Text style={styles.emptyAddButtonText}>Add Income Source</Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <FlatList
+                data={getFilteredIncome().sort(
+                  (a: AdditionalIncomeItem, b: AdditionalIncomeItem) => new Date(b.date).getTime() - new Date(a.date).getTime()
+                )}
+                keyExtractor={(item) => item.id}
+                style={styles.categoriesList}
+                contentContainerStyle={styles.categoriesListContent}
+                ItemSeparatorComponent={() => <View style={styles.separator} />}
+                renderItem={({ item }) => {
+                  const incomeDate = new Date(item.date);
+                  const monthYear = incomeDate.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+                  const isCurrentMonth = `${incomeDate.getFullYear()}-${incomeDate.getMonth() + 1}` === currentMonth;
+
+                  return (
+                    <View style={[styles.categoryListItem, isCurrentMonth && styles.currentMonthHighlight]}>
+                      <View style={styles.categoryLeft}>
+                        <View style={styles.categoryIconContainerLarge}>
+                          <Text style={styles.categoryIconLarge}>💰</Text>
+                        </View>
+                        <View style={styles.categoryInfo}>
+                          <Text style={styles.categoryNameLarge}>{item.description}</Text>
+                          <Text style={[styles.categoryType, { color: isCurrentMonth ? "#2E7D32" : "#666" }]}>
+                            {monthYear} {isCurrentMonth && "(Current)"}
+                          </Text>
+                        </View>
+                      </View>
+                      <View style={styles.incomeItemActions}>
+                        <Text style={styles.incomeAmount}>
+                          {currency ? getCurrencySymbol(currency) : "$"}
+                          {item.amount.toLocaleString()}
+                        </Text>
+                        <View style={styles.actionButtonsContainer}>
+                          <TouchableOpacity style={styles.editButton} onPress={() => handleEditIncome(item)}>
+                            <Text style={styles.editIcon}>✏️</Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity style={styles.deleteButtonLarge} onPress={() => handleDeleteAdditionalIncome(item.id)}>
+                            <Text style={styles.deleteIcon}>🗑️</Text>
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+                    </View>
+                  );
+                }}
+              />
+            )}
+          </View>
+        </View>
+      </Modal>
+
+      {/* Edit Income Modal */}
+      <Modal visible={showEditIncomeModal} animationType="fade" transparent={true} onRequestClose={() => setShowEditIncomeModal(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainerView}>
+            <View style={styles.modalHeaderView}>
+              <Text style={styles.modalTitleText}>Edit Additional Income</Text>
+              <TouchableOpacity onPress={() => setShowEditIncomeModal(false)} hitSlop={{ top: 20, right: 20, bottom: 20, left: 20 }}>
+                <Text style={styles.modalCloseText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.modalScrollView} contentContainerStyle={styles.modalScrollContent}>
+              <View style={styles.formGroup}>
+                <Text style={styles.formLabel}>Description</Text>
+                <TextInput
+                  style={styles.formInput}
+                  value={newIncomeDescription}
+                  onChangeText={setNewIncomeDescription}
+                  placeholder="e.g., Freelance work, Bonus, etc."
+                  returnKeyType="next"
+                />
+              </View>
+
+              <View style={styles.formGroup}>
+                <Text style={styles.formLabel}>Amount</Text>
+                <View style={styles.inputContainer}>
+                  <Text style={styles.dollarSign}>{currency ? getCurrencySymbol(currency) : "$"}</Text>
+                  <TextInput
+                    style={styles.incomeInput}
+                    value={newIncomeAmount}
+                    onChangeText={setNewIncomeAmount}
+                    keyboardType="numeric"
+                    returnKeyType="done"
+                    placeholder="Enter amount"
+                  />
+                </View>
+              </View>
+
+              <View style={styles.formGroup}>
+                <Text style={styles.formLabel}>Date</Text>
+                <TouchableOpacity style={styles.datePickerButton} onPress={() => setShowEditDatePicker(true)}>
+                  <Text style={styles.datePickerButtonText}>
+                    {editIncomeDate.toLocaleDateString("en-US", {
+                      year: "numeric",
+                      month: "long",
+                      day: "numeric",
+                    })}
+                  </Text>
+                  <Text style={styles.datePickerIcon}>📅</Text>
+                </TouchableOpacity>
+              </View>
+
+              {showEditDatePicker && (
+                <View style={styles.datePickerWrapper}>
+                  <View style={styles.datePickerHeader}>
+                    <TouchableOpacity onPress={() => setShowEditDatePicker(false)} style={styles.datePickerHeaderButton}>
+                      <Text style={styles.datePickerCancel}>Cancel</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={() => setShowEditDatePicker(false)} style={styles.datePickerHeaderButton}>
+                      <Text style={styles.datePickerDone}>Done</Text>
+                    </TouchableOpacity>
+                  </View>
+                  <DateTimePicker
+                    value={editIncomeDate}
+                    mode="date"
+                    display="spinner"
+                    onChange={(event, selectedDate) => {
+                      if (selectedDate) {
+                        setEditIncomeDate(selectedDate);
+                      }
+                    }}
+                    maximumDate={new Date()}
+                    minimumDate={new Date(2020, 0, 1)}
+                  />
+                </View>
+              )}
+
+              <TouchableOpacity style={styles.saveButtonContainer} onPress={handleUpdateIncome} activeOpacity={0.8}>
+                <LinearGradient colors={["#5BD990", "#3DB26E"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.saveButton}>
+                  <Text style={styles.saveButtonText}>Update Income</Text>
                 </LinearGradient>
               </TouchableOpacity>
             </ScrollView>
@@ -1766,6 +2106,176 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#2E7D32",
     marginRight: responsiveMargin(8),
+  },
+  viewAllIncomeButton: {
+    marginTop: responsiveMargin(12),
+    padding: responsivePadding(12),
+    backgroundColor: "#F0F8FF",
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#E6F3FF",
+    alignItems: "center",
+  },
+  viewAllIncomeText: {
+    fontSize: scaleFontSize(14),
+    color: "#4C7ED9",
+    fontWeight: "500",
+  },
+  totalIncomeContainer: {
+    flex: 1,
+    marginRight: responsiveMargin(12),
+  },
+  totalIncomeLabel: {
+    fontSize: scaleFontSize(14),
+    color: "#666",
+    marginBottom: responsiveMargin(4),
+  },
+  totalIncomeValue: {
+    fontSize: scaleFontSize(18),
+    fontWeight: "600",
+    color: "#2E7D32",
+  },
+  currentMonthHighlight: {
+    backgroundColor: "#F0F8FF",
+    borderLeftWidth: 4,
+    borderLeftColor: "#5BD990",
+  },
+  headerButtonsContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  manageButton: {
+    width: 40,
+    height: 40,
+    backgroundColor: "#F6F6F6",
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "#ECECEC",
+    marginRight: responsiveMargin(8),
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  manageButtonText: {
+    fontSize: scaleFontSize(20),
+  },
+  compactAddButtonGradient: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  addButtonIcon: {
+    color: "#FFF",
+    fontSize: scaleFontSize(24),
+    fontWeight: "300",
+  },
+  filterContainer: {
+    paddingHorizontal: responsivePadding(16),
+    paddingVertical: responsivePadding(12),
+    borderBottomWidth: 1,
+    borderBottomColor: "#F0F0F0",
+  },
+  filterLabel: {
+    fontSize: scaleFontSize(14),
+    fontWeight: "500",
+    color: "#333",
+    marginBottom: responsiveMargin(8),
+  },
+  filterScrollView: {
+    flexDirection: "row",
+  },
+  filterOption: {
+    paddingHorizontal: responsivePadding(12),
+    paddingVertical: responsivePadding(6),
+    marginRight: responsiveMargin(8),
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#E6E6E6",
+    backgroundColor: "#FCFCFC",
+  },
+  activeFilterOption: {
+    backgroundColor: "#5BD990" + "20",
+    borderColor: "#5BD990",
+  },
+  filterOptionText: {
+    fontSize: scaleFontSize(13),
+    color: "#666",
+  },
+  activeFilterOptionText: {
+    color: "#3DB26E",
+    fontWeight: "600",
+  },
+  incomeItemActions: {
+    flexDirection: "column",
+    alignItems: "flex-end",
+  },
+  actionButtonsContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: responsiveMargin(4),
+  },
+  editButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#F0F8FF",
+    marginRight: responsiveMargin(8),
+  },
+  editIcon: {
+    fontSize: scaleFontSize(14),
+  },
+  datePickerButton: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#E0E0E0",
+    borderRadius: 12,
+    paddingHorizontal: responsivePadding(16),
+    paddingVertical: responsivePadding(12),
+    backgroundColor: "#FCFCFC",
+  },
+  datePickerButtonText: {
+    fontSize: scaleFontSize(16),
+    color: "#333",
+    flex: 1,
+  },
+  datePickerIcon: {
+    fontSize: scaleFontSize(18),
+    marginLeft: responsiveMargin(8),
+  },
+  datePickerWrapper: {
+    backgroundColor: "#FFF",
+    borderRadius: 12,
+    marginVertical: responsiveMargin(10),
+    borderWidth: 1,
+    borderColor: "#E0E0E0",
+    overflow: "hidden",
+  },
+  datePickerHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: responsivePadding(16),
+    paddingVertical: responsivePadding(12),
+    borderBottomWidth: 1,
+    borderBottomColor: "#E0E0E0",
+    backgroundColor: "#F8F9FA",
+  },
+  datePickerHeaderButton: {
+    padding: responsivePadding(8),
+  },
+  datePickerCancel: {
+    fontSize: scaleFontSize(16),
+    color: "#666",
+  },
+  datePickerDone: {
+    fontSize: scaleFontSize(16),
+    color: "#5BD990",
+    fontWeight: "600",
   },
 });
 
