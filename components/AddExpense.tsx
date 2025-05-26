@@ -149,7 +149,14 @@ const AddExpense: React.FC<AddExpenseProps> = ({ onSave, onCancel, isEditing = f
         <Text style={styles.sectionLabel}>Amount</Text>
         <View style={styles.amountInputContainer}>
           <Text style={styles.currencySymbol}>{getCurrencySymbol(currency)}</Text>
-          <TextInput style={styles.amountInput} value={amount} onChangeText={setAmount} keyboardType="decimal-pad" returnKeyType="done" />
+          <TextInput
+            autoFocus={true}
+            style={styles.amountInput}
+            value={amount}
+            onChangeText={setAmount}
+            keyboardType="decimal-pad"
+            returnKeyType="done"
+          />
         </View>
       </View>
 
