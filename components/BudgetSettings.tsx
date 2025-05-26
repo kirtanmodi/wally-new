@@ -645,22 +645,6 @@ const BudgetSettings: React.FC<BudgetSettingsProps> = ({ onBackPress }) => {
         <View style={styles.section}>
           <View style={styles.sectionTitleRow}>
             <Text style={styles.sectionTitle}>Expense Categories</Text>
-            {/* <View style={styles.categoryButtonsContainer}>
-              <Animated.View style={{ transform: [{ scale: pulseAnim }], marginRight: 10 }}>
-                <TouchableOpacity style={styles.viewCategoriesButton} onPress={() => setShowCategoriesModal(true)} activeOpacity={0.7}>
-                  <LinearGradient colors={["#837BFF", "#605BFF"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.viewButtonGradient}>
-                    <Text style={styles.viewButtonText}>View All</Text>
-                  </LinearGradient>
-                </TouchableOpacity>
-              </Animated.View>
-              <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
-                <TouchableOpacity style={styles.addButton} onPress={handleAddCategoryWithAnimation} activeOpacity={0.7}>
-                  <LinearGradient colors={["#5BD990", "#3DB26E"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.addButtonGradient}>
-                    <Text style={styles.addButtonText}>+ Add New</Text>
-                  </LinearGradient>
-                </TouchableOpacity>
-              </Animated.View>
-            </View> */}
           </View>
 
           {categories.length === 0 ? (
@@ -1176,6 +1160,7 @@ const styles = StyleSheet.create({
   categoryLeft: {
     flexDirection: "row",
     alignItems: "center",
+    flex: 1,
   },
   categoryIcon: {
     fontSize: scaleFontSize(20),
@@ -1603,13 +1588,14 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   categoriesListContent: {
-    padding: responsivePadding(16),
+    paddingVertical: responsivePadding(16),
   },
   categoryListItem: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     paddingVertical: responsivePadding(12),
+    paddingHorizontal: responsivePadding(16),
   },
   categoryIconContainerLarge: {
     width: 50,
@@ -1624,6 +1610,7 @@ const styles = StyleSheet.create({
   },
   categoryInfo: {
     flex: 1,
+    marginRight: responsiveMargin(8),
   },
   categoryNameLarge: {
     fontSize: scaleFontSize(16),

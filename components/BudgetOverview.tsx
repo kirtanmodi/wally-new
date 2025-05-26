@@ -11,7 +11,6 @@ import { selectExpenses } from "../redux/slices/expenseSlice";
 import { RootState } from "../redux/types";
 
 interface BudgetOverviewProps {
-  monthlyIncome?: number;
   onBackPress?: () => void;
   onOpenSettings?: () => void;
   onOpenNeedsDetail?: () => void;
@@ -34,7 +33,6 @@ const SectionHeader: React.FC<{ title: string; subtitle?: string; onPress?: () =
 );
 
 const BudgetOverview: React.FC<BudgetOverviewProps> = ({
-  monthlyIncome = 0,
   onBackPress,
   onOpenSettings,
   onOpenNeedsDetail,
@@ -57,6 +55,12 @@ const BudgetOverview: React.FC<BudgetOverviewProps> = ({
   const denominationFormat = useSelector(selectDenominationFormat) || "none";
   const savingsGoals = useSelector(selectSavingsGoals) || {};
 
+  // Get income data from Redux
+  const monthlyIncome = useSelector((state: RootState) => state.budget.monthlyIncome) || 0;
+  const additionalIncome = useSelector((state: RootState) => state.budget.additionalIncome) || [];
+  const totalAdditionalIncome = additionalIncome.reduce((total, income) => total + income.amount, 0);
+  const totalIncome = monthlyIncome + totalAdditionalIncome;
+
   // Log selected month to verify it's changing
 
   // Filter expenses by selected month - ensure this is recalculated when month changes
@@ -68,9 +72,9 @@ const BudgetOverview: React.FC<BudgetOverviewProps> = ({
 
   // Calculate budget data based on income, rules, and expenses
   const budgetData = useMemo<BudgetData>(() => {
-    // Calculate budget amounts
+    // Calculate budget amounts using total income (monthly + additional)
     const rule = budgetRule || { needs: 50, savings: 30, wants: 20 };
-    const income = monthlyIncome || 0;
+    const income = totalIncome || 0;
 
     const needsBudget = income * (rule.needs / 100);
     const savingsBudget = income * (rule.savings / 100);
@@ -99,7 +103,7 @@ const BudgetOverview: React.FC<BudgetOverviewProps> = ({
         spent: wantsSpent,
       },
     };
-  }, [monthlyIncome, budgetRule, monthlyExpenses, selectedMonth]);
+  }, [totalIncome, budgetRule, monthlyExpenses, selectedMonth]);
 
   // Get selected date from the selected month string for display
   const selectedDate = useMemo(() => {
@@ -140,8 +144,14 @@ const BudgetOverview: React.FC<BudgetOverviewProps> = ({
 
       <ScrollView style={styles.scrollView}>
         <View style={styles.incomeSection}>
-          <Text style={styles.incomeLabel}>Monthly Income</Text>
-          <Text style={styles.incomeAmount}>{formatCurrency(monthlyIncome, currency, denominationFormat)}</Text>
+          <Text style={styles.incomeLabel}>Total Monthly Income</Text>
+          <Text style={styles.incomeAmount}>{formatCurrency(totalIncome, currency, denominationFormat)}</Text>
+          {totalAdditionalIncome > 0 && (
+            <View style={styles.incomeBreakdown}>
+              <Text style={styles.incomeBreakdownText}>Base: {formatCurrency(monthlyIncome, currency, denominationFormat)}</Text>
+              <Text style={styles.incomeBreakdownText}>Additional: {formatCurrency(totalAdditionalIncome, currency, denominationFormat)}</Text>
+            </View>
+          )}
         </View>
 
         <View style={styles.ruleSection}>
@@ -505,6 +515,17 @@ const styles = StyleSheet.create({
     color: "#FFF",
     fontSize: scaleFontSize(16),
     fontWeight: "600",
+  },
+  incomeBreakdown: {
+    marginTop: responsiveMargin(8),
+    paddingTop: responsivePadding(8),
+    borderTopWidth: 1,
+    borderTopColor: "#E8E8E8",
+  },
+  incomeBreakdownText: {
+    fontSize: scaleFontSize(14),
+    color: "#666",
+    marginBottom: responsiveMargin(2),
   },
 });
 
