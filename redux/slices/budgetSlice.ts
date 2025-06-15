@@ -41,6 +41,10 @@ export interface SavingsGoals {
   [categoryId: string]: SavingsGoal;
 }
 
+export interface CategoryLimits {
+  [categoryId: string]: number;
+}
+
 export interface AdditionalIncomeItem {
   id: string;
   description: string;
@@ -61,6 +65,8 @@ interface BudgetState {
   savingsGoals: SavingsGoals;
   denominationFormat: DenominationFormat;
   categorySortOption: string;
+  useBaseBudget: boolean;
+  categoryLimits: CategoryLimits;
 }
 
 const initialState: BudgetState = {
@@ -87,6 +93,8 @@ const initialState: BudgetState = {
   savingsGoals: {},
   denominationFormat: "indian",
   categorySortOption: "name_asc",
+  useBaseBudget: false,
+  categoryLimits: {},
 };
 
 export const budgetSlice = createSlice({
@@ -117,6 +125,8 @@ export const budgetSlice = createSlice({
       state.currency = AVAILABLE_CURRENCIES[6];
       state.denominationFormat = "indian";
       state.categorySortOption = "name_asc";
+      state.useBaseBudget = false;
+      state.categoryLimits = {};
     },
     setMonthlyIncome: (state, action: PayloadAction<number>) => {
       state.monthlyIncome = action.payload;
@@ -214,6 +224,37 @@ export const budgetSlice = createSlice({
     clearAdditionalIncome: (state) => {
       state.additionalIncome = [];
     },
+    setUseBaseBudget: (state, action: PayloadAction<boolean>) => {
+      state.useBaseBudget = action.payload;
+      // Clear category limits when switching back to percentage mode
+      if (!action.payload) {
+        state.categoryLimits = {};
+      }
+    },
+    setCategoryLimit: (
+      state,
+      action: PayloadAction<{
+        categoryId: string;
+        limit: number;
+      }>
+    ) => {
+      state.categoryLimits[action.payload.categoryId] = action.payload.limit;
+    },
+    updateCategoryLimit: (
+      state,
+      action: PayloadAction<{
+        categoryId: string;
+        limit: number;
+      }>
+    ) => {
+      state.categoryLimits[action.payload.categoryId] = action.payload.limit;
+    },
+    deleteCategoryLimit: (state, action: PayloadAction<string>) => {
+      delete state.categoryLimits[action.payload];
+    },
+    clearCategoryLimits: (state) => {
+      state.categoryLimits = {};
+    },
   },
 });
 
@@ -234,6 +275,11 @@ export const {
   updateAdditionalIncome,
   deleteAdditionalIncome,
   clearAdditionalIncome,
+  setUseBaseBudget,
+  setCategoryLimit,
+  updateCategoryLimit,
+  deleteCategoryLimit,
+  clearCategoryLimits,
 } = budgetSlice.actions;
 
 const selectBudgetState = (state: RootState) => state.budget;
@@ -249,6 +295,8 @@ export const selectCurrency = (state: RootState) => state.budget.currency;
 export const selectSavingsGoals = (state: RootState) => state.budget.savingsGoals;
 export const selectDenominationFormat = (state: RootState) => state.budget.denominationFormat;
 export const selectCategorySortOption = (state: RootState) => state.budget.categorySortOption;
+export const selectUseBaseBudget = (state: RootState) => state.budget.useBaseBudget;
+export const selectCategoryLimits = (state: RootState) => state.budget.categoryLimits;
 
 export const selectCategoriesByType = createSelector([selectCategoriesState, (_, type: BudgetCategory) => type], (categories, type) =>
   categories.filter((cat) => cat.type === type)
@@ -264,5 +312,10 @@ export const selectTotalAdditionalIncome = createSelector([selectAdditionalIncom
 );
 
 export const selectTotalIncome = createSelector([selectMonthlyIncome, selectTotalAdditionalIncome], (monthly, additional) => monthly + additional);
+
+export const selectCategoryLimitById = createSelector(
+  [selectCategoryLimits, (_, categoryId: string) => categoryId],
+  (categoryLimits, categoryId) => categoryLimits[categoryId] || 0
+);
 
 export default budgetSlice.reducer;

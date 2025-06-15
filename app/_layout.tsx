@@ -6,8 +6,9 @@ import { ActivityIndicator, StyleSheet, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { Provider, useSelector } from "react-redux";
 import { PersistGate } from "redux-persist/integration/react";
-import { selectIsFirstTimeUser } from "../redux/slices/expenseSlice";
+import { selectIsFirstTimeUser, selectOnboarded } from "../redux/slices/expenseSlice";
 import { selectIsAuthenticated } from "../redux/slices/userSlice";
+import { selectMonthlyIncome } from "../redux/slices/budgetSlice";
 import { persistor, store } from "../redux/store";
 import { ThemeProvider } from "./components/ThemeProvider";
 import { Colors } from "./constants/Colors";
@@ -20,18 +21,27 @@ function AuthContextProvider({ children }: { children: React.ReactNode }) {
 
   const isFirstTimeUser = useSelector(selectIsFirstTimeUser);
   const isAuthenticated = useSelector(selectIsAuthenticated);
+  const onboarded = useSelector(selectOnboarded);
+  const monthlyIncome = useSelector(selectMonthlyIncome);
 
   useEffect(() => {
     const prepareAuth = setTimeout(() => {
       if (!isAuthenticated) {
         router.replace("/(auth)/login");
-      } else if (isAuthenticated && isFirstTimeUser) {
-        router.replace("/welcome");
+      } else if (isAuthenticated && isFirstTimeUser && !onboarded) {
+        // New user who hasn't completed onboarding
+        router.replace("/(onboarding)/step1");
+      } else if (isAuthenticated && onboarded && monthlyIncome === 0) {
+        // User completed onboarding but no income set, go to settings
+        router.replace("/(tabs)/settings");
+      } else if (isAuthenticated && !isFirstTimeUser) {
+        // Returning user, go to main app
+        router.replace("/(tabs)");
       }
     }, 100);
 
     return () => clearTimeout(prepareAuth);
-  }, [isAuthenticated, router, isFirstTimeUser]);
+  }, [isAuthenticated, router, isFirstTimeUser, onboarded, monthlyIncome]);
 
   return <>{children}</>;
 }
@@ -57,6 +67,7 @@ export default function RootLayout() {
                   }}
                 >
                   <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+                  <Stack.Screen name="(onboarding)" options={{ headerShown: false }} />
                   <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
                   <Stack.Screen
                     name="(modals)/add-expense"

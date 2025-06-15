@@ -6,7 +6,7 @@ import { BudgetData } from "../app/types/budget";
 import { formatCurrency } from "../app/utils/currency";
 import { filterExpensesByMonth, getCurrentMonthYearKey } from "../app/utils/dateUtils";
 import { responsiveMargin, responsivePadding, scaleFontSize } from "../app/utils/responsive";
-import { selectBudgetRule, selectCategoriesByType, selectCurrency, selectDenominationFormat, selectSavingsGoals } from "../redux/slices/budgetSlice";
+import { selectBudgetRule, selectCategoriesByType, selectCategoryLimits, selectCurrency, selectDenominationFormat, selectSavingsGoals, selectUseBaseBudget } from "../redux/slices/budgetSlice";
 import { selectExpenses } from "../redux/slices/expenseSlice";
 import { RootState } from "../redux/types";
 
@@ -54,6 +54,8 @@ const BudgetOverview: React.FC<BudgetOverviewProps> = ({
   const savingsCategories = useSelector((state: RootState) => selectCategoriesByType(state, "Savings")) || [];
   const denominationFormat = useSelector(selectDenominationFormat) || "none";
   const savingsGoals = useSelector(selectSavingsGoals) || {};
+  const useBaseBudget = useSelector(selectUseBaseBudget) || false;
+  const categoryLimits = useSelector(selectCategoryLimits) || {};
 
   // Get income data from Redux
   const monthlyIncome = useSelector((state: RootState) => state.budget.monthlyIncome) || 0;
@@ -86,7 +88,16 @@ const BudgetOverview: React.FC<BudgetOverviewProps> = ({
     const rule = budgetRule || { needs: 50, savings: 30, wants: 20 };
     const income = totalIncome || 0;
 
-    const needsBudget = income * (rule.needs / 100);
+    // Calculate needs budget based on mode
+    let needsBudget: number;
+    if (useBaseBudget) {
+      // Base budget mode: sum of individual category limits
+      needsBudget = Object.values(categoryLimits).reduce((sum, limit) => sum + limit, 0);
+    } else {
+      // Percentage mode: based on income
+      needsBudget = income * (rule.needs / 100);
+    }
+
     const savingsBudget = income * (rule.savings / 100);
     const wantsBudget = income * (rule.wants / 100);
 
@@ -113,7 +124,7 @@ const BudgetOverview: React.FC<BudgetOverviewProps> = ({
         spent: wantsSpent,
       },
     };
-  }, [totalIncome, budgetRule, monthlyExpenses, selectedMonth]);
+  }, [totalIncome, budgetRule, monthlyExpenses, selectedMonth, useBaseBudget, categoryLimits]);
 
   // Get selected date from the selected month string for display
   const selectedDate = useMemo(() => {
@@ -169,7 +180,16 @@ const BudgetOverview: React.FC<BudgetOverviewProps> = ({
 
           <TouchableOpacity style={styles.budgetItem} onPress={onOpenNeedsDetail} disabled={!onOpenNeedsDetail}>
             <View style={styles.budgetItemLeft}>
-              <Text style={styles.budgetItemLabel}>Needs ({budgetRule.needs}%)</Text>
+              <View style={styles.budgetItemLabelContainer}>
+                <Text style={styles.budgetItemLabel}>
+                  Needs {useBaseBudget ? "(Custom Limits)" : `(${budgetRule.needs}%)`}
+                </Text>
+                {useBaseBudget && (
+                  <View style={styles.baseBudgetIndicator}>
+                    <Text style={styles.baseBudgetIndicatorText}>💰</Text>
+                  </View>
+                )}
+              </View>
               <View style={[styles.progressBar, { backgroundColor: BudgetColors.needs + "30" }]}>
                 <View
                   style={[
@@ -536,6 +556,24 @@ const styles = StyleSheet.create({
     fontSize: scaleFontSize(14),
     color: "#666",
     marginBottom: responsiveMargin(2),
+  },
+  budgetItemLabelContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 4,
+  },
+  baseBudgetIndicator: {
+    marginLeft: responsiveMargin(8),
+    backgroundColor: "#FFF8DC",
+    borderRadius: 8,
+    paddingHorizontal: responsivePadding(4),
+    paddingVertical: responsivePadding(2),
+    borderWidth: 1,
+    borderColor: "#FFD700",
+  },
+  baseBudgetIndicatorText: {
+    fontSize: scaleFontSize(10),
+    color: "#B8860B",
   },
 });
 

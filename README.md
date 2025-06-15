@@ -4,6 +4,7 @@ Wally is a mobile app that helps users track their expenses, set budgets, and ma
 
 ## Features
 
+- 🎯 **Smart Onboarding**: Guided 5-step setup for new users with progressive disclosure
 - 💰 **Expense Tracking**: Log and categorize your expenses
 - 📊 **Budget Management**: Create and monitor spending limits with 50/30/20 rule
 - 💸 **Savings Goals**: Set financial goals with automatic contribution calculation
@@ -109,6 +110,7 @@ npm run publish:update
 
 - `app/` - Main application code
   - `(auth)/` - Authentication screens
+  - `(onboarding)/` - 5-step user onboarding flow
   - `(tabs)/` - Main tab screens
   - `(modals)/` - Modal screens
   - `(details)/` - Detail screens
@@ -116,6 +118,25 @@ npm run publish:update
 - `redux/` - State management
 - `assets/` - Images and other static assets
 - `components/` - Reusable UI components
+
+## User Experience
+
+### First-Time User Flow
+
+1. **Authentication**: Secure login with Google OAuth via Clerk
+2. **Onboarding Flow**: 5-step guided setup process
+   - Welcome & app overview with 50/30/20 rule explanation
+   - Monthly income setup with currency selection
+   - Interactive budget allocation customization
+   - Category personalization (add/remove/customize)
+   - Setup completion with summary and next steps
+3. **Main App**: Access to full feature set after onboarding
+
+### Returning User Flow
+
+- Automatic login with saved credentials
+- Direct access to main app interface
+- All preferences and data restored from local storage
 
 ## Technologies Used
 

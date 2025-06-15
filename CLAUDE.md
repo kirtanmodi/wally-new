@@ -44,6 +44,7 @@ The app uses Redux Toolkit with Redux Persist for state management. All state is
 ### Navigation Structure
 Uses Expo Router with file-based routing:
 - `(auth)`: Login/signup screens (shown when not authenticated)
+- `(onboarding)`: 5-step user onboarding flow for new users
 - `(tabs)`: Main app tabs (overview, analytics, profile, settings)
 - `(modals)`: Modal screens (add-expense, edit-expense, notifications, privacy, theme-demo)
 - `(details)`: Detail screens for budget categories (needs, savings, wants)
@@ -68,6 +69,14 @@ Uses Expo Router with file-based routing:
 - Progress tracking with visual indicators
 - Multiple concurrent goals support
 
+**User Onboarding:**
+- Comprehensive 5-step onboarding flow for new users
+- Progressive disclosure with guided setup
+- Income setup with currency selection and validation
+- Interactive budget allocation with 50/30/20 customization
+- Category personalization with add/remove functionality
+- Setup completion with summary and next steps guidance
+
 ### Component Architecture
 
 **Key Components:**
@@ -76,6 +85,12 @@ Uses Expo Router with file-based routing:
 - `ExpenseItem`: Individual expense display with swipe-to-delete
 - `SavingsGoalCard`: Goal progress visualization
 - `AddExpenseModal`: Main expense entry interface
+
+**Onboarding Components:**
+- `OnboardingStep`: Reusable wrapper component with progress indicators and navigation
+- Onboarding screens (`step1-step5`): Welcome, income setup, budget allocation, category customization, completion
+- Form validation and error handling for user inputs
+- Interactive budget sliders with real-time calculation updates
 
 **Theme System Components:**
 - `ThemeProvider`: Context provider for theme management with status bar integration
@@ -95,7 +110,7 @@ Uses Expo Router with file-based routing:
 1. **Adding New Features:**
    - Create feature branch from master
    - Update relevant Redux slice if state changes needed
-   - Add new screens in appropriate directory (tabs/modals/details)
+   - Add new screens in appropriate directory (tabs/modals/details/onboarding)
    - Update navigation if new routes added
    - Test on both iOS and Android
 
@@ -115,13 +130,15 @@ Uses Expo Router with file-based routing:
 
 ### Important Technical Details
 
-**Authentication:**
+**Authentication & User Flow:**
 - Clerk authentication service integration with OAuth support
 - Google OAuth fully implemented and configured
 - Simplified login flow with OAuth-only authentication
 - Auth state managed in userSlice with provider tracking
 - Protected routes handled by Expo Router with ClerkProvider
 - Token management and secure storage via Clerk
+- Smart routing: new users → onboarding → main app
+- Onboarding completion tracking in expenseSlice
 
 **Data Persistence:**
 - All app data stored locally via Redux Persist

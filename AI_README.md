@@ -20,6 +20,7 @@ Wally is a comprehensive mobile budget management application built with React N
 wally/
 ├── app/                  # Main application routes and shared utilities
 │   ├── (auth)/           # Authentication screens
+│   ├── (onboarding)/     # 5-step user onboarding flow
 │   ├── (tabs)/           # Main tab navigation screens
 │   ├── (modals)/         # Modal screens (add expense, notifications)
 │   ├── (details)/        # Detail screens
@@ -29,32 +30,44 @@ wally/
 │   ├── services/         # External services (Auth)
 │   ├── types/            # Type definitions
 │   ├── utils/            # Utility functions
-│   ├── _layout.tsx       # Root layout component
+│   ├── _layout.tsx       # Root layout component with routing logic
 │   └── index.tsx         # Root screen
-├── components/           # UI components
+├── components/           # UI components (includes OnboardingStep)
 ├── redux/                # State management
-│   ├── slices/           # Redux slices
+│   ├── slices/           # Redux slices (user, budget, expense, app)
 │   ├── store.ts          # Redux store config
 │   └── types.ts          # Store types
 ├── assets/               # Global assets
 └── node_modules/         # Dependencies
 ```
 
-## Authentication
+## Authentication & User Flow
 
-The app supports two authentication methods:
-- Email/Password (simulated)
-- Google Authentication (not configured yet)
+The app uses Clerk for authentication with OAuth support:
+- Google OAuth (fully implemented and configured)
+- Simplified login flow with OAuth-only authentication
 
-Authentication is managed through the `AuthService.ts` in `app/services` and authenticated state is stored in Redux.
+Authentication is managed through Clerk with state stored in Redux userSlice.
 
-### Authentication Flow
+### Authentication & Onboarding Flow
 
 1. Users enter the app through the root layout (`app/_layout.tsx`)
-2. The AuthContextProvider checks if the user is authenticated
-3. If not authenticated, the user is redirected to the login screen
-4. After successful login, the user is redirected to the main app
-5. Auth state persists across app restarts via Redux Persist
+2. The AuthContextProvider checks authentication and onboarding state
+3. **New User Flow**:
+   - Not authenticated → Login screen
+   - Authenticated + first time + not onboarded → Onboarding flow (5 steps)
+   - Onboarded but no income set → Settings screen
+4. **Returning User Flow**:
+   - Authenticated + not first time → Main app directly
+5. All state persists across app restarts via Redux Persist
+
+### Onboarding Flow (5 Steps)
+
+1. **Step 1**: Welcome & app overview with 50/30/20 rule explanation
+2. **Step 2**: Monthly income setup with currency selection
+3. **Step 3**: Interactive budget allocation customization
+4. **Step 4**: Category personalization (add/remove/customize)
+5. **Step 5**: Setup completion with summary and next steps
 
 ## State Management (Redux)
 
@@ -93,13 +106,14 @@ The app uses Redux Toolkit for state management, with the following slices:
 
 **State**:
 - Expenses list
-- Onboarding status
+- First-time user status (`isFirstTimeUser`)
+- Onboarding completion status (`onboarded`)
 
 **Key Actions**:
 - `addExpense`: Add a new expense
 - `updateExpense`: Modify an existing expense
 - `deleteExpense`: Remove an expense
-- `setUserOnboarded`: Mark user onboarding as complete
+- `setUserOnboarded`: Mark user onboarding as complete (sets `isFirstTimeUser: false`, `onboarded: true`)
 
 ### 4. App Slice (`appSlice.ts`)
 
@@ -111,36 +125,44 @@ The app uses Redux Toolkit for state management, with the following slices:
 **Key Selectors**:
 Each slice contains selectors for retrieving state in components. The most commonly used selectors include:
 - `selectIsAuthenticated`: Check if user is logged in
+- `selectIsFirstTimeUser`: Check if user is new to the app
+- `selectOnboarded`: Check if user has completed onboarding
 - `selectCategories`: Get all expense categories
 - `selectExpenses`: Get all expenses
 - `selectBudgetRule`: Get the current budget rule
+- `selectMonthlyIncome`: Get user's monthly income
 
 ## Screens and Navigation
 
 ### Main Screens:
 
-1. **Welcome Screen**: First-time user onboarding
-2. **Authentication Screens**:
-   - Login
-   - Register
-   - Forgot Password
+1. **Authentication Screens**:
+   - Login: OAuth authentication with Google via Clerk
+
+2. **Onboarding Screens** (5-step flow for new users):
+   - Step 1: Welcome & Introduction with 50/30/20 rule explanation
+   - Step 2: Monthly Income Setup with currency selection
+   - Step 3: Budget Allocation with interactive customization
+   - Step 4: Category Customization with add/remove functionality
+   - Step 5: Setup Complete with summary and next steps
 
 3. **Main Tab Screens**:
-   - Home: Dashboard with budget overview
-   - Expenses: Expense tracking and management
-   - Budget: Budget settings and analysis
-   - Profile: User profile and settings
+   - Overview: Dashboard with budget overview and quick actions
+   - Analytics: Expense tracking and financial insights
+   - Profile: User profile and financial summary
+   - Settings: App preferences and budget configuration
 
 4. **Modal Screens**:
    - Add Expense: Form to add new expenses
    - Edit Expense: Form to edit existing expenses
    - Notifications: App notifications
    - Privacy: Privacy settings
+   - Theme Demo: Theme system showcase
 
 5. **Detail Screens**:
-   - Needs Detail: Detailed view of "Needs" expenses
-   - Wants Detail: Detailed view of "Wants" expenses
-   - Savings Detail: Detailed view of "Savings" and goals
+   - Needs Detail: Detailed view of "Needs" expenses and management
+   - Savings Detail: Detailed view of "Savings" goals and tracking
+   - Wants Detail: Detailed view of "Wants" expenses and management
 
 ## Core Components
 
@@ -167,6 +189,21 @@ Displays detailed information about savings categories and goals. Users can set 
 
 ### 5. NeedsDetailScreen.tsx & WantsDetailScreen.tsx
 Shows detailed breakdowns of expenses in the Needs and Wants categories, including category-specific visualizations and statistics.
+
+### 6. OnboardingStep.tsx
+Reusable wrapper component for the 5-step onboarding flow. Provides:
+- Progress indicators and step navigation
+- Consistent layout with animated transitions
+- Back/Next/Skip button controls
+- Responsive design across devices
+
+### 7. Onboarding Screens (step1-step5.tsx)
+Individual onboarding steps that guide new users through app setup:
+- **Step 1**: Welcome screen with app overview and 50/30/20 rule explanation
+- **Step 2**: Income setup with currency selection and input validation
+- **Step 3**: Budget allocation with interactive sliders for customization
+- **Step 4**: Category management with add/remove/customize functionality
+- **Step 5**: Setup completion with summary and next steps guidance
 
 ## Data Flow
 

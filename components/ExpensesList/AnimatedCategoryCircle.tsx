@@ -6,7 +6,7 @@ import { useSelector } from "react-redux";
 import { CategorySummary } from "../../app/types/budget";
 import { formatCurrency } from "../../app/utils/currency";
 import { responsiveMargin, scaleFontSize, wp } from "../../app/utils/responsive";
-import { selectCurrency, selectDenominationFormat } from "../../redux/slices/budgetSlice";
+import { selectCurrency, selectDenominationFormat, selectUseBaseBudget } from "../../redux/slices/budgetSlice";
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
@@ -40,6 +40,7 @@ const AnimatedCategoryCircle: React.FC<AnimatedCategoryCircleProps> = ({
 
   const currency = useSelector(selectCurrency);
   const denominationFormat = useSelector(selectDenominationFormat);
+  const useBaseBudget = useSelector(selectUseBaseBudget);
 
   const circleRadius = wp(10);
   const strokeWidth = 6;
@@ -171,6 +172,13 @@ const AnimatedCategoryCircle: React.FC<AnimatedCategoryCircleProps> = ({
               <Text style={styles.overBudgetIcon}>!</Text>
             </View>
           )}
+
+          {/* Base Budget Mode Indicator for Needs */}
+          {useBaseBudget && item.category === "Needs" && (
+            <View style={styles.baseBudgetBadge}>
+              <Text style={styles.baseBudgetIcon}>💰</Text>
+            </View>
+          )}
         </View>
 
         {/* Budget Information */}
@@ -188,7 +196,9 @@ const AnimatedCategoryCircle: React.FC<AnimatedCategoryCircleProps> = ({
           </View>
 
           <View style={styles.totalContainer}>
-            <Text style={styles.totalLabel}>Budget</Text>
+            <Text style={styles.totalLabel}>
+              {useBaseBudget && item.category === "Needs" ? "Total Limits" : "Budget"}
+            </Text>
             <Text style={styles.totalAmount}>{formatCurrency(item.total, currency, denominationFormat)}</Text>
           </View>
         </View>
@@ -196,6 +206,11 @@ const AnimatedCategoryCircle: React.FC<AnimatedCategoryCircleProps> = ({
         {/* Over Budget Warning */}
         {isOverBudget && item.category !== "Savings" && (
           <Animated.Text style={[styles.overBudgetMessage, { opacity: warningFade }]}>Over budget</Animated.Text>
+        )}
+
+        {/* Base Budget Mode Indicator Text */}
+        {useBaseBudget && item.category === "Needs" && (
+          <Text style={styles.baseBudgetMessage}>Base Budget Mode</Text>
         )}
       </TouchableOpacity>
     </Animated.View>
@@ -336,6 +351,37 @@ const styles = StyleSheet.create({
     fontSize: scaleFontSize(11),
     fontWeight: "600",
     color: "#FF4040",
+    marginTop: responsiveMargin(4),
+    textAlign: "center",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  baseBudgetBadge: {
+    position: "absolute",
+    top: -6,
+    left: -6,
+    backgroundColor: "#FFF8DC",
+    borderRadius: 12,
+    width: 24,
+    height: 24,
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 2,
+    borderColor: "#FFD700",
+    elevation: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3,
+  },
+  baseBudgetIcon: {
+    fontSize: scaleFontSize(10),
+    textAlign: "center",
+  },
+  baseBudgetMessage: {
+    fontSize: scaleFontSize(11),
+    fontWeight: "600",
+    color: "#FFD700",
     marginTop: responsiveMargin(4),
     textAlign: "center",
     textTransform: "uppercase",
