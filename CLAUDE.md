@@ -37,7 +37,7 @@ The app uses Redux Toolkit with Redux Persist for state management. All state is
 
 **Redux Slices:**
 - `userSlice`: Authentication state, user profile, OAuth provider tracking, and preferences
-- `budgetSlice`: Budget configuration (50/30/20 percentages), categories, currency settings
+- `budgetSlice`: Budget configuration (50/30/20 percentages), categories, currency settings, base budget mode, category limits
 - `expenseSlice`: All expense data and management
 - `appSlice`: App-wide settings, comprehensive theme system, notifications
 
@@ -56,6 +56,11 @@ Uses Expo Router with file-based routing:
 - Categories: Needs (essentials), Savings, Wants (lifestyle)
 - Each category has customizable subcategories
 - Income-based budget recommendations with progressive scaling
+- **Base Budget Mode**: Alternative to percentage-based budgeting for Needs category
+  - Toggle between percentage allocation and manual category limits
+  - Set individual spending limits for each needs subcategory
+  - Visual indicators show when base budget mode is active
+  - Progress tracking against individual category limits with over-limit alerts
 
 **Expense Tracking:**
 - Add expenses with amount, category, description, date
@@ -80,11 +85,12 @@ Uses Expo Router with file-based routing:
 ### Component Architecture
 
 **Key Components:**
-- `AnimatedCategoryCircle`: SVG-based circular progress indicator for budget visualization
+- `AnimatedCategoryCircle`: SVG-based circular progress indicator for budget visualization with base budget mode indicators
 - `BudgetCategoryBox`: Interactive category display with progress bars
 - `ExpenseItem`: Individual expense display with swipe-to-delete
 - `SavingsGoalCard`: Goal progress visualization
 - `AddExpenseModal`: Main expense entry interface
+- `CategoryLimitModal`: Modal for setting individual category budget limits in base budget mode
 
 **Onboarding Components:**
 - `OnboardingStep`: Reusable wrapper component with progress indicators and navigation
@@ -97,6 +103,12 @@ Uses Expo Router with file-based routing:
 - `ThemeSettings`: Complete theme settings UI with light/dark/system options
 - `ThemeToggle`: Toggle component with compact variant for theme switching
 - `ThemedComponents`: Comprehensive themed component library (Text, View, Card, TextInput, Button, Separator)
+
+**Base Budget Mode Components:**
+- `NeedsDetailScreen`: Enhanced with base budget toggle and category limit management
+- `CategoryLimitModal`: Modal interface for setting individual category spending limits
+- `BudgetOverview`: Updated to show base budget mode indicators in needs section
+- `AnimatedCategoryCircle`: Visual badges and indicators for base budget mode
 
 **Styling Approach:**
 - Uses React Native StyleSheet with comprehensive theme support
@@ -152,6 +164,15 @@ Uses Expo Router with file-based routing:
 - Custom formatting with denomination support (K, M, B)
 - Currency symbol positioning based on locale
 
+**Base Budget Mode Implementation:**
+- `useBaseBudget`: Boolean flag in budgetSlice controlling budget calculation mode
+- `categoryLimits`: Object mapping category IDs to individual spending limits
+- **Budget Calculation Logic**: Switches between percentage-based (income * 50%) and limit-based (sum of category limits)
+- **State Management**: Category limits are automatically cleared when switching back to percentage mode
+- **Visual Indicators**: Gold coin badges (💰) and "Base Budget Mode" text shown when active
+- **Progress Tracking**: Individual category progress bars calculated against their specific limits
+- **Over-Limit Alerts**: Red progress bars and warning text when spending exceeds category limits
+
 **Performance Considerations:**
 - Use React.memo for expensive components
 - Animations use react-native-reanimated with expo-linear-gradient
@@ -178,7 +199,12 @@ Uses Expo Router with file-based routing:
 
 ### Active Development Areas
 
-Refer to TASKS.md for current development priorities:
+Recent completions:
+- **Base Budget Mode for Needs Category**: Implemented alternative budgeting approach with individual category limits
+- Category limit setting and management functionality
+- Visual indicators for base budget mode across all relevant components
+
+Current development priorities:
 - Currency denomination formatting (testing phase)
 - Categories modal improvements
 - Savings category management

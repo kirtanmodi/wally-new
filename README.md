@@ -7,6 +7,7 @@ Wally is a mobile app that helps users track their expenses, set budgets, and ma
 - 🎯 **Smart Onboarding**: Guided 5-step setup for new users with progressive disclosure
 - 💰 **Expense Tracking**: Log and categorize your expenses
 - 📊 **Budget Management**: Create and monitor spending limits with 50/30/20 rule
+- 🎛️ **Base Budget Mode**: Alternative budgeting approach with individual category limits for Needs
 - 💸 **Savings Goals**: Set financial goals with automatic contribution calculation
 - 📈 **Financial Analytics**: View spending patterns and trends
 - 👤 **User Profiles**: Customize your experience with comprehensive theme system

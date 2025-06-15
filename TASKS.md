@@ -215,3 +215,33 @@
   - [x] Component integration testing
   - [x] Navigation flow verification
 
+## Phase 9: Base Budget Mode for Needs Category ✅ COMPLETED
+- [x] Extend Redux state management
+  - [x] Add useBaseBudget boolean flag to budgetSlice
+  - [x] Add categoryLimits object for individual category limits
+  - [x] Create actions for toggling base budget mode and setting category limits
+  - [x] Add selectors for accessing new state properties
+- [x] Create CategoryLimitModal component
+  - [x] Modal interface for setting individual category spending limits
+  - [x] Input validation and currency formatting
+  - [x] Visual feedback for current limits and saving functionality
+- [x] Update NeedsDetailScreen with base budget functionality
+  - [x] Add base budget mode toggle switch at the top
+  - [x] Implement dynamic budget calculation (percentage vs. sum of limits)
+  - [x] Add category limit setting buttons and progress tracking
+  - [x] Show over-limit warnings and visual indicators
+  - [x] Integrate CategoryLimitModal for limit management
+- [x] Update AnimatedCategoryCircle with visual indicators
+  - [x] Add gold coin badge (💰) when Needs category is in base budget mode
+  - [x] Update budget label text to show "Total Limits" vs "Budget"
+  - [x] Add "Base Budget Mode" status message below circle
+- [x] Update BudgetOverview with base budget indicators
+  - [x] Show "(Custom Limits)" text and gold indicator in Needs section
+  - [x] Update budget calculation logic to handle both modes
+  - [x] Maintain visual consistency across overview and detail screens
+- [x] Test implementation and ensure code quality
+  - [x] Run ESLint validation for code quality
+  - [x] Verify state management works correctly
+  - [x] Test budget calculations in both modes
+  - [x] Validate visual indicators display properly
+
