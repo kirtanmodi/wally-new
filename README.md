@@ -5,12 +5,15 @@ Wally is a mobile app that helps users track their expenses, set budgets, and ma
 ## Features
 
 - 💰 **Expense Tracking**: Log and categorize your expenses
-- 📊 **Budget Management**: Create and monitor spending limits
+- 📊 **Budget Management**: Create and monitor spending limits with 50/30/20 rule
+- 💸 **Savings Goals**: Set financial goals with automatic contribution calculation
 - 📈 **Financial Analytics**: View spending patterns and trends
-- 👤 **User Profiles**: Customize your experience
+- 👤 **User Profiles**: Customize your experience with comprehensive theme system
+- 🎨 **Theme System**: Light/dark/system theme support with automatic switching
+- 🌍 **Multi-Currency**: Support for multiple currencies with smart denomination formatting
 - 🔔 **Notifications**: Get alerts for budget limits and financial goals
 - 🔒 **Privacy Settings**: Control your data security preferences
-- 🔐 **Authentication**: Login with email or Google account
+- 🔐 **OAuth Authentication**: Secure login with Clerk and Google OAuth
 
 ## Development Setup
 
@@ -36,16 +39,21 @@ Wally is a mobile app that helps users track their expenses, set budgets, and ma
 
 ## Authentication Setup
 
-### Google Authentication
+The app uses Clerk for authentication with OAuth support.
 
-To set up Google authentication:
+### Clerk Configuration
 
-1. Create a project in the [Google Cloud Console](https://console.cloud.google.com/)
-2. Configure the OAuth consent screen
-3. Create OAuth 2.0 Client IDs for iOS, Android, and Web
-4. Update the client IDs in `app/services/AuthService.ts`
+1. Create a Clerk account at [clerk.com](https://clerk.com)
+2. Set up your Clerk application
+3. Configure OAuth providers (Google) in the Clerk dashboard
+4. Add Clerk publishable key to your environment
 
-For detailed instructions, see [Google Authentication Setup](app/services/GoogleAuthREADME.md).
+### Google OAuth Setup
+
+Google OAuth is integrated through Clerk:
+1. Configure Google OAuth in your Clerk dashboard
+2. Clerk handles all OAuth flows and token management
+3. Users can sign in with Google through the simplified login screen
 
 ## Environment Configuration
 
@@ -111,8 +119,11 @@ npm run publish:update
 
 ## Technologies Used
 
-- React Native
-- Expo
-- Redux Toolkit
-- Expo Router
+- React Native with Expo
+- Redux Toolkit with Redux Persist
+- Expo Router for navigation
+- Clerk for authentication
+- Firebase integration
 - TypeScript
+- React Native SVG for custom graphics
+- Expo Linear Gradient for UI enhancements
