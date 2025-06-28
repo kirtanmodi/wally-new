@@ -1,8 +1,7 @@
-import { useClerk, useUser } from "@clerk/clerk-expo";
 import { FontAwesome } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import { Alert, Image, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import Animated, { FadeIn } from "react-native-reanimated";
 import { useDispatch, useSelector } from "react-redux";
@@ -19,14 +18,12 @@ import {
   selectUsername,
   setIsAuthenticated,
   updateProfile,
+  logout,
 } from "../../redux/slices/userSlice";
 
 export default function ProfileScreen() {
   const router = useRouter();
   const dispatch = useDispatch();
-  const { signOut } = useClerk();
-  const { user: clerkUser } = useUser();
-  const [syncingProfile, setSyncingProfile] = useState(false);
   const currency = useSelector(selectCurrency);
   const denominationFormat = useSelector(selectDenominationFormat);
 
@@ -73,33 +70,6 @@ export default function ProfileScreen() {
         return "Email";
     }
   };
-
-  // Sync profile with Clerk if needed
-  useEffect(() => {
-    const syncClerkProfile = async () => {
-      if (clerkUser && !syncingProfile) {
-        setSyncingProfile(true);
-        try {
-          // If Clerk has updated profile info that Redux doesn't have
-          if (clerkUser.firstName && clerkUser.lastName && !fullName) {
-            const clerkFullName = `${clerkUser.firstName} ${clerkUser.lastName}`.trim();
-            dispatch(
-              updateProfile({
-                fullName: clerkFullName,
-                avatar: clerkUser.imageUrl || avatar || undefined,
-              })
-            );
-          }
-        } catch (error) {
-          console.error("Error syncing profile:", error);
-        } finally {
-          setSyncingProfile(false);
-        }
-      }
-    };
-
-    syncClerkProfile();
-  }, [clerkUser, fullName, avatar, dispatch]);
 
   // Determine membership status
   const membershipStatus = useMemo(() => {
@@ -171,15 +141,6 @@ export default function ProfileScreen() {
     }
   }, [dispatch]);
 
-  // Navigation handlers
-  // const handleNavigateToSettings = useCallback(() => {
-  //   router.push("/(tabs)/settings");
-  // }, [router]);
-
-  // const handleNavigateToAnalytics = useCallback(() => {
-  //   router.push("/(tabs)/analytics");
-  // }, [router]);
-
   // Menu item handlers
   const handleMenuItemPress = useCallback(
     (section: string) => {
@@ -231,15 +192,30 @@ export default function ProfileScreen() {
     }
   }, [dispatch, membershipStatus]);
 
+  const handleLogout = useCallback(() => {
+    Alert.alert("Logout", "Are you sure you want to log out?", [
+      {
+        text: "Cancel",
+        style: "cancel",
+      },
+      {
+        text: "Logout",
+        onPress: () => {
+          dispatch(logout());
+          dispatch(setIsAuthenticated(false));
+          router.replace("/(auth)/login");
+        },
+        style: "destructive",
+      },
+    ]);
+  }, [dispatch, router]);
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         <Animated.View style={styles.profileCard} entering={FadeIn.duration(300)}>
           <View style={styles.header}>
             <Text style={styles.title}>Profile</Text>
-            {/* <TouchableOpacity style={styles.settingsButton} onPress={handleNavigateToSettings}>
-              <FontAwesome name="gear" size={24} color="#666" />
-            </TouchableOpacity> */}
           </View>
 
           {/* Profile picture and name */}
@@ -287,9 +263,6 @@ export default function ProfileScreen() {
           <View style={styles.statsCard}>
             <View style={styles.sectionTitleRow}>
               <Text style={styles.sectionTitle}>Budget Stats</Text>
-              {/* <TouchableOpacity onPress={handleNavigateToAnalytics}>
-                <Text style={styles.viewMoreLink}>View Analytics</Text>
-              </TouchableOpacity> */}
             </View>
 
             {/* Budget Overview */}
@@ -415,23 +388,7 @@ export default function ProfileScreen() {
 
           <TouchableOpacity
             style={[styles.menuItem, styles.logoutButton]}
-            onPress={() => {
-              Alert.alert("Logout", "Are you sure you want to log out?", [
-                {
-                  text: "Cancel",
-                  style: "cancel",
-                },
-                {
-                  text: "Logout",
-                  onPress: () => {
-                    signOut();
-                    dispatch(setIsAuthenticated(false));
-                    router.replace("/(auth)/login");
-                  },
-                  style: "destructive",
-                },
-              ]);
-            }}
+            onPress={handleLogout}
           >
             <View style={styles.menuIconContainer}>
               <FontAwesome name="sign-out" size={20} color="#ff3b30" />
