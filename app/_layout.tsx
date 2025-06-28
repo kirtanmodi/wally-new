@@ -9,7 +9,8 @@ import { selectIsAuthenticated } from "../redux/slices/userSlice";
 import { selectMonthlyIncome } from "../redux/slices/budgetSlice";
 import { persistor, store } from "../redux/store";
 import { ThemeProvider } from "./components/ThemeProvider";
-import { Colors } from "./constants/Colors";
+import { Colors } from "./constants/Colors"
+import { useFrameworkReady } from '@/hooks/useFrameworkReady';
 
 function AuthContextProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -42,6 +43,7 @@ function AuthContextProvider({ children }: { children: React.ReactNode }) {
 }
 
 export default function RootLayout() {
+  useFrameworkReady();
   return (
     <GestureHandlerRootView style={styles.container}>
       <Provider store={store}>
