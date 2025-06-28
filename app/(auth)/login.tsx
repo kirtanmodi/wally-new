@@ -6,9 +6,8 @@ import {
   ActivityIndicator,
   Alert,
   Animated,
-  Image,
+  Dimensions,
   SafeAreaView,
-  ScrollView,
   StatusBar,
   StyleSheet,
   Text,
@@ -18,15 +17,33 @@ import {
 } from "react-native";
 import { useDispatch } from "react-redux";
 import { login, setIsAuthenticated } from "../../redux/slices/userSlice";
-import { scaleFontSize } from "../utils/responsive";
+import COLORS from "../constants/Colors";
+
+const { width, height } = Dimensions.get("window");
+
+// Emotional Avatar Component
+const EmotionalAvatar = ({ size = 120 }: { size?: number }) => {
+  return (
+    <View style={[styles.avatar, { width: size, height: size }]}>
+      <LinearGradient
+        colors={COLORS.gradients.pinkBlue}
+        style={[styles.avatarGradient, { width: size, height: size, borderRadius: size / 2 }]}
+      >
+        <Text style={[styles.avatarExpression, { fontSize: size * 0.4 }]}>
+          😊
+        </Text>
+      </LinearGradient>
+    </View>
+  );
+};
 
 export default function LoginScreen() {
   const router = useRouter();
   const dispatch = useDispatch();
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(30)).current;
-  const scaleAnim = useRef(new Animated.Value(0.95)).current;
+  const slideAnim = useRef(new Animated.Value(50)).current;
+  const scaleAnim = useRef(new Animated.Value(0.8)).current;
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -36,17 +53,17 @@ export default function LoginScreen() {
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
-        duration: 600,
+        duration: 1000,
         useNativeDriver: true,
       }),
       Animated.timing(slideAnim, {
         toValue: 0,
-        duration: 600,
+        duration: 1000,
         useNativeDriver: true,
       }),
       Animated.timing(scaleAnim, {
         toValue: 1,
-        duration: 600,
+        duration: 1000,
         useNativeDriver: true,
       }),
     ]).start();
@@ -61,10 +78,8 @@ export default function LoginScreen() {
     setIsLoading(true);
     
     try {
-      // Simulate login process
       await new Promise(resolve => setTimeout(resolve, 1000));
       
-      // Create user data
       const userData = {
         userId: Date.now().toString(),
         username: email.split("@")[0],
@@ -87,7 +102,6 @@ export default function LoginScreen() {
     setIsLoading(true);
     
     try {
-      // Demo user data
       const userData = {
         userId: "demo_user_123",
         username: "demo_user",
@@ -108,101 +122,104 @@ export default function LoginScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" />
-      <LinearGradient colors={["#7FAFF5", "#7FAFF5"]} style={styles.loginFormContainer}>
-        <View style={styles.loginHeader}>
-          <View style={{ width: 20 }} />
-          <Text style={styles.loginTitle}>Sign In</Text>
-          <View style={{ width: 20 }} />
+      <StatusBar barStyle="dark-content" backgroundColor={COLORS.neutral.white} />
+      
+      <Animated.View 
+        style={[
+          styles.content,
+          {
+            opacity: fadeAnim,
+            transform: [
+              { translateY: slideAnim },
+              { scale: scaleAnim }
+            ]
+          }
+        ]}
+      >
+        {/* Header with Avatar */}
+        <View style={styles.header}>
+          <EmotionalAvatar size={120} />
+          <Text style={styles.welcomeTitle}>Welcome to Wally</Text>
+          <Text style={styles.welcomeSubtitle}>Your wellness-focused finance companion</Text>
         </View>
 
-        <ScrollView style={styles.formScrollView} contentContainerStyle={styles.formScrollContent} showsVerticalScrollIndicator={false}>
-          <Animated.View
-            style={[
-              styles.formContainer,
-              {
-                opacity: fadeAnim,
-                transform: [
-                  {
-                    translateY: fadeAnim.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [20, 0],
-                    }),
-                  },
-                ],
-              },
-            ]}
+        {/* Login Form */}
+        <View style={styles.formContainer}>
+          <View style={styles.inputContainer}>
+            <FontAwesome name="envelope" size={20} color={COLORS.neutral.darkGray} style={styles.inputIcon} />
+            <TextInput
+              style={styles.input}
+              placeholder="Email address"
+              placeholderTextColor={COLORS.neutral.darkGray}
+              value={email}
+              onChangeText={setEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+          </View>
+
+          <View style={styles.inputContainer}>
+            <FontAwesome name="lock" size={20} color={COLORS.neutral.darkGray} style={styles.inputIcon} />
+            <TextInput
+              style={styles.input}
+              placeholder="Password"
+              placeholderTextColor={COLORS.neutral.darkGray}
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+          </View>
+
+          <TouchableOpacity 
+            style={styles.loginButton} 
+            onPress={handleLogin} 
+            disabled={isLoading} 
+            activeOpacity={0.8}
           >
-            <Image source={require("../../assets/images/wally_logo.png")} style={styles.logoImage} />
-            <Text style={styles.welcomeTitle}>Welcome to Wally</Text>
-            <Text style={styles.welcomeDescription}>Your AI assistant for expense tracking</Text>
-
-            <View style={styles.inputContainer}>
-              <TextInput
-                style={styles.input}
-                placeholder="Email"
-                placeholderTextColor="rgba(255, 255, 255, 0.7)"
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoCorrect={false}
-              />
-            </View>
-
-            <View style={styles.inputContainer}>
-              <TextInput
-                style={styles.input}
-                placeholder="Password"
-                placeholderTextColor="rgba(255, 255, 255, 0.7)"
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry
-                autoCapitalize="none"
-                autoCorrect={false}
-              />
-            </View>
-
-            <TouchableOpacity 
-              style={styles.loginButton} 
-              onPress={handleLogin} 
-              disabled={isLoading} 
-              activeOpacity={0.9}
+            <LinearGradient
+              colors={COLORS.gradients.pinkBlue}
+              style={styles.buttonGradient}
             >
               {isLoading ? (
-                <ActivityIndicator color="#4C7ED9" size="small" />
+                <ActivityIndicator color={COLORS.neutral.white} size="small" />
               ) : (
-                <Text style={styles.loginButtonText}>Sign In</Text>
+                <Text style={styles.buttonText}>Sign In</Text>
               )}
-            </TouchableOpacity>
+            </LinearGradient>
+          </TouchableOpacity>
 
-            <View style={styles.divider}>
-              <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>or</Text>
-              <View style={styles.dividerLine} />
-            </View>
+          <View style={styles.divider}>
+            <View style={styles.dividerLine} />
+            <Text style={styles.dividerText}>or</Text>
+            <View style={styles.dividerLine} />
+          </View>
 
-            <TouchableOpacity 
-              style={styles.demoButton} 
-              onPress={handleDemoLogin} 
-              disabled={isLoading} 
-              activeOpacity={0.9}
-            >
-              <FontAwesome name="user" size={20} color="#4C7ED9" style={styles.demoIcon} />
-              <Text style={styles.demoButtonText}>Try Demo Account</Text>
-            </TouchableOpacity>
+          <TouchableOpacity 
+            style={styles.demoButton} 
+            onPress={handleDemoLogin} 
+            disabled={isLoading} 
+            activeOpacity={0.8}
+          >
+            <FontAwesome name="user" size={20} color={COLORS.primary.blue} style={styles.demoIcon} />
+            <Text style={styles.demoButtonText}>Try Demo Account</Text>
+          </TouchableOpacity>
+        </View>
 
-            <TouchableOpacity 
-              style={styles.signupLink}
-              onPress={() => router.push("/(auth)/signup")}
-            >
-              <Text style={styles.signupLinkText}>
-                Don't have an account? <Text style={styles.signupLinkBold}>Sign Up</Text>
-              </Text>
-            </TouchableOpacity>
-          </Animated.View>
-        </ScrollView>
-      </LinearGradient>
+        {/* Footer */}
+        <View style={styles.footer}>
+          <TouchableOpacity 
+            style={styles.signupLink}
+            onPress={() => router.push("/(auth)/signup")}
+          >
+            <Text style={styles.signupLinkText}>
+              Don't have an account? <Text style={styles.signupLinkBold}>Sign Up</Text>
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </Animated.View>
     </SafeAreaView>
   );
 }
@@ -210,92 +227,91 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#7FAFF5",
+    backgroundColor: COLORS.neutral.white,
   },
-  logoImage: {
-    width: 60,
-    height: 60,
-    resizeMode: "contain",
-    marginBottom: 20,
-    alignSelf: "center",
+  content: {
+    flex: 1,
+    paddingHorizontal: 24,
+    justifyContent: "space-between",
+  },
+  header: {
+    alignItems: "center",
+    paddingTop: height * 0.08,
+    paddingBottom: 48,
+  },
+  avatar: {
+    marginBottom: 32,
+  },
+  avatarGradient: {
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+  avatarExpression: {
+    color: COLORS.neutral.white,
   },
   welcomeTitle: {
-    fontSize: scaleFontSize(32),
+    fontSize: 28,
     fontWeight: "700",
-    color: "#FFFFFF",
-    marginBottom: 16,
+    color: COLORS.neutral.black,
+    marginBottom: 8,
     textAlign: "center",
-    letterSpacing: 0.5,
   },
-  welcomeDescription: {
-    fontSize: scaleFontSize(16),
-    color: "#FFFFFF",
+  welcomeSubtitle: {
+    fontSize: 16,
+    color: COLORS.neutral.darkGray,
     textAlign: "center",
-    marginBottom: 48,
     lineHeight: 24,
-    maxWidth: 320,
-    alignSelf: "center",
-  },
-  loginFormContainer: {
-    flex: 1,
-  },
-  loginHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: "rgba(255, 255, 255, 0.2)",
-  },
-  loginTitle: {
-    fontSize: scaleFontSize(20),
-    fontWeight: "600",
-    color: "#FFFFFF",
-  },
-  formScrollView: {
-    flex: 1,
-  },
-  formScrollContent: {
-    flexGrow: 1,
-    padding: 24,
   },
   formContainer: {
+    flex: 1,
+    justifyContent: "center",
     maxWidth: 400,
     width: "100%",
     alignSelf: "center",
   },
   inputContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: COLORS.neutral.lightGray,
+    borderRadius: 16,
+    paddingHorizontal: 16,
     marginBottom: 16,
+    height: 56,
+  },
+  inputIcon: {
+    marginRight: 12,
+    opacity: 0.7,
   },
   input: {
-    backgroundColor: "rgba(255, 255, 255, 0.15)",
-    borderRadius: 12,
-    paddingVertical: 16,
-    paddingHorizontal: 16,
-    fontSize: scaleFontSize(16),
-    color: "#FFFFFF",
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.3)",
+    flex: 1,
+    fontSize: 16,
+    color: COLORS.neutral.black,
   },
   loginButton: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 30,
+    marginTop: 8,
+    marginBottom: 24,
+    borderRadius: 16,
+    overflow: "hidden",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  buttonGradient: {
     paddingVertical: 16,
     alignItems: "center",
-    marginTop: 16,
-    elevation: 3,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.15,
-    shadowRadius: 6,
+    justifyContent: "center",
   },
-  loginButtonText: {
-    color: "#4C7ED9",
-    fontSize: scaleFontSize(16),
+  buttonText: {
+    color: COLORS.neutral.white,
+    fontSize: 16,
     fontWeight: "600",
-    letterSpacing: 0.5,
   },
   divider: {
     flexDirection: "row",
@@ -305,44 +321,43 @@ const styles = StyleSheet.create({
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: "rgba(255, 255, 255, 0.3)",
+    backgroundColor: "#E0E0E0",
   },
   dividerText: {
-    color: "#FFFFFF",
-    fontSize: scaleFontSize(14),
+    color: COLORS.neutral.darkGray,
+    fontSize: 14,
     marginHorizontal: 16,
-    opacity: 0.8,
   },
   demoButton: {
-    backgroundColor: "transparent",
-    borderWidth: 2,
-    borderColor: "#FFFFFF",
-    borderRadius: 30,
+    backgroundColor: COLORS.neutral.lightGray,
+    borderRadius: 16,
     paddingVertical: 16,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 16,
   },
   demoIcon: {
     marginRight: 12,
-    color: "#FFFFFF",
   },
   demoButtonText: {
-    color: "#FFFFFF",
-    fontSize: scaleFontSize(16),
+    color: COLORS.primary.blue,
+    fontSize: 16,
     fontWeight: "600",
   },
-  signupLink: {
+  footer: {
+    paddingBottom: 32,
     alignItems: "center",
-    marginTop: 16,
+  },
+  signupLink: {
+    paddingVertical: 16,
   },
   signupLinkText: {
-    fontSize: scaleFontSize(14),
-    color: "rgba(255, 255, 255, 0.8)",
+    fontSize: 14,
+    color: COLORS.neutral.darkGray,
+    textAlign: "center",
   },
   signupLinkBold: {
     fontWeight: "600",
-    color: "#FFFFFF",
+    color: COLORS.primary.blue,
   },
 });

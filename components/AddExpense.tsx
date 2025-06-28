@@ -1,13 +1,14 @@
 import DateTimePicker from "@react-native-community/datetimepicker";
+import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect, useRef, useState } from "react";
 import { Alert, Animated, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { useSelector } from "react-redux";
-import { BudgetColors } from "../app/constants/Colors";
+import COLORS from "../app/constants/Colors";
 import { BudgetCategory, Expense, ExpenseCategory } from "../app/types/budget";
 import { getCurrencySymbol } from "../app/utils/currency";
 import { KeyboardAwareView } from "../app/utils/keyboard";
-import { responsiveMargin, responsivePadding, scaleFontSize } from "../app/utils/responsive";
 import { CategoryItem, selectCategories, selectCurrency } from "../redux/slices/budgetSlice";
+import { FontAwesome } from "@expo/vector-icons";
 
 interface AddExpenseProps {
   onSave?: (expenseData: {
@@ -32,17 +33,24 @@ const AddExpense: React.FC<AddExpenseProps> = ({ onSave, onCancel, isEditing = f
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showIOSModal, setShowIOSModal] = useState(false);
   const datePickerAnim = useRef(new Animated.Value(0)).current;
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+
+  const allCategories = useSelector(selectCategories);
+  const currency = useSelector(selectCurrency);
+
+  useEffect(() => {
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 600,
+      useNativeDriver: true,
+    }).start();
+  }, []);
 
   useEffect(() => {
     const filteredCategories = allCategories.filter((cat) => cat.type === budgetCategory);
     setFilteredCategories(filteredCategories);
-  }, [budgetCategory]);
+  }, [budgetCategory, allCategories]);
 
-  // Get categories from Redux
-  const allCategories = useSelector(selectCategories);
-  const currency = useSelector(selectCurrency);
-
-  // Initialize form values when editing
   useEffect(() => {
     if (isEditing && initialExpense) {
       setAmount(initialExpense.amount.toString());
@@ -53,10 +61,6 @@ const AddExpense: React.FC<AddExpenseProps> = ({ onSave, onCancel, isEditing = f
     }
   }, [isEditing, initialExpense]);
 
-  // Filter categories by budget type
-  // const filteredCategories = allCategories.filter((cat) => cat.type === budgetCategory);
-
-  // Set default category when budget category changes (only for editing flows)
   useEffect(() => {
     if (filteredCategories.length > 0 && !isEditing) {
       setCategory(filteredCategories[0].name);
@@ -65,8 +69,8 @@ const AddExpense: React.FC<AddExpenseProps> = ({ onSave, onCancel, isEditing = f
 
   const formatDate = (date: Date): string => {
     return date.toLocaleDateString("en-US", {
-      month: "2-digit",
-      day: "2-digit",
+      month: "short",
+      day: "numeric",
       year: "numeric",
     });
   };
@@ -74,6 +78,11 @@ const AddExpense: React.FC<AddExpenseProps> = ({ onSave, onCancel, isEditing = f
   const handleSave = () => {
     if (parseFloat(amount) <= 0) {
       Alert.alert("Invalid amount", "Please enter a valid amount.");
+      return;
+    }
+
+    if (!description.trim()) {
+      Alert.alert("Missing description", "Please enter a description for this expense.");
       return;
     }
 
@@ -88,19 +97,16 @@ const AddExpense: React.FC<AddExpenseProps> = ({ onSave, onCancel, isEditing = f
     }
   };
 
-  // Date picker handling
   const onDateChange = (event: any, selectedDate?: Date) => {
     if (selectedDate) {
       setDate(selectedDate);
     }
 
-    // Hide date picker on Android automatically
     if (Platform.OS === "android") {
       setShowDatePicker(false);
     }
   };
 
-  // Show date picker - platform specific
   const showDatepicker = () => {
     if (Platform.OS === "ios") {
       setShowIOSModal(true);
@@ -114,7 +120,6 @@ const AddExpense: React.FC<AddExpenseProps> = ({ onSave, onCancel, isEditing = f
     }
   };
 
-  // For iOS - handle the done button
   const handleIOSDone = () => {
     Animated.timing(datePickerAnim, {
       toValue: 0,
@@ -125,7 +130,6 @@ const AddExpense: React.FC<AddExpenseProps> = ({ onSave, onCancel, isEditing = f
     });
   };
 
-  // For iOS - handle cancel
   const handleIOSCancel = () => {
     Animated.timing(datePickerAnim, {
       toValue: 0,
@@ -136,168 +140,205 @@ const AddExpense: React.FC<AddExpenseProps> = ({ onSave, onCancel, isEditing = f
     });
   };
 
+  const getBudgetCategoryColor = (category: BudgetCategory) => {
+    switch (category) {
+      case "Needs": return COLORS.primary.green;
+      case "Savings": return COLORS.primary.blue;
+      case "Wants": return COLORS.primary.pink;
+      default: return COLORS.primary.blue;
+    }
+  };
+
   return (
     <KeyboardAwareView style={styles.container} keyboardVerticalOffset={10}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={onCancel}>
-          <Text style={styles.backButton}>←</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>{isEditing ? "Edit Expense" : "Add Expense"}</Text>
-      </View>
+      <Animated.View style={[styles.content, { opacity: fadeAnim }]}>
+        {/* Header */}
+        <View style={styles.header}>
+          <TouchableOpacity onPress={onCancel} style={styles.backButton}>
+            <FontAwesome name="arrow-left" size={20} color={COLORS.neutral.darkGray} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>{isEditing ? "Edit Expense" : "Add Expense"}</Text>
+          <View style={styles.headerSpacer} />
+        </View>
 
-      <View style={styles.formSection}>
-        <Text style={styles.sectionLabel}>Amount</Text>
-        <View style={styles.amountInputContainer}>
-          <Text style={styles.currencySymbol}>{getCurrencySymbol(currency)}</Text>
+        {/* Amount Section */}
+        <View style={styles.amountSection}>
+          <Text style={styles.sectionLabel}>Amount</Text>
+          <View style={styles.amountInputContainer}>
+            <Text style={styles.currencySymbol}>{getCurrencySymbol(currency)}</Text>
+            <TextInput
+              autoFocus={true}
+              style={styles.amountInput}
+              value={amount}
+              onChangeText={setAmount}
+              keyboardType="decimal-pad"
+              returnKeyType="done"
+              placeholder="0"
+              placeholderTextColor={COLORS.neutral.darkGray}
+            />
+          </View>
+        </View>
+
+        {/* Description Section */}
+        <View style={styles.formSection}>
+          <Text style={styles.sectionLabel}>Description</Text>
           <TextInput
-            autoFocus={true}
-            style={styles.amountInput}
-            value={amount}
-            onChangeText={setAmount}
-            keyboardType="decimal-pad"
+            style={styles.descriptionInput}
+            value={description}
+            onChangeText={setDescription}
+            placeholder="What was this expense for?"
+            placeholderTextColor={COLORS.neutral.darkGray}
             returnKeyType="done"
+            blurOnSubmit={true}
           />
         </View>
-      </View>
 
-      <View style={styles.formSection}>
-        <Text style={styles.sectionLabel}>Description</Text>
-        <TextInput
-          style={styles.descriptionInput}
-          value={description}
-          onChangeText={setDescription}
-          placeholder="What was this expense for?"
-          placeholderTextColor="#999"
-          returnKeyType="done"
-          blurOnSubmit={true}
-        />
-      </View>
-
-      <View style={styles.formSection}>
-        <Text style={styles.sectionLabel}>Budget Category</Text>
-        <View style={styles.budgetCategoriesContainer}>
-          <TouchableOpacity
-            style={[
-              styles.budgetCategoryButton,
-              budgetCategory === "Needs" && styles.selectedBudgetCategory,
-              { backgroundColor: budgetCategory === "Needs" ? BudgetColors.needs : BudgetColors.needs + "20" },
-            ]}
-            onPress={() => setBudgetCategory("Needs")}
-          >
-            <Text style={[styles.budgetCategoryText, budgetCategory === "Needs" && styles.selectedBudgetCategoryText]}>Needs</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[
-              styles.budgetCategoryButton,
-              budgetCategory === "Savings" && styles.selectedBudgetCategory,
-              { backgroundColor: budgetCategory === "Savings" ? BudgetColors.savings : BudgetColors.savings + "20" },
-            ]}
-            onPress={() => setBudgetCategory("Savings")}
-          >
-            <Text style={[styles.budgetCategoryText, budgetCategory === "Savings" && styles.selectedBudgetCategoryText]}>Savings</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[
-              styles.budgetCategoryButton,
-              budgetCategory === "Wants" && styles.selectedBudgetCategory,
-              { backgroundColor: budgetCategory === "Wants" ? BudgetColors.wants : BudgetColors.wants + "20" },
-            ]}
-            onPress={() => setBudgetCategory("Wants")}
-          >
-            <Text style={[styles.budgetCategoryText, budgetCategory === "Wants" && styles.selectedBudgetCategoryText]}>Wants</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      <View style={styles.formSection}>
-        <Text style={styles.sectionLabel}>Category (Optional)</Text>
-        <View style={styles.categoryGrid}>
-          {filteredCategories.length > 0 ? (
-            filteredCategories.map((option: CategoryItem) => (
+        {/* Budget Category Section */}
+        <View style={styles.formSection}>
+          <Text style={styles.sectionLabel}>Budget Category</Text>
+          <View style={styles.budgetCategoriesContainer}>
+            {(["Needs", "Savings", "Wants"] as BudgetCategory[]).map((cat) => (
               <TouchableOpacity
-                key={option.id}
-                style={[styles.categoryOption, category === option.name && styles.selectedCategory]}
-                onPress={() => setCategory(option.name)}
+                key={cat}
+                style={[
+                  styles.budgetCategoryButton,
+                  budgetCategory === cat && styles.selectedBudgetCategory,
+                ]}
+                onPress={() => setBudgetCategory(cat)}
+                activeOpacity={0.8}
               >
-                <Text style={styles.categoryIcon}>{option.icon}</Text>
-                <Text style={styles.categoryLabel}>{option.name}</Text>
+                <LinearGradient
+                  colors={budgetCategory === cat 
+                    ? [getBudgetCategoryColor(cat), getBudgetCategoryColor(cat)] 
+                    : [COLORS.neutral.lightGray, COLORS.neutral.lightGray]
+                  }
+                  style={styles.budgetCategoryGradient}
+                >
+                  <Text style={[
+                    styles.budgetCategoryText, 
+                    budgetCategory === cat && styles.selectedBudgetCategoryText
+                  ]}>
+                    {cat}
+                  </Text>
+                </LinearGradient>
               </TouchableOpacity>
-            ))
-          ) : (
-            <Text style={styles.noCategoriesText}>No categories found for {budgetCategory}. Please add categories in settings.</Text>
+            ))}
+          </View>
+        </View>
+
+        {/* Category Section */}
+        <View style={styles.formSection}>
+          <Text style={styles.sectionLabel}>Category</Text>
+          <View style={styles.categoryGrid}>
+            {filteredCategories.length > 0 ? (
+              filteredCategories.map((option: CategoryItem) => (
+                <TouchableOpacity
+                  key={option.id}
+                  style={[
+                    styles.categoryOption, 
+                    category === option.name && styles.selectedCategory
+                  ]}
+                  onPress={() => setCategory(option.name)}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.categoryIcon}>{option.icon}</Text>
+                  <Text style={[
+                    styles.categoryLabel,
+                    category === option.name && styles.selectedCategoryLabel
+                  ]}>
+                    {option.name}
+                  </Text>
+                </TouchableOpacity>
+              ))
+            ) : (
+              <Text style={styles.noCategoriesText}>
+                No categories found for {budgetCategory}. Please add categories in settings.
+              </Text>
+            )}
+          </View>
+        </View>
+
+        {/* Date Section */}
+        <View style={styles.formSection}>
+          <Text style={styles.sectionLabel}>Date</Text>
+          <TouchableOpacity style={styles.datePickerButton} onPress={showDatepicker}>
+            <FontAwesome name="calendar" size={20} color={COLORS.primary.blue} />
+            <Text style={styles.dateText}>{formatDate(date)}</Text>
+            <FontAwesome name="chevron-right" size={16} color={COLORS.neutral.darkGray} />
+          </TouchableOpacity>
+
+          {Platform.OS === "android" && showDatePicker && (
+            <DateTimePicker 
+              value={date} 
+              mode="date" 
+              display="default" 
+              onChange={onDateChange} 
+              maximumDate={new Date()} 
+            />
+          )}
+
+          {Platform.OS === "ios" && showIOSModal && (
+            <Animated.View
+              style={[
+                styles.iosModalOverlay,
+                { opacity: datePickerAnim }
+              ]}
+            >
+              <TouchableOpacity style={styles.iosModalBackdrop} onPress={handleIOSCancel} activeOpacity={1}>
+                <Animated.View
+                  style={[
+                    styles.iosDatePickerContainer,
+                    {
+                      transform: [
+                        {
+                          translateY: datePickerAnim.interpolate({
+                            inputRange: [0, 1],
+                            outputRange: [300, 0],
+                          }),
+                        },
+                      ],
+                    },
+                  ]}
+                >
+                  <View style={styles.iosDatePickerHeader}>
+                    <TouchableOpacity onPress={handleIOSCancel}>
+                      <Text style={styles.iosDatePickerButton}>Cancel</Text>
+                    </TouchableOpacity>
+                    <Text style={styles.iosDatePickerTitle}>Select Date</Text>
+                    <TouchableOpacity onPress={handleIOSDone}>
+                      <Text style={[styles.iosDatePickerButton, { color: COLORS.primary.blue }]}>Done</Text>
+                    </TouchableOpacity>
+                  </View>
+                  <View style={styles.datePickerWrapper}>
+                    <DateTimePicker
+                      value={date}
+                      mode="date"
+                      display="spinner"
+                      onChange={onDateChange}
+                      maximumDate={new Date()}
+                      textColor={COLORS.neutral.darkGray}
+                      themeVariant="light"
+                      style={styles.iosDatePicker}
+                    />
+                  </View>
+                </Animated.View>
+              </TouchableOpacity>
+            </Animated.View>
           )}
         </View>
-      </View>
 
-      <View style={styles.formSection}>
-        <Text style={styles.sectionLabel}>Date</Text>
-        <TouchableOpacity style={styles.datePickerButton} onPress={showDatepicker}>
-          <Text style={styles.dateText}>{formatDate(date)}</Text>
-        </TouchableOpacity>
-
-        {/* Android Date Picker */}
-        {Platform.OS === "android" && showDatePicker && (
-          <DateTimePicker value={date} mode="date" display="default" onChange={onDateChange} maximumDate={new Date()} />
-        )}
-
-        {/* iOS Date Picker with modal */}
-        {Platform.OS === "ios" && showIOSModal && (
-          <Animated.View
-            style={[
-              styles.iosModalOverlay,
-              {
-                opacity: datePickerAnim,
-              },
-            ]}
+        {/* Save Button */}
+        <TouchableOpacity style={styles.saveButton} onPress={handleSave} activeOpacity={0.8}>
+          <LinearGradient
+            colors={COLORS.gradients.pinkBlue}
+            style={styles.saveButtonGradient}
           >
-            <TouchableOpacity style={styles.iosModalBackdrop} onPress={handleIOSCancel} activeOpacity={1}>
-              <Animated.View
-                style={[
-                  styles.iosDatePickerContainer,
-                  {
-                    transform: [
-                      {
-                        translateY: datePickerAnim.interpolate({
-                          inputRange: [0, 1],
-                          outputRange: [300, 0],
-                        }),
-                      },
-                    ],
-                  },
-                ]}
-              >
-                <View style={styles.iosDatePickerHeader}>
-                  <TouchableOpacity onPress={handleIOSCancel}>
-                    <Text style={styles.iosDatePickerButton}>Cancel</Text>
-                  </TouchableOpacity>
-                  <Text style={styles.iosDatePickerTitle}>Select Date</Text>
-                  <TouchableOpacity onPress={handleIOSDone}>
-                    <Text style={[styles.iosDatePickerButton, { color: BudgetColors.needs }]}>Done</Text>
-                  </TouchableOpacity>
-                </View>
-                <View style={styles.datePickerWrapper}>
-                  <DateTimePicker
-                    value={date}
-                    mode="date"
-                    display="spinner"
-                    onChange={onDateChange}
-                    maximumDate={new Date()}
-                    textColor="#333"
-                    themeVariant="light"
-                    style={styles.iosDatePicker}
-                  />
-                </View>
-              </Animated.View>
-            </TouchableOpacity>
-          </Animated.View>
-        )}
-      </View>
-
-      <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
-        <Text style={styles.saveButtonText}>{isEditing ? "Update Expense" : "Save Expense"}</Text>
-      </TouchableOpacity>
+            <Text style={styles.saveButtonText}>
+              {isEditing ? "Update Expense" : "Save Expense"}
+            </Text>
+          </LinearGradient>
+        </TouchableOpacity>
+      </Animated.View>
     </KeyboardAwareView>
   );
 };
@@ -305,50 +346,72 @@ const AddExpense: React.FC<AddExpenseProps> = ({ onSave, onCancel, isEditing = f
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F8F9FA",
-    padding: responsivePadding(16),
+    backgroundColor: COLORS.neutral.white,
+  },
+  content: {
+    flex: 1,
+    padding: 24,
   },
   header: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: responsiveMargin(24),
+    justifyContent: "space-between",
+    marginBottom: 32,
   },
   backButton: {
-    fontSize: scaleFontSize(24),
-    marginRight: responsiveMargin(10),
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: COLORS.neutral.lightGray,
+    justifyContent: "center",
+    alignItems: "center",
   },
   headerTitle: {
-    fontSize: scaleFontSize(20),
+    fontSize: 20,
     fontWeight: "600",
+    color: COLORS.neutral.black,
   },
-  formSection: {
-    marginBottom: responsiveMargin(24),
+  headerSpacer: {
+    width: 44,
+  },
+  amountSection: {
+    alignItems: "center",
+    marginBottom: 32,
   },
   sectionLabel: {
-    fontSize: scaleFontSize(16),
-    color: "#666",
-    marginBottom: responsiveMargin(8),
+    fontSize: 16,
+    color: COLORS.neutral.darkGray,
+    marginBottom: 16,
+    fontWeight: "500",
   },
   amountInputContainer: {
     flexDirection: "row",
     alignItems: "center",
-    borderBottomWidth: 1,
-    borderBottomColor: "#ddd",
-    paddingBottom: 8,
+    justifyContent: "center",
   },
   currencySymbol: {
-    fontSize: scaleFontSize(24),
+    fontSize: 32,
+    fontWeight: "600",
+    color: COLORS.neutral.darkGray,
     marginRight: 8,
   },
   amountInput: {
-    fontSize: scaleFontSize(32),
-    flex: 1,
+    fontSize: 48,
+    fontWeight: "700",
+    color: COLORS.neutral.black,
+    textAlign: "center",
+    minWidth: 100,
+  },
+  formSection: {
+    marginBottom: 24,
   },
   descriptionInput: {
-    fontSize: scaleFontSize(16),
-    borderBottomWidth: 1,
-    borderBottomColor: "#ddd",
-    paddingVertical: 8,
+    backgroundColor: COLORS.neutral.lightGray,
+    borderRadius: 16,
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+    fontSize: 16,
+    color: COLORS.neutral.black,
   },
   budgetCategoriesContainer: {
     flexDirection: "row",
@@ -356,24 +419,28 @@ const styles = StyleSheet.create({
   },
   budgetCategoryButton: {
     flex: 1,
-    paddingVertical: responsivePadding(12),
-    borderRadius: 8,
-    alignItems: "center",
     marginHorizontal: 4,
+    borderRadius: 16,
+    overflow: "hidden",
+  },
+  budgetCategoryGradient: {
+    paddingVertical: 16,
+    alignItems: "center",
   },
   selectedBudgetCategory: {
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 1.5,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 4,
   },
   budgetCategoryText: {
-    fontSize: scaleFontSize(14),
+    fontSize: 14,
+    fontWeight: "600",
+    color: COLORS.neutral.darkGray,
   },
   selectedBudgetCategoryText: {
-    color: "white",
-    fontWeight: "500",
+    color: COLORS.neutral.white,
   },
   categoryGrid: {
     flexDirection: "row",
@@ -386,44 +453,62 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   selectedCategory: {
-    backgroundColor: "#f0f0f0",
-    borderRadius: 8,
+    backgroundColor: COLORS.neutral.lightGray,
+    borderRadius: 16,
   },
   categoryIcon: {
-    fontSize: scaleFontSize(24),
-    marginBottom: 4,
+    fontSize: 32,
+    marginBottom: 8,
   },
   categoryLabel: {
-    fontSize: scaleFontSize(12),
+    fontSize: 12,
     textAlign: "center",
+    color: COLORS.neutral.darkGray,
+    fontWeight: "500",
+  },
+  selectedCategoryLabel: {
+    color: COLORS.primary.blue,
+    fontWeight: "600",
   },
   noCategoriesText: {
-    padding: responsivePadding(16),
-    color: "#999",
+    padding: 16,
+    color: COLORS.neutral.darkGray,
     textAlign: "center",
     width: "100%",
+    fontStyle: "italic",
   },
   datePickerButton: {
-    borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 8,
-    paddingVertical: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: COLORS.neutral.lightGray,
+    borderRadius: 16,
+    paddingVertical: 16,
     paddingHorizontal: 16,
   },
   dateText: {
-    fontSize: scaleFontSize(16),
+    fontSize: 16,
+    color: COLORS.neutral.black,
+    flex: 1,
+    marginLeft: 12,
+    fontWeight: "500",
   },
   saveButton: {
-    backgroundColor: BudgetColors.needs,
-    paddingVertical: responsivePadding(16),
-    borderRadius: 8,
+    marginTop: 32,
+    borderRadius: 16,
+    overflow: "hidden",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  saveButtonGradient: {
+    paddingVertical: 16,
     alignItems: "center",
-    marginTop: responsiveMargin(16),
-    marginBottom: responsiveMargin(32),
   },
   saveButtonText: {
-    color: "white",
-    fontSize: scaleFontSize(16),
+    color: COLORS.neutral.white,
+    fontSize: 16,
     fontWeight: "600",
   },
   iosModalOverlay: {
@@ -441,11 +526,11 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
   },
   iosDatePickerContainer: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: COLORS.neutral.white,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    paddingTop: responsivePadding(16),
-    paddingBottom: Platform.OS === "ios" ? 42 : responsivePadding(32),
+    paddingTop: 16,
+    paddingBottom: Platform.OS === "ios" ? 42 : 32,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: -2 },
     shadowOpacity: 0.15,
@@ -456,25 +541,26 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: responsivePadding(20),
-    paddingBottom: responsivePadding(12),
+    paddingHorizontal: 20,
+    paddingBottom: 12,
     borderBottomWidth: 1,
-    borderBottomColor: "#F0F0F0",
+    borderBottomColor: COLORS.neutral.lightGray,
   },
   iosDatePickerTitle: {
-    fontSize: scaleFontSize(18),
+    fontSize: 18,
     fontWeight: "600",
-    color: "#333",
+    color: COLORS.neutral.black,
   },
   iosDatePickerButton: {
-    fontSize: scaleFontSize(16),
-    padding: responsivePadding(4),
+    fontSize: 16,
+    padding: 4,
+    color: COLORS.neutral.darkGray,
   },
   datePickerWrapper: {
     width: "100%",
-    backgroundColor: "#FFFFFF",
+    backgroundColor: COLORS.neutral.white,
     borderRadius: 8,
-    padding: Platform.OS === "ios" ? responsivePadding(8) : 0,
+    padding: Platform.OS === "ios" ? 8 : 0,
     overflow: "hidden",
   },
   iosDatePicker: {
