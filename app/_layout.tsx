@@ -1,3 +1,5 @@
+import { ClerkProvider, useClerk } from "@clerk/clerk-expo";
+import { tokenCache } from "@clerk/clerk-expo/token-cache";
 import { Stack, useRouter } from "expo-router";
 import React, { useEffect } from "react";
 import { ActivityIndicator, StyleSheet, View } from "react-native";
@@ -9,11 +11,14 @@ import { selectIsAuthenticated } from "../redux/slices/userSlice";
 import { selectMonthlyIncome } from "../redux/slices/budgetSlice";
 import { persistor, store } from "../redux/store";
 import { ThemeProvider } from "./components/ThemeProvider";
-import { Colors } from "./constants/Colors"
+import { Colors } from "./constants/Colors";
 import { useFrameworkReady } from '@/hooks/useFrameworkReady';
 
 function AuthContextProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
+
+  const { signOut } = useClerk();
+  signOut();
 
   const isFirstTimeUser = useSelector(selectIsFirstTimeUser);
   const isAuthenticated = useSelector(selectIsAuthenticated);
@@ -44,6 +49,7 @@ function AuthContextProvider({ children }: { children: React.ReactNode }) {
 
 export default function RootLayout() {
   useFrameworkReady();
+  
   return (
     <GestureHandlerRootView style={styles.container}>
       <Provider store={store}>
@@ -56,54 +62,56 @@ export default function RootLayout() {
           persistor={persistor}
         >
           <ThemeProvider>
-            <AuthContextProvider>
-              <Stack
-                screenOptions={{
-                  headerShown: false,
-                }}
-              >
-                <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-                <Stack.Screen name="(onboarding)" options={{ headerShown: false }} />
-                <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-                <Stack.Screen
-                  name="(modals)/add-expense"
-                  options={{
-                    presentation: "modal",
-                    animation: "slide_from_bottom",
-                  }}
-                />
-                <Stack.Screen
-                  name="(modals)/edit-expense"
-                  options={{
-                    presentation: "modal",
-                    animation: "slide_from_bottom",
-                  }}
-                />
-                <Stack.Screen
-                  name="(modals)/notifications"
-                  options={{
-                    presentation: "modal",
-                    animation: "slide_from_bottom",
-                  }}
-                />
-                <Stack.Screen
-                  name="(modals)/privacy"
-                  options={{
-                    presentation: "modal",
-                    animation: "slide_from_bottom",
-                  }}
-                />
-                <Stack.Screen
-                  name="(details)"
-                  options={{
+            <ClerkProvider tokenCache={tokenCache}>
+              <AuthContextProvider>
+                <Stack
+                  screenOptions={{
                     headerShown: false,
-                    animation: "slide_from_right",
                   }}
-                />
-                <Stack.Screen name="welcome" options={{ headerShown: false }} />
-                <Stack.Screen name="+not-found" />
-              </Stack>
-            </AuthContextProvider>
+                >
+                  <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+                  <Stack.Screen name="(onboarding)" options={{ headerShown: false }} />
+                  <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                  <Stack.Screen
+                    name="(modals)/add-expense"
+                    options={{
+                      presentation: "modal",
+                      animation: "slide_from_bottom",
+                    }}
+                  />
+                  <Stack.Screen
+                    name="(modals)/edit-expense"
+                    options={{
+                      presentation: "modal",
+                      animation: "slide_from_bottom",
+                    }}
+                  />
+                  <Stack.Screen
+                    name="(modals)/notifications"
+                    options={{
+                      presentation: "modal",
+                      animation: "slide_from_bottom",
+                    }}
+                  />
+                  <Stack.Screen
+                    name="(modals)/privacy"
+                    options={{
+                      presentation: "modal",
+                      animation: "slide_from_bottom",
+                    }}
+                  />
+                  <Stack.Screen
+                    name="(details)"
+                    options={{
+                      headerShown: false,
+                      animation: "slide_from_right",
+                    }}
+                  />
+                  <Stack.Screen name="welcome" options={{ headerShown: false }} />
+                  <Stack.Screen name="+not-found" />
+                </Stack>
+              </AuthContextProvider>
+            </ClerkProvider>
           </ThemeProvider>
         </PersistGate>
       </Provider>

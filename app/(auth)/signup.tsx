@@ -1,38 +1,20 @@
+import { useSignUp, useSSO } from "@clerk/clerk-expo";
 import { FontAwesome } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import React, { useEffect, useRef, useState } from "react";
-import { 
-  Alert, 
-  Animated, 
-  Image, 
-  SafeAreaView, 
-  StatusBar, 
-  StyleSheet, 
-  Text, 
-  TextInput, 
-  TouchableOpacity, 
-  View,
-  ActivityIndicator,
-  ScrollView
-} from "react-native";
-import { useDispatch } from "react-redux";
-import { login, setIsAuthenticated } from "../../redux/slices/userSlice";
+import React, { useEffect, useRef } from "react";
+import { Alert, Animated, Image, SafeAreaView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { scaleFontSize } from "../utils/responsive";
 
 export default function SignupScreen() {
   const router = useRouter();
-  const dispatch = useDispatch();
+  const { isLoaded, setActive } = useSignUp();
+  const { startSSOFlow: startGoogleOAuthFlow } = useSSO();
+  const { startSSOFlow: startAppleOAuthFlow } = useSSO();
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
   const scaleAnim = useRef(new Animated.Value(0.95)).current;
-
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [fullName, setFullName] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     Animated.parallel([
@@ -54,44 +36,35 @@ export default function SignupScreen() {
     ]).start();
   }, []);
 
-  const handleSignup = async () => {
-    if (!email.trim() || !password.trim() || !fullName.trim()) {
-      Alert.alert("Error", "Please fill in all fields");
-      return;
-    }
+  const handleGoogleSignIn = async () => {
+    if (!isLoaded) return;
 
-    if (password !== confirmPassword) {
-      Alert.alert("Error", "Passwords do not match");
-      return;
-    }
-
-    if (password.length < 6) {
-      Alert.alert("Error", "Password must be at least 6 characters long");
-      return;
-    }
-
-    setIsLoading(true);
-    
     try {
-      // Simulate signup process
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Create user data
-      const userData = {
-        userId: Date.now().toString(),
-        username: email.split("@")[0],
-        email: email,
-        token: "signup_token_" + Date.now(),
-      };
+      const { createdSessionId } = await startGoogleOAuthFlow({ strategy: "oauth_google" });
 
-      dispatch(login(userData));
-      dispatch(setIsAuthenticated(true));
-      router.replace("/welcome");
+      if (createdSessionId) {
+        await setActive({ session: createdSessionId });
+        router.replace("/welcome");
+      }
     } catch (error) {
-      console.error("Signup error:", error);
-      Alert.alert("Signup Error", "There was a problem creating your account. Please try again.");
-    } finally {
-      setIsLoading(false);
+      console.error("Google sign in error:", error);
+      Alert.alert("Google Sign In Error", "There was a problem signing in with Google.");
+    }
+  };
+
+  const handleAppleSignIn = async () => {
+    if (!isLoaded) return;
+
+    try {
+      const { createdSessionId } = await startAppleOAuthFlow({ strategy: "oauth_apple" });
+
+      if (createdSessionId) {
+        await setActive({ session: createdSessionId });
+        router.replace("/welcome");
+      }
+    } catch (error) {
+      console.error("Apple sign in error:", error);
+      Alert.alert("Apple Sign In Error", "There was a problem signing in with Apple.");
     }
   };
 
@@ -107,99 +80,43 @@ export default function SignupScreen() {
           <View style={{ width: 20 }} />
         </View>
 
-        <ScrollView style={styles.formScrollView} contentContainerStyle={styles.formScrollContent} showsVerticalScrollIndicator={false}>
-          <Animated.View
-            style={[
-              styles.formContainer,
-              {
-                opacity: fadeAnim,
-                transform: [
-                  {
-                    translateY: fadeAnim.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [20, 0],
-                    }),
-                  },
-                ],
-              },
-            ]}
-          >
-            <Image source={require("../../assets/images/wally_logo.png")} style={styles.logoImage} />
-            <Text style={styles.welcomeTitle}>Welcome to Wally</Text>
-            <Text style={styles.welcomeDescription}>Your AI assistant for expense tracking</Text>
+        <Animated.View
+          style={[
+            styles.formContainer,
+            {
+              opacity: fadeAnim,
+              transform: [
+                {
+                  translateY: fadeAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [20, 0],
+                  }),
+                },
+              ],
+            },
+          ]}
+        >
+          <Image source={require("../../assets/images/wally_logo.png")} style={styles.logoImage} />
+          <Text style={styles.welcomeTitle}>Welcome to Wally</Text>
+          <Text style={styles.welcomeDescription}>Your AI assistant for expense tracking</Text>
 
-            <View style={styles.inputContainer}>
-              <TextInput
-                style={styles.input}
-                placeholder="Full Name"
-                placeholderTextColor="rgba(255, 255, 255, 0.7)"
-                value={fullName}
-                onChangeText={setFullName}
-                autoCapitalize="words"
-                autoCorrect={false}
-              />
-            </View>
+          <TouchableOpacity style={styles.socialButton} onPress={handleGoogleSignIn} activeOpacity={0.7}>
+            <FontAwesome name="google" size={20} color="#FFFFFF" style={styles.socialIcon} />
+            <Text style={styles.socialButtonText}>Continue with Google</Text>
+          </TouchableOpacity>
 
-            <View style={styles.inputContainer}>
-              <TextInput
-                style={styles.input}
-                placeholder="Email"
-                placeholderTextColor="rgba(255, 255, 255, 0.7)"
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoCorrect={false}
-              />
-            </View>
+          <TouchableOpacity style={styles.socialButton} onPress={handleAppleSignIn} activeOpacity={0.7}>
+            <FontAwesome name="apple" size={20} color="#FFFFFF" style={styles.socialIcon} />
+            <Text style={styles.socialButtonText}>Continue with Apple</Text>
+          </TouchableOpacity>
 
-            <View style={styles.inputContainer}>
-              <TextInput
-                style={styles.input}
-                placeholder="Password"
-                placeholderTextColor="rgba(255, 255, 255, 0.7)"
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry
-                autoCapitalize="none"
-                autoCorrect={false}
-              />
-            </View>
-
-            <View style={styles.inputContainer}>
-              <TextInput
-                style={styles.input}
-                placeholder="Confirm Password"
-                placeholderTextColor="rgba(255, 255, 255, 0.7)"
-                value={confirmPassword}
-                onChangeText={setConfirmPassword}
-                secureTextEntry
-                autoCapitalize="none"
-                autoCorrect={false}
-              />
-            </View>
-
-            <TouchableOpacity 
-              style={styles.signupButton} 
-              onPress={handleSignup} 
-              disabled={isLoading} 
-              activeOpacity={0.9}
-            >
-              {isLoading ? (
-                <ActivityIndicator color="#4C7ED9" size="small" />
-              ) : (
-                <Text style={styles.signupButtonText}>Create Account</Text>
-              )}
+          <View style={styles.loginLinkContainer}>
+            <Text style={styles.haveAccountText}>Already have an account? </Text>
+            <TouchableOpacity onPress={() => router.push("/(auth)/login")}>
+              <Text style={styles.loginLink}>Sign In</Text>
             </TouchableOpacity>
-
-            <View style={styles.loginLinkContainer}>
-              <Text style={styles.haveAccountText}>Already have an account? </Text>
-              <TouchableOpacity onPress={() => router.push("/(auth)/login")}>
-                <Text style={styles.loginLink}>Sign In</Text>
-              </TouchableOpacity>
-            </View>
-          </Animated.View>
-        </ScrollView>
+          </View>
+        </Animated.View>
       </LinearGradient>
     </SafeAreaView>
   );
@@ -255,50 +172,32 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#FFFFFF",
   },
-  formScrollView: {
-    flex: 1,
-  },
-  formScrollContent: {
-    flexGrow: 1,
-    padding: 24,
-  },
   formContainer: {
     flex: 1,
     justifyContent: "center",
     maxWidth: 400,
     width: "100%",
     alignSelf: "center",
+    paddingHorizontal: 24,
   },
-  inputContainer: {
-    marginBottom: 16,
-  },
-  input: {
-    backgroundColor: "rgba(255, 255, 255, 0.15)",
-    borderRadius: 12,
-    paddingVertical: 16,
-    paddingHorizontal: 16,
-    fontSize: scaleFontSize(16),
-    color: "#FFFFFF",
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.3)",
-  },
-  signupButton: {
-    backgroundColor: "#FFFFFF",
+  socialButton: {
+    backgroundColor: "transparent",
+    borderWidth: 2,
+    borderColor: "#FFFFFF",
     borderRadius: 30,
     paddingVertical: 16,
+    flexDirection: "row",
     alignItems: "center",
-    marginTop: 16,
-    elevation: 3,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.15,
-    shadowRadius: 6,
+    justifyContent: "center",
+    marginBottom: 16,
   },
-  signupButtonText: {
-    color: "#4C7ED9",
+  socialIcon: {
+    marginRight: 12,
+  },
+  socialButtonText: {
+    color: "#FFFFFF",
     fontSize: scaleFontSize(16),
     fontWeight: "600",
-    letterSpacing: 0.5,
   },
   loginLinkContainer: {
     flexDirection: "row",

@@ -1,3 +1,4 @@
+import { useSSO, useUser } from "@clerk/clerk-expo";
 import { FontAwesome } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
@@ -6,220 +7,168 @@ import {
   ActivityIndicator,
   Alert,
   Animated,
-  Dimensions,
+  Image,
   SafeAreaView,
+  ScrollView,
   StatusBar,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
 import { useDispatch } from "react-redux";
-import { login, setIsAuthenticated } from "../../redux/slices/userSlice";
-import COLORS from "../constants/Colors";
-
-const { width, height } = Dimensions.get("window");
-
-// Emotional Avatar Component
-const EmotionalAvatar = ({ size = 120 }: { size?: number }) => {
-  return (
-    <View style={[styles.avatar, { width: size, height: size }]}>
-      <LinearGradient
-        colors={COLORS.gradients.pinkBlue}
-        style={[styles.avatarGradient, { width: size, height: size, borderRadius: size / 2 }]}
-      >
-        <Text style={[styles.avatarExpression, { fontSize: size * 0.4 }]}>
-          😊
-        </Text>
-      </LinearGradient>
-    </View>
-  );
-};
+import { login, oauthLogin, setIsAuthenticated } from "../../redux/slices/userSlice";
+import { scaleFontSize } from "../utils/responsive";
 
 export default function LoginScreen() {
   const router = useRouter();
+  const { startSSOFlow: startGoogleOAuthFlow } = useSSO();
+  const { user } = useUser();
   const dispatch = useDispatch();
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(50)).current;
-  const scaleAnim = useRef(new Animated.Value(0.8)).current;
+  const slideAnim = useRef(new Animated.Value(30)).current;
+  const scaleAnim = useRef(new Animated.Value(0.95)).current;
 
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
-        duration: 1000,
+        duration: 600,
         useNativeDriver: true,
       }),
       Animated.timing(slideAnim, {
         toValue: 0,
-        duration: 1000,
+        duration: 600,
         useNativeDriver: true,
       }),
       Animated.timing(scaleAnim, {
         toValue: 1,
-        duration: 1000,
+        duration: 600,
         useNativeDriver: true,
       }),
     ]).start();
   }, []);
 
-  const handleLogin = async () => {
-    if (!email.trim() || !password.trim()) {
-      Alert.alert("Error", "Please enter both email and password");
-      return;
-    }
+  const saveUserToRedux = async (userId: string, authProvider = "email") => {
+    if (!user || !userId) return;
 
+    try {
+      const emailAddress = user.emailAddresses?.[0]?.emailAddress || "";
+      const username = user.username || emailAddress.split("@")[0] || "";
+
+      // Get token with appropriate fallbacks
+      let token = "";
+      try {
+        // @ts-ignore - getToken exists but type definition may be missing
+        token = await user.getToken();
+      } catch (error) {
+        console.log("Error getting token", error);
+      }
+
+      const userData = {
+        userId,
+        username,
+        email: emailAddress,
+        token,
+      };
+
+      if (authProvider === "email") {
+        dispatch(login(userData));
+      } else if (authProvider === "google" || authProvider === "apple") {
+        dispatch(
+          oauthLogin({
+            ...userData,
+            fullName: `${user.firstName || ""} ${user.lastName || ""}`.trim(),
+            avatar: user.imageUrl || "",
+            provider: authProvider as "google" | "apple",
+          })
+        );
+      }
+    } catch (error) {
+      console.error("Error saving user to Redux:", error);
+    }
+  };
+
+
+  const handleGoogleSignIn = async () => {
     setIsLoading(true);
     
     try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      const userData = {
-        userId: Date.now().toString(),
-        username: email.split("@")[0],
-        email: email,
-        token: "demo_token_" + Date.now(),
-      };
+      const result = await startGoogleOAuthFlow({ strategy: "oauth_google" });
+      const { createdSessionId } = result;
 
-      dispatch(login(userData));
-      dispatch(setIsAuthenticated(true));
-      router.replace("/(tabs)");
+      if (createdSessionId) {
+        dispatch(setIsAuthenticated(true));
+        console.log("createdSessionId google", createdSessionId);
+        // await setActive({ session: createdSessionId });
+
+        // Save user details to Redux
+        // @ts-ignore - firstFactorVerification may exist but type definition is missing
+        const userId = result.firstFactorVerification?.userId || user?.id || "";
+        await saveUserToRedux(userId, "google");
+
+        router.replace("/(tabs)");
+      }
     } catch (error) {
-      console.error("Login error:", error);
-      Alert.alert("Login Error", "There was a problem signing in. Please try again.");
+      console.error("Google sign in error:", error);
+      Alert.alert("Google Sign In Error", "There was a problem signing in with Google.");
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleDemoLogin = async () => {
-    setIsLoading(true);
-    
-    try {
-      const userData = {
-        userId: "demo_user_123",
-        username: "demo_user",
-        email: "demo@wally.app",
-        token: "demo_token_123",
-      };
 
-      dispatch(login(userData));
-      dispatch(setIsAuthenticated(true));
-      router.replace("/(tabs)");
-    } catch (error) {
-      console.error("Demo login error:", error);
-      Alert.alert("Login Error", "There was a problem with demo login.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const renderLoginForm = () => (
+    <LinearGradient colors={["#7FAFF5", "#7FAFF5"]} style={styles.loginFormContainer}>
+      <View style={styles.loginHeader}>
+        <View style={{ width: 20 }} />
+        <Text style={styles.loginTitle}>Sign In</Text>
+        <View style={{ width: 20 }} />
+      </View>
+
+      <ScrollView style={styles.formScrollView} contentContainerStyle={styles.formScrollContent} showsVerticalScrollIndicator={false}>
+        <Animated.View
+          style={[
+            styles.formContainer,
+            {
+              opacity: fadeAnim,
+              transform: [
+                {
+                  translateY: fadeAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [20, 0],
+                  }),
+                },
+              ],
+            },
+          ]}
+        >
+          <Image source={require("../../assets/images/wally_logo.png")} style={styles.logoImage} />
+          <Text style={styles.welcomeTitle}>Welcome to Wally</Text>
+          <Text style={styles.welcomeDescription}>Your AI assistant for expense tracking</Text>
+
+          <TouchableOpacity style={styles.googleButton} onPress={handleGoogleSignIn} disabled={isLoading} activeOpacity={0.9}>
+            {isLoading ? (
+              <ActivityIndicator color="#4C7ED9" size="small" />
+            ) : (
+              <>
+                <FontAwesome name="google" size={20} color="#4C7ED9" style={styles.googleIcon} />
+                <Text style={styles.googleButtonText}>Continue with Google</Text>
+              </>
+            )}
+          </TouchableOpacity>
+        </Animated.View>
+      </ScrollView>
+    </LinearGradient>
+  );
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor={COLORS.neutral.white} />
-      
-      <Animated.View 
-        style={[
-          styles.content,
-          {
-            opacity: fadeAnim,
-            transform: [
-              { translateY: slideAnim },
-              { scale: scaleAnim }
-            ]
-          }
-        ]}
-      >
-        {/* Header with Avatar */}
-        <View style={styles.header}>
-          <EmotionalAvatar size={120} />
-          <Text style={styles.welcomeTitle}>Welcome to Wally</Text>
-          <Text style={styles.welcomeSubtitle}>Your wellness-focused finance companion</Text>
-        </View>
-
-        {/* Login Form */}
-        <View style={styles.formContainer}>
-          <View style={styles.inputContainer}>
-            <FontAwesome name="envelope" size={20} color={COLORS.neutral.darkGray} style={styles.inputIcon} />
-            <TextInput
-              style={styles.input}
-              placeholder="Email address"
-              placeholderTextColor={COLORS.neutral.darkGray}
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoCorrect={false}
-            />
-          </View>
-
-          <View style={styles.inputContainer}>
-            <FontAwesome name="lock" size={20} color={COLORS.neutral.darkGray} style={styles.inputIcon} />
-            <TextInput
-              style={styles.input}
-              placeholder="Password"
-              placeholderTextColor={COLORS.neutral.darkGray}
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-              autoCapitalize="none"
-              autoCorrect={false}
-            />
-          </View>
-
-          <TouchableOpacity 
-            style={styles.loginButton} 
-            onPress={handleLogin} 
-            disabled={isLoading} 
-            activeOpacity={0.8}
-          >
-            <LinearGradient
-              colors={COLORS.gradients.pinkBlue}
-              style={styles.buttonGradient}
-            >
-              {isLoading ? (
-                <ActivityIndicator color={COLORS.neutral.white} size="small" />
-              ) : (
-                <Text style={styles.buttonText}>Sign In</Text>
-              )}
-            </LinearGradient>
-          </TouchableOpacity>
-
-          <View style={styles.divider}>
-            <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>or</Text>
-            <View style={styles.dividerLine} />
-          </View>
-
-          <TouchableOpacity 
-            style={styles.demoButton} 
-            onPress={handleDemoLogin} 
-            disabled={isLoading} 
-            activeOpacity={0.8}
-          >
-            <FontAwesome name="user" size={20} color={COLORS.primary.blue} style={styles.demoIcon} />
-            <Text style={styles.demoButtonText}>Try Demo Account</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Footer */}
-        <View style={styles.footer}>
-          <TouchableOpacity 
-            style={styles.signupLink}
-            onPress={() => router.push("/(auth)/signup")}
-          >
-            <Text style={styles.signupLinkText}>
-              Don't have an account? <Text style={styles.signupLinkBold}>Sign Up</Text>
-            </Text>
-          </TouchableOpacity>
-        </View>
-      </Animated.View>
+      <StatusBar barStyle="light-content" />
+      {renderLoginForm()}
     </SafeAreaView>
   );
 }
@@ -227,137 +176,105 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.neutral.white,
+    backgroundColor: "#7FAFF5",
   },
-  content: {
+  logoImage: {
+    width: 60,
+    height: 60,
+    resizeMode: "contain",
+    marginBottom: 20,
+    alignSelf: "center",
+  },
+
+  welcomeContainer: {
     flex: 1,
-    paddingHorizontal: 24,
     justifyContent: "space-between",
+    paddingVertical: 40,
   },
-  header: {
-    alignItems: "center",
-    paddingTop: height * 0.08,
-    paddingBottom: 48,
-  },
-  avatar: {
-    marginBottom: 32,
-  },
-  avatarGradient: {
+  welcomeContent: {
+    flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.15,
-    shadowRadius: 16,
-    elevation: 8,
-  },
-  avatarExpression: {
-    color: COLORS.neutral.white,
+    paddingHorizontal: 30,
   },
   welcomeTitle: {
-    fontSize: 28,
+    fontSize: scaleFontSize(32),
     fontWeight: "700",
-    color: COLORS.neutral.black,
-    marginBottom: 8,
+    color: "#FFFFFF",
+    marginBottom: 16,
     textAlign: "center",
+    letterSpacing: 0.5,
   },
-  welcomeSubtitle: {
-    fontSize: 16,
-    color: COLORS.neutral.darkGray,
+  welcomeDescription: {
+    fontSize: scaleFontSize(16),
+    color: "#FFFFFF",
     textAlign: "center",
+    marginBottom: 48,
     lineHeight: 24,
+    maxWidth: 320,
+    alignSelf: "center",
   },
-  formContainer: {
+  welcomeButtonContainer: {
+    paddingHorizontal: 30,
+    width: "100%",
+    marginBottom: 50,
+  },
+
+  loginFormContainer: {
     flex: 1,
-    justifyContent: "center",
+  },
+  loginHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(255, 255, 255, 0.2)",
+  },
+  backButton: {
+    padding: 10,
+  },
+  loginTitle: {
+    fontSize: scaleFontSize(20),
+    fontWeight: "600",
+    color: "#FFFFFF",
+  },
+  formScrollView: {
+    flex: 1,
+  },
+  formScrollContent: {
+    flexGrow: 1,
+    padding: 24,
+  },
+
+  formContainer: {
     maxWidth: 400,
     width: "100%",
     alignSelf: "center",
   },
-  inputContainer: {
+  googleButton: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 30,
+    paddingVertical: 16,
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: COLORS.neutral.lightGray,
-    borderRadius: 16,
-    paddingHorizontal: 16,
-    marginBottom: 16,
-    height: 56,
-  },
-  inputIcon: {
-    marginRight: 12,
-    opacity: 0.7,
-  },
-  input: {
-    flex: 1,
-    fontSize: 16,
-    color: COLORS.neutral.black,
-  },
-  loginButton: {
-    marginTop: 8,
-    marginBottom: 24,
-    borderRadius: 16,
-    overflow: "hidden",
+    justifyContent: "center",
+    marginTop: 32,
+    elevation: 3,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowRadius: 6,
   },
-  buttonGradient: {
-    paddingVertical: 16,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  buttonText: {
-    color: COLORS.neutral.white,
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  divider: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginVertical: 24,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: "#E0E0E0",
-  },
-  dividerText: {
-    color: COLORS.neutral.darkGray,
-    fontSize: 14,
-    marginHorizontal: 16,
-  },
-  demoButton: {
-    backgroundColor: COLORS.neutral.lightGray,
-    borderRadius: 16,
-    paddingVertical: 16,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  demoIcon: {
+  googleIcon: {
     marginRight: 12,
   },
-  demoButtonText: {
-    color: COLORS.primary.blue,
-    fontSize: 16,
+  googleButtonText: {
+    color: "#4C7ED9",
+    fontSize: scaleFontSize(16),
     fontWeight: "600",
-  },
-  footer: {
-    paddingBottom: 32,
-    alignItems: "center",
-  },
-  signupLink: {
-    paddingVertical: 16,
-  },
-  signupLinkText: {
-    fontSize: 14,
-    color: COLORS.neutral.darkGray,
-    textAlign: "center",
-  },
-  signupLinkBold: {
-    fontWeight: "600",
-    color: COLORS.primary.blue,
+    letterSpacing: 0.5,
   },
 });

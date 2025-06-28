@@ -1,78 +1,70 @@
 /**
- * WellFin Design System Colors
- * Beautiful, modern color palette for wellness-finance hybrid app
+ * Color scheme for a budget/expenses app.
+ * These colors are used in both light and dark modes.
  */
+// "#4CD080", "#3DB26E",
+// "#7FAFF5", "#4C7ED9"
+// Primary colors (Budget categories)
+// "#7FAFF5", "#4C7ED9"
+const MAIN_COLOR = "#7FAFF5";
+const SECONDARY_COLOR = "#4C7ED9";
+const primaryNeeds = "#3DB26E"; // Green for "Needs" category
+const primarySavings = "#FF9C36"; // Orange for "Savings" category
+const primaryWants = "#605BFF"; // Purple-blue for "Wants" category
 
-const COLORS = {
-  // Primary Colors
-  primary: {
-    pink: "#FF69B4",
-    blue: "#4A90E2", 
-    green: "#7ED321",
-  },
-  
-  // Secondary Colors
-  secondary: {
-    lightPink: "#FFB6C1",
-    lightBlue: "#87CEEB", 
-    lightGreen: "#98FB98",
-  },
-  
-  // Neutral Colors
-  neutral: {
-    white: "#FFFFFF",
-    lightGray: "#F5F5F5",
-    darkGray: "#333333",
-    black: "#000000",
-  },
-  
-  // Semantic Colors
-  semantic: {
-    success: "#50E3C2",
-    warning: "#F5A623", 
-    error: "#D0021B",
-    info: "#4A90E2",
-  },
-  
-  // Gradients
-  gradients: {
-    pinkBlue: ["#FF69B4", "#4A90E2"],
-    blueGreen: ["#4A90E2", "#7ED321"],
-    lightPink: ["#FFB6C1", "#FF69B4"],
-    wellness: ["#87CEEB", "#98FB98"],
-  }
-};
+// Background colors
+const backgroundLight = "#F8F9FA";
+const backgroundDark = "#121212"; // Dark background for dark mode
+
+// Text colors
+const textLight = "#333333";
+const textDark = "#E2E8F0";
+
+// Card colors
+const cardLight = "#FFFFFF";
+const cardDark = "#1E1E1E";
+
+// Border colors
+const borderLight = "#E2E8F0";
+const borderDark = "#2D3748";
+
+// Category colors (for items within categories)
+const categoryFood = "#FF6B6B"; // Red for food
+const categoryClothing = "#5EABEF"; // Blue for clothing
+const categoryHousing = "#3DB26E"; // Green for housing
+const categoryTransport = "#FFD166"; // Yellow for transport
+const categoryHealth = "#B980F0"; // Purple for health
 
 export const Colors = {
   light: {
-    main: COLORS.primary.blue,
-    secondary: COLORS.primary.pink,
-    text: COLORS.neutral.darkGray,
-    background: COLORS.neutral.white,
-    tint: COLORS.primary.blue,
-    accent: COLORS.primary.green,
+    main: MAIN_COLOR,
+    secondary: SECONDARY_COLOR,
+    text: textLight,
+    background: backgroundLight,
+    tint: primaryNeeds,
+    accent: primarySavings,
     icon: "#687076",
     tabIconDefault: "#687076",
-    tabIconSelected: COLORS.primary.blue,
-    card: COLORS.neutral.white,
-    border: "#E2E8F0",
+    tabIconSelected: primaryNeeds,
+    card: cardLight,
+    border: borderLight,
     shadow: "rgba(0, 0, 0, 0.1)",
     inputBackground: "#F1F5F9",
     placeholder: "#94A3B8",
     muted: "#64748B",
   },
   dark: {
-    main: COLORS.primary.blue,
-    secondary: COLORS.primary.pink,
-    text: "#E2E8F0",
-    background: "#121212",
-    tint: COLORS.primary.blue,
-    accent: COLORS.primary.green,
+    main: MAIN_COLOR,
+    secondary: SECONDARY_COLOR,
+    text: textDark,
+    background: backgroundDark,
+    tint: primaryNeeds,
+    accent: primarySavings,
     icon: "#9BA1A6",
-    tabIconDefault: "#9BA1A6", 
-    tabIconSelected: COLORS.primary.blue,
-    card: "#1E1E1E",
-    border: "#2D3748",
+    tabIconDefault: "#9BA1A6",
+    tabIconSelected: primaryNeeds,
+    card: cardDark,
+    border: borderDark,
     shadow: "rgba(0, 0, 0, 0.3)",
     inputBackground: "#2D3748",
     placeholder: "#64748B",
@@ -82,29 +74,27 @@ export const Colors = {
 
 // Budget-related colors
 export const BudgetColors = {
-  needs: COLORS.primary.green,
-  savings: COLORS.primary.blue,
-  wants: COLORS.primary.pink,
+  needs: primaryNeeds,
+  savings: primarySavings,
+  wants: primaryWants,
   categories: {
-    food: "#FF6B6B",
-    clothing: "#4ECDC4", 
-    housing: COLORS.primary.green,
-    transport: "#FFD166",
-    health: "#B980F0",
+    food: categoryFood,
+    clothing: categoryClothing,
+    housing: categoryHousing,
+    transport: categoryTransport,
+    health: categoryHealth,
     more: "#A0AEC0",
   },
 };
 
 // Additional colors for UI elements
 export const AdditionalColors = {
-  success: COLORS.semantic.success,
-  warning: COLORS.semantic.warning,
-  error: COLORS.semantic.error,
-  info: COLORS.semantic.info,
+  success: primaryNeeds,
+  warning: "#FBBF24",
+  error: "#F87171",
+  info: "#60A5FA",
   gradient: {
-    start: COLORS.primary.pink,
-    end: COLORS.primary.blue,
+    start: primaryNeeds,
+    end: primarySavings,
   },
 };
-
-export default COLORS;
